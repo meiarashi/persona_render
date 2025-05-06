@@ -482,16 +482,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!settings) {
             console.warn("Output settings are undefined, cannot update button visibility.");
-            // Optionally hide all if settings are missing
             if (pdfBtn) pdfBtn.style.display = 'none';
             if (pptBtn) pptBtn.style.display = 'none';
             if (gslideBtn) gslideBtn.style.display = 'none';
             return;
         }
 
-        if (pdfBtn) pdfBtn.style.display = settings.pdf ? 'inline-block' : 'none';
-        if (pptBtn) pptBtn.style.display = settings.ppt ? 'inline-block' : 'none';
-        if (gslideBtn) gslideBtn.style.display = settings.gslide ? 'inline-block' : 'none';
+        // バックエンドAPIが返すキー名に合わせて修正
+        if (pdfBtn) pdfBtn.style.display = settings.output_pdf_enabled ? 'inline-block' : 'none';
+        if (pptBtn) pptBtn.style.display = settings.output_ppt_enabled ? 'inline-block' : 'none';
+        if (gslideBtn) gslideBtn.style.display = settings.output_gslide_enabled ? 'inline-block' : 'none';
     }
 
 }); 
