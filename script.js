@@ -84,6 +84,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     function getFormData() {
         const formData = new FormData(multiStepForm);
         const data = {};
+        
+        // === デバッグログ追加 START ===
+        const selectedSettingTypeRadio = document.querySelector('input[name="setting_type"]:checked');
+        if (selectedSettingTypeRadio) {
+            console.log("--- DEBUG JS: Selected setting_type radio value: ", selectedSettingTypeRadio.value);
+        } else {
+            console.log("--- DEBUG JS: No setting_type radio selected.");
+        }
+        // === デバッグログ追加 END ===
+
         // Collect data from all steps
         formData.forEach((value, key) => {
             // Handle multiple values for the same key (like additional fields)
