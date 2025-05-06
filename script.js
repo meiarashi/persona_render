@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 3. Send data to backend
         try {
             // Use the correct URL for the Flask backend
-            const apiUrl = 'http://127.0.0.1:5000/api/generate'; 
+            const apiUrl = '/api/generate'; // Changed to relative path
             
             const response = await fetch(apiUrl, {
                 method: 'POST',
