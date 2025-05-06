@@ -206,9 +206,26 @@ def serve_admin():
 # --- API Endpoints --- 
 @app.route('/api/generate', methods=['POST'])
 def generate_persona():
-    data = request.json
-    if not data:
+    data_from_frontend = request.json
+    if not data_from_frontend:
         return jsonify({"error": "No data provided"}), 400
+
+    # profile_data は、プロンプト生成とレスポンスの 'profile' 部分の両方に使用するデータ
+    profile_data = data_from_frontend.copy() 
+
+    is_auto_setting = (profile_data.get('setting_type') == 'auto')
+
+    if is_auto_setting:
+        # 「自動」設定の場合、空のプロフィール項目にデフォルト値を設定
+        # 既存の値があればそれを使用し、なければ (空文字やNoneなど falsy な場合) デフォルト値を使用
+        profile_data['name'] = profile_data.get('name') or "山田 太郎"
+        profile_data['gender'] = profile_data.get('gender') or "男性"
+        profile_data['age'] = profile_data.get('age') or "30"
+        profile_data['location'] = profile_data.get('location') or "東京都 渋谷区"
+        profile_data['occupation'] = profile_data.get('occupation') or "会社員"
+        profile_data['income'] = profile_data.get('income') or "500-600万円"
+        profile_data['hobby'] = profile_data.get('hobby') or "読書"
+        # department や purpose など、他の項目はフロントからの値をそのまま使用
 
     # Get model and API key from environment variables
     selected_text_model = os.environ.get("SELECTED_TEXT_MODEL", "gpt-4.1")
@@ -220,7 +237,6 @@ def generate_persona():
     elif selected_text_model.startswith("gemini"):
         api_key = os.environ.get("GOOGLE_API_KEY")
 
-    # Check if necessary API key is set
     if not api_key:
         error_message = f"{selected_text_model} を利用するための APIキーが環境変数に設定されていません。"
         if selected_text_model.startswith("gpt"):
@@ -232,75 +248,86 @@ def generate_persona():
         return jsonify({"error": error_message}), 500
 
     try:
-        # Initialize AI client
         ai_client = get_ai_client(selected_text_model, api_key)
+        # build_prompt には、デフォルト値で更新された可能性のある profile_data を渡す
+        prompt = build_prompt(profile_data) 
 
-        # Build the prompt
-        prompt = build_prompt(data)
-
-        # --- Make AI API Call --- 
         response_text = ""
         if selected_text_model.startswith("gpt"):
             chat_completion = ai_client.chat.completions.create(
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt,
-                    }
-                ],
+                messages=[{"role": "user", "content": prompt}],
                 model=selected_text_model, 
             )
             response_text = chat_completion.choices[0].message.content
         elif selected_text_model.startswith("claude"):
              message = ai_client.messages.create(
                  model=selected_text_model,
-                 max_tokens=2000, # Adjust max tokens as needed
-                 messages=[
-                     {"role": "user", "content": prompt}
-                 ]
+                 max_tokens=2000,
+                 messages=[{"role": "user", "content": prompt}]
              )
              response_text = message.content[0].text
         elif selected_text_model.startswith("gemini"):
              response = ai_client.generate_content(prompt)
              response_text = response.text
 
-        # Parse the AI response
         generated_details = parse_ai_response(response_text)
 
-        # --- Image Generation (Optional) ---
-        selected_image_model = os.environ.get("SELECTED_IMAGE_MODEL", "dall-e-3")
+        # --- Image Generation ---
         image_url = None
-        if data.get('generate_image'):
-            image_api_key = os.environ.get("OPENAI_API_KEY") # Assuming DALL-E uses OpenAI key
-            if image_api_key:
+        trigger_image_generation = False
+        if is_auto_setting: # 「自動」設定の場合は常にTrue
+            trigger_image_generation = True
+        elif data_from_frontend.get('generate_image'): # 「詳細」設定時でフロントから指示がある場合
+            trigger_image_generation = True
+        
+        if trigger_image_generation:
+            selected_image_model = os.environ.get("SELECTED_IMAGE_MODEL", "dall-e-3")
+            # DALL-E を使うので OpenAI のキーを期待
+            image_api_key_for_dalle = os.environ.get("OPENAI_API_KEY") 
+            
+            if image_api_key_for_dalle and selected_image_model and selected_image_model != "none":
                 try:
-                    image_client = OpenAI(api_key=image_api_key)
-                    # Create a simple image prompt based on basic info
-                    img_prompt = f"Create a profile picture for a persona named {data.get('name', 'person')} who is {data.get('age', 'age unknown')}, {data.get('gender', 'gender unknown')}. Style: realistic photo."
-                    if 'occupation' in data and data['occupation']:
-                         img_prompt += f" Occupation: {data['occupation']}."
+                    image_client = OpenAI(api_key=image_api_key_for_dalle)
+                    # 画像プロンプトには、デフォルト値で更新された可能性のある profile_data を使用
+                    img_name = profile_data.get('name', 'person') 
+                    img_age = profile_data.get('age', 'age unknown')
+                    img_gender = profile_data.get('gender', 'gender unknown')
+                    img_occupation = profile_data.get('occupation')
+
+                    img_prompt_parts = [
+                        f"Create a profile picture for a persona named {img_name}",
+                        f"who is {img_age}, {img_gender}.",
+                        "Style: realistic photo."
+                    ]
+                    if img_occupation and img_occupation.strip(): #職業が空でない場合のみ追加
+                         img_prompt_parts.append(f"Occupation: {img_occupation}.")
                     
+                    img_prompt = " ".join(img_prompt_parts)
+                    
+                    print(f"Attempting image generation with prompt: {img_prompt}") # Log prompt
+
                     image_response = image_client.images.generate(
-                        model=selected_image_model, # e.g., "dall-e-3"
+                        model=selected_image_model,
                         prompt=img_prompt,
                         size="1024x1024",
                         quality="standard",
                         n=1,
                     )
                     image_url = image_response.data[0].url
+                    print(f"Image generated successfully: {image_url}")
                 except Exception as img_e:
-                    print(f"Image generation failed: {img_e}") # Log error, but don't fail the whole request
-                    # Optionally: return a specific error or flag to the frontend
+                    print(f"Image generation failed: {img_e}")
+                    traceback.print_exc() # Print full traceback
             else:
-                 print("OpenAI API key for image generation not found in environment variables.")
+                 print(f"Image generation skipped: OpenAI API key for DALL-E not found or image model is '{selected_image_model}'.")
+        else:
+            print("Image generation not triggered based on settings or flags.")
 
-        # --- Prepare Response --- 
         response_data = {
-            "profile": data, # Return the original input profile data
+            "profile": profile_data, # デフォルト値が適用されたプロフィールデータ
             "details": generated_details,
-            "image_url": image_url
+            "image_url": image_url # image_urlはresponse_dataのトップレベル
         }
-
         return jsonify(response_data)
 
     except ValueError as ve:

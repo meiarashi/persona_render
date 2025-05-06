@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Add more fields if the backend provides them
 
         // Populate left side (preview profile)
-        document.getElementById('preview-persona-image').src = result.profile?.image_url || ''; // Handle missing image
+        document.getElementById('preview-persona-image').src = result.image_url || ''; // Changed to result.image_url
         document.getElementById('preview-name').textContent = result.profile?.name || '-';
         document.getElementById('preview-location').textContent = result.profile?.location || '-';
         // Separate Gender and Age population
@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             pdfDownloadBtn.disabled = true;
 
             try {
-                const response = await fetch('http://127.0.0.1:5000/api/download/pdf', { // Use absolute URL
+                const response = await fetch('/api/download/pdf', { // Changed to relative path
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -410,7 +410,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             pptDownloadBtn.disabled = true;
 
             try {
-                const response = await fetch('http://127.0.0.1:5000/api/download/ppt', { // Target the new PPT endpoint
+                const response = await fetch('/api/download/ppt', { // Changed to relative path
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
