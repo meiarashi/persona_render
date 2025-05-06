@@ -210,14 +210,15 @@ def generate_persona():
     if not data_from_frontend:
         return jsonify({"error": "No data provided"}), 400
 
-    # profile_data は、プロンプト生成とレスポンスの 'profile' 部分の両方に使用するデータ
-    profile_data = data_from_frontend.copy() 
+    profile_data = data_from_frontend.copy()
 
+    # === デバッグ用 print 文 START ===
+    print(f"--- DEBUG: Received setting_type: '{profile_data.get('setting_type')}' (type: {type(profile_data.get('setting_type'))})")
     is_auto_setting = (profile_data.get('setting_type') == 'auto')
+    print(f"--- DEBUG: is_auto_setting evaluated to: {is_auto_setting}")
+    # === デバッグ用 print 文 END ===
 
     if is_auto_setting:
-        # 「自動」設定の場合、空のプロフィール項目にデフォルト値を設定
-        # 既存の値があればそれを使用し、なければ (空文字やNoneなど falsy な場合) デフォルト値を使用
         profile_data['name'] = profile_data.get('name') or "山田 太郎"
         profile_data['gender'] = profile_data.get('gender') or "男性"
         profile_data['age'] = profile_data.get('age') or "30"
@@ -225,9 +226,7 @@ def generate_persona():
         profile_data['occupation'] = profile_data.get('occupation') or "会社員"
         profile_data['income'] = profile_data.get('income') or "500-600万円"
         profile_data['hobby'] = profile_data.get('hobby') or "読書"
-        # department や purpose など、他の項目はフロントからの値をそのまま使用
 
-    # Get model and API key from environment variables
     selected_text_model = os.environ.get("SELECTED_TEXT_MODEL", "gpt-4.1")
     api_key = None
     if selected_text_model.startswith("gpt"):
@@ -249,47 +248,43 @@ def generate_persona():
 
     try:
         ai_client = get_ai_client(selected_text_model, api_key)
-        # build_prompt には、デフォルト値で更新された可能性のある profile_data を渡す
-        prompt = build_prompt(profile_data) 
+        prompt = build_prompt(profile_data)
 
         response_text = ""
         if selected_text_model.startswith("gpt"):
             chat_completion = ai_client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
-                model=selected_text_model, 
+                model=selected_text_model,
             )
             response_text = chat_completion.choices[0].message.content
         elif selected_text_model.startswith("claude"):
-             message = ai_client.messages.create(
-                 model=selected_text_model,
-                 max_tokens=2000,
-                 messages=[{"role": "user", "content": prompt}]
-             )
-             response_text = message.content[0].text
+            message = ai_client.messages.create(
+                model=selected_text_model,
+                max_tokens=2000,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            response_text = message.content[0].text
         elif selected_text_model.startswith("gemini"):
-             response = ai_client.generate_content(prompt)
-             response_text = response.text
+            response = ai_client.generate_content(prompt)
+            response_text = response.text
 
         generated_details = parse_ai_response(response_text)
 
-        # --- Image Generation ---
         image_url = None
         trigger_image_generation = False
-        if is_auto_setting: # 「自動」設定の場合は常にTrue
+        if is_auto_setting:
             trigger_image_generation = True
-        elif data_from_frontend.get('generate_image'): # 「詳細」設定時でフロントから指示がある場合
+        elif data_from_frontend.get('generate_image'):
             trigger_image_generation = True
-        
+       
         if trigger_image_generation:
             selected_image_model = os.environ.get("SELECTED_IMAGE_MODEL", "dall-e-3")
-            # DALL-E を使うので OpenAI のキーを期待
-            image_api_key_for_dalle = os.environ.get("OPENAI_API_KEY") 
-            
+            image_api_key_for_dalle = os.environ.get("OPENAI_API_KEY")
+           
             if image_api_key_for_dalle and selected_image_model and selected_image_model != "none":
                 try:
                     image_client = OpenAI(api_key=image_api_key_for_dalle)
-                    # 画像プロンプトには、デフォルト値で更新された可能性のある profile_data を使用
-                    img_name = profile_data.get('name', 'person') 
+                    img_name = profile_data.get('name', 'person')
                     img_age = profile_data.get('age', 'age unknown')
                     img_gender = profile_data.get('gender', 'gender unknown')
                     img_occupation = profile_data.get('occupation')
@@ -299,12 +294,11 @@ def generate_persona():
                         f"who is {img_age}, {img_gender}.",
                         "Style: realistic photo."
                     ]
-                    if img_occupation and img_occupation.strip(): #職業が空でない場合のみ追加
-                         img_prompt_parts.append(f"Occupation: {img_occupation}.")
-                    
+                    if img_occupation and img_occupation.strip():
+                        img_prompt_parts.append(f"Occupation: {img_occupation}.")
+                   
                     img_prompt = " ".join(img_prompt_parts)
-                    
-                    print(f"Attempting image generation with prompt: {img_prompt}") # Log prompt
+                    print(f"Attempting image generation with prompt: {img_prompt}")
 
                     image_response = image_client.images.generate(
                         model=selected_image_model,
@@ -317,22 +311,22 @@ def generate_persona():
                     print(f"Image generated successfully: {image_url}")
                 except Exception as img_e:
                     print(f"Image generation failed: {img_e}")
-                    traceback.print_exc() # Print full traceback
+                    traceback.print_exc()
             else:
-                 print(f"Image generation skipped: OpenAI API key for DALL-E not found or image model is '{selected_image_model}'.")
+                print(f"Image generation skipped: OpenAI API key for DALL-E not found or image model is '{selected_image_model}'.")
         else:
             print("Image generation not triggered based on settings or flags.")
 
         response_data = {
-            "profile": profile_data, # デフォルト値が適用されたプロフィールデータ
+            "profile": profile_data,
             "details": generated_details,
-            "image_url": image_url # image_urlはresponse_dataのトップレベル
+            "image_url": image_url
         }
         return jsonify(response_data)
 
     except ValueError as ve:
-         print(f"Value Error: {ve}")
-         return jsonify({"error": str(ve)}), 400 # Return specific error for API key issues
+        print(f"Value Error: {ve}")
+        return jsonify({"error": str(ve)}), 400
     except Exception as e:
         print(f"Error during AI generation: {e}")
         traceback.print_exc()
