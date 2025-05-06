@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ペルソナ生成AI - 管理画面</title>
+    <link rel="stylesheet" href="admin_style.css">
+</head>
+<body>
+    <header>
+        <h1>ペルソナ生成AI - 管理画面</h1>
+        <nav>
+            <a href="index.html">ユーザー画面へ</a>
+        </nav>
+    </header>
+
+    <main class="admin-container">
+        <section id="rag-management">
+            <h2>RAGデータ管理</h2>
+            <form id="rag-upload-form">
+                <label for="specialty-select">診療科:</label>
+                <select id="specialty-select" name="specialty">
+                    <option value="">選択してください</option>
+                    <!-- TODO: Populate specialties dynamically or manually -->
+                    <option value="internal_medicine">内科</option>
+                    <option value="dermatology">皮膚科</option>
+                    <option value="general_dentistry">一般歯科</option>
+                </select>
+                <label for="rag-file-upload">データファイル:</label>
+                <input type="file" id="rag-file-upload" name="rag_file" accept=".txt,.csv,.json">
+                <button type="submit">アップロード</button>
+            </form>
+            <div class="data-list">
+                <h3>登録済みデータ</h3>
+                <!-- TODO: List uploaded data with edit/delete options -->
+                <p>（ここに登録済みのRAGデータが表示されます）</p>
+            </div>
+        </section>
+
+        <section id="api-management">
+            <h2>API連携管理</h2>
+
+            <fieldset>
+                <legend>テキスト生成設定</legend>
+                <form id="text-api-settings-form">
+                    <div class="form-group">
+                        <label for="text-api-model-select">使用モデル:</label>
+                        <select id="text-api-model-select" name="text_api_model">
+                            <option value="gpt-4.1">GPT-4.1</option>
+                            <option value="claude-3-7-sonnet-20250219">Claude 3.7 Sonnet (20250219)</option>
+                            <option value="gemini-2.5-pro-preview-03-25">Gemini 2.5 Pro Preview (03-25)</option>
+                        </select>
+                    </div>
+                    <div class="form-group api-key-group">
+                        <label for="openai-text-api-key">OpenAI APIキー (GPT):</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="openai-text-api-key" name="openai_text_api_key">
+                            <span class="toggle-api-key-visibility icon-eye-visible" data-target="openai-text-api-key"></span>
+                        </div>
+                    </div>
+                    <div class="form-group api-key-group">
+                        <label for="google-api-key">Google APIキー (Gemini):</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="google-api-key" name="google_api_key">
+                            <span class="toggle-api-key-visibility icon-eye-visible" data-target="google-api-key"></span>
+                        </div>
+                    </div>
+                    <div class="form-group api-key-group">
+                        <label for="anthropic-api-key">Anthropic APIキー (Claude):</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="anthropic-api-key" name="anthropic_api_key">
+                            <span class="toggle-api-key-visibility icon-eye-visible" data-target="anthropic-api-key"></span>
+                        </div>
+                    </div>
+                </form>
+            </fieldset>
+
+            <fieldset>
+                <legend>画像生成設定</legend>
+                <form id="image-api-settings-form">
+                     <div class="form-group">
+                         <label for="image-api-model-select">使用モデル:</label>
+                         <select id="image-api-model-select" name="image_api_model">
+                             <option value="dall-e-3">OpenAI / DALL-E 3</option>
+                             <option value="none">画像生成なし</option>
+                             <!-- Add other image models here later if needed -->
+                         </select>
+                     </div>
+                    <div class="form-group api-key-group">
+                        <label for="openai-image-api-key">OpenAI APIキー (DALL-E):</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="openai-image-api-key" name="openai_image_api_key">
+                            <span class="toggle-api-key-visibility icon-eye-visible" data-target="openai-image-api-key"></span>
+                        </div>
+                    </div>
+                    <!-- Add other image API key inputs here later if needed -->
+                </form>
+            </fieldset>
+
+            <button id="save-api-settings-btn">API連携設定を保存</button>
+            <div id="api-status-message" class="status-message"></div>
+
+        </section>
+        
+        <section id="output-settings">
+            <h2>出力設定</h2>
+            <form id="output-settings-form">
+                 <label>許可する出力形式:</label>
+                 <div>
+                     <input type="checkbox" id="output-pdf" name="output_pdf" value="true" checked>
+                     <label for="output-pdf">PDF</label>
+                 </div>
+                 <div>
+                     <input type="checkbox" id="output-ppt" name="output_ppt" value="true" checked>
+                     <label for="output-ppt">PowerPoint (.ppt)</label>
+                 </div>
+                 <div>
+                     <input type="checkbox" id="output-gslide" name="output_gslide" value="true" checked>
+                     <label for="output-gslide">Google スライド</label>
+                 </div>
+                 <button id="save-output-settings-btn" type="button">出力設定を保存</button>
+                 <div id="output-status-message" class="status-message"></div>
+            </form>
+        </section>
+
+        <section id="char-limit-settings">
+            <h2>文字数の目安設定</h2>
+            <form id="char-limit-form">
+                <div>
+                    <label for="limit-personality">性格（価値観・人生観）:</label>
+                    <input type="number" id="limit-personality" name="limit_personality" min="0"> 文字
+                </div>
+                 <div>
+                    <label for="limit-reason">通院理由:</label>
+                    <input type="number" id="limit-reason" name="limit_reason" min="0"> 文字
+                </div>
+                 <div>
+                    <label for="limit-behavior">症状通院頻度・行動パターン:</label>
+                    <input type="number" id="limit-behavior" name="limit_behavior" min="0"> 文字
+                </div>
+                <div>
+                    <label for="limit-reviews">口コミの重視ポイント:</label>
+                    <input type="number" id="limit-reviews" name="limit_reviews" min="0"> 文字
+                </div>
+                <div>
+                    <label for="limit-values">医療機関への価値観・行動傾向:</label>
+                    <input type="number" id="limit-values" name="limit_values" min="0"> 文字
+                </div>
+                <div>
+                    <label for="limit-demands">医療機関に求めるもの:</label>
+                    <input type="number" id="limit-demands" name="limit_demands" min="0"> 文字
+                </div>
+                 <!-- Add more fields as needed -->
+                 <button id="save-limits-btn" type="button">文字数制限を保存</button>
+                 <div id="limits-status-message" class="status-message"></div>
+            </form>
+        </section>
+
+    </main>
+
+    <footer>
+        <p>&copy; ペルソナ生成AI</p>
+    </footer>
+
+    <script src="admin_script.js"></script>
+</body>
+</html> 

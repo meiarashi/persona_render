@@ -1,0 +1,752 @@
+/* General Body and Reset Styles */
+body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+    color: #333;
+    background-color: #f8f9fa;
+    font-size: 13px;
+}
+
+a {
+    text-decoration: none;
+    color: #007bff;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Header Styles */
+header {
+    background-color: #ffffff;
+    padding: 1rem 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-bottom: 1px solid #e9ecef;
+}
+
+header h1 {
+    margin: 0;
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+}
+
+nav ul li {
+    display: inline;
+    margin: 0 10px;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.logo {
+    font-weight: bold;
+    font-size: 1.5em;
+    color: #333;
+}
+
+header nav a {
+    margin-left: 20px;
+    color: #555;
+}
+
+header nav a:hover {
+    color: #000;
+    text-decoration: none;
+}
+
+/* Main Layout Container */
+.main-container {
+    display: flex;
+    max-width: none; /* Allow full width */
+    min-height: calc(100vh - 140px); /* Adjust this if header/footer height changes */
+    margin: 10px; /* Add a small margin back */
+    background-color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-radius: 0;
+    overflow: hidden;
+    position: relative; /* Needed for absolute positioning of loading overlay */
+}
+
+/* Preview Area (Left Sidebar) */
+.preview-area {
+    flex: 1;  /* Restore flex property to manage width */
+    padding: 15px 20px 30px 20px;
+    background-color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start; /* Align content to the top */
+    text-align: center;
+    transition: flex 0.3s ease;
+    position: sticky; /* Make it sticky */
+    top: 20px; /* Stick 20px from the top */
+    align-self: flex-start; /* Prevent stretching vertically */
+    height: calc(100vh - 40px); /* Use fixed height */
+    overflow-y: hidden; /* Hide vertical scroll */
+}
+
+/* Style for the title above the image placeholder */
+.image-title {
+    font-size: 1.4em; /* Adjust font size as needed */
+    color: #495057;  /* Match description color */
+    margin-bottom: 15px; /* Add space below the title */
+    font-weight: bold; /* Make it bold */
+}
+
+/* Hide the general image title when the result step is active */
+.result-active .preview-area .image-title {
+    display: none;
+}
+
+/* Image Placeholder/Carousel in Preview Area */
+.image-placeholder {
+    width: 95%;
+    aspect-ratio: 4 / 3;
+    background-color: #ced4da;
+    border: 1px solid #adb5bd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin-bottom: 20px;
+    border-radius: 5px;
+}
+
+/* Remove styling intended for text *inside* the placeholder */
+/* .image-placeholder p { ... } */ /* Commented out or removed */
+
+.prev-btn,
+.next-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.3);
+    color: white;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 50%;
+    font-size: 1.2em;
+    line-height: 1;
+}
+
+.prev-btn {
+    left: 10px;
+}
+
+.next-btn {
+    right: 10px;
+}
+
+.preview-area .description {
+    color: #495057;
+    font-size: 1.1em;
+}
+
+/* Preview Area - Profile Details (Shown on Result Step) */
+#result-profile-container {
+    width: 90%;
+    padding: 8px;
+    text-align: center;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+#result-profile-container .profile-image {
+    width: 150px; /* Adjusted size */
+    height: 150px; /* Adjusted size */
+    object-fit: cover;
+    border-radius: 50%; /* Make it circular */
+    border: 1px solid #dee2e6;
+    margin: 0 auto 15px auto; /* Adjusted margin */
+    display: block;
+}
+
+.preview-area .profile-details-list {
+    margin: 0;
+    padding: 0;
+    text-align: left;
+}
+
+.preview-area .profile-details-list div {
+    display: flex;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+}
+
+.preview-area .profile-details-list dt {
+    font-weight: bold;
+    color: #555;
+    flex-basis: 65px;
+    flex-shrink: 0;
+    margin-right: 8px;
+    font-size: 0.8em;
+}
+
+.preview-area .profile-details-list dd {
+    margin-left: 0;
+    color: #333;
+    flex-grow: 1;
+    font-size: 0.8em;
+    word-break: break-word;
+}
+
+/* Override default dark background for preview area on result step */
+.result-step ~ .preview-area {
+    background-color: #fff;
+}
+
+/* Form Area (Right Section) */
+.form-area {
+    flex: 1; /* Default flex value */
+    padding: 30px 20px;
+    transition: flex 0.3s ease;
+    height: calc(100vh - 40px); /* Match preview-area height */
+    overflow-y: auto; /* Enable vertical scroll if content overflows */
+}
+
+/* Individual Form Step Styles */
+.form-step {
+    display: none;
+    border: 1px solid #dee2e6;
+    padding: 20px;
+    padding-top: 0; /* Remove top padding */
+    border-radius: 8px;
+    background-color: #ffffff;
+    overflow: visible;
+}
+
+.form-step.active {
+    display: block;
+}
+
+/* Form Step Header (Icon, Progress Bar, Question) */
+.step-header {
+    display: flex;
+    align-items: flex-start; 
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.step-header .icon {
+    width: 45px;
+    height: 45px;
+    background-color: #adb5bd;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    color: white;
+    font-size: 1em;
+    flex-shrink: 0;
+}
+
+/* Container for Progress bar and Question Text */
+.step-header > div {
+    flex-grow: 1;
+}
+
+.progress-bar {
+    position: relative;
+    height: 20px;
+    background-color: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 0;
+}
+
+.progress-bar span {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8em;
+    color: #ffffff;
+    z-index: 1;
+}
+
+.progress {
+    height: 100%;
+    background-color: #28a745;
+    border-radius: 10px 0 0 10px;
+    transition: width 0.3s ease;
+}
+
+/* Question text below progress bar */
+.question-text {
+    margin: 0;
+    padding-top: 8px; /* Increase padding to add more space between progress bar and text */
+    font-size: 1em;
+    color: #495057;
+    line-height: 1.2;
+    font-weight: bold;
+}
+
+/* Tab Navigation (Doctor/Dentist) */
+.tabs {
+    margin-bottom: 20px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.tab-button {
+    padding: 10px 20px;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    font-size: 1.2em;
+    color: #6c757d;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+}
+
+.tab-button.active {
+    color: #007bff;
+    border-bottom-color: #007bff;
+}
+
+/* Override general button hover for tab buttons */
+.tab-button:hover {
+    background-color: transparent; /* Keep background transparent */
+    color: #6c757d; /* Keep text color the same */
+}
+
+/* Tab Content Area */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Options Grid (Departments, Purpose) */
+.department-options,
+.purpose-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.department-options label,
+.purpose-options label {
+    display: flex;
+    align-items: center;
+    background-color: #f8f9fa;
+    padding: 6px;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    font-weight: normal;
+    cursor: pointer;
+    font-size: 0.85em;
+}
+
+.department-options input[type="radio"],
+.purpose-options input[type="radio"] {
+    margin-right: 8px;
+    width: auto;
+    margin-bottom: 0;
+}
+
+/* General Form Input Styles */
+form div {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+input[type="text"],
+input[type="email"],
+textarea,
+select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    font-size: 0.9em;
+}
+
+/* Button Styles */
+button {
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s ease;
+    margin-top: 10px;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+.prev-step-btn {
+    background-color: #6c757d;
+    margin-right: 10px;
+}
+
+.prev-step-btn:hover {
+    background-color: #5a6268;
+}
+
+#add-field-btn {
+    background-color: #17a2b8;
+    margin-bottom: 20px;
+}
+
+#add-field-btn:hover {
+    background-color: #138496;
+}
+
+#generate-persona-btn {
+    background-color: #28a745;
+}
+#generate-persona-btn:hover {
+    background-color: #218838;
+}
+
+/* Detail Setting Options (Step 3) */
+.setting-options {
+    margin-bottom: 20px;
+}
+.setting-options label {
+     display: inline-block;
+     margin-right: 20px;
+     font-weight: normal;
+}
+
+/* Grid Layout for Detail Form Fields (Step 3) */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    row-gap: 8px;
+    column-gap: 15px;
+}
+
+.form-grid div {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+}
+
+.form-grid div label {
+    margin-bottom: 3px;
+    font-size: 0.9em;
+}
+
+/* Adjust margin specifically for inputs/selects within the form grid */
+.form-grid input[type="text"],
+.form-grid select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+}
+
+/* Additional Fields Styling (Step 4) */
+#additional-fields .additional-field-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+/* Loading Indicator Styles (Step 5) - Modified for Full Overlay */
+.loading-step {
+    /* Remove form-step border and default padding */
+    border: none;
+    padding: 0;
+    /* Make it an overlay */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.95); /* Semi-transparent white background */
+    display: none; /* Hidden by default, controlled by .active */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    z-index: 10; /* Ensure it's on top */
+}
+
+/* Override display:block from .form-step.active */
+.form-step.active.loading-step {
+    display: flex;
+}
+
+/* Loading Icon Style Adjustments */
+.loading-icon {
+     width: 60px;
+     height: 60px;
+     background-color: #007bff;
+     border-radius: 50%;
+     margin: 0 auto 30px auto;
+     /* Add animation */
+     animation: spin 1s linear infinite;
+}
+
+/* Loading text style adjustments */
+.loading-step h3 {
+    font-size: 1.5em;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.loading-step p {
+    font-size: 1.1em;
+    color: #555;
+}
+
+/* Add spin animation */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Result Display Styles (Step 6) */
+.result-step h3 {
+    text-align: center;
+    margin-bottom: 15px;
+    color: #333;
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+/* Container for Persona Profile & Details on Result Page */
+.persona-result-container {
+    display: flex;
+    gap: 40px;
+    margin-bottom: 30px;
+    align-items: flex-start;
+}
+
+/* Persona Profile (Left Side - Result Page) */
+.persona-profile {
+    flex-basis: 35%;
+    padding-right: 0;
+    text-align: center;
+    background-color: transparent; /* Ensure no background color */
+}
+
+.persona-profile .profile-image {
+    max-width: 200px;
+    width: 100%;
+    height: auto;
+    border-radius: 50%;
+    margin-bottom: 25px;
+    background-color: #e9ecef;
+    border: 1px solid #dee2e6;
+    display: inline-block;
+}
+
+/* Profile Details List (Used in Preview & Result) */
+.profile-details-list {
+    margin: 0;
+    padding: 0;
+    text-align: left;
+}
+
+.profile-details-list div {
+    display: flex;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+}
+
+.profile-details-list dt {
+    font-weight: bold;
+    color: #555;
+    flex-basis: 100px;
+    flex-shrink: 0;
+    margin-right: 10px;
+    font-size: 0.9em;
+}
+
+.profile-details-list dd {
+    margin-left: 0;
+    color: #333;
+    font-size: 0.95em;
+    word-break: break-word;
+}
+
+/* Persona Details (Right Side - Result Page) */
+.persona-details {
+    flex-grow: 1;
+    flex-basis: 65%;
+    background-color: transparent; /* Ensure no background color */
+}
+
+/* Style for headings within persona details */
+.persona-details h4 {
+    /* Remove button-like styles */
+    /* background-color: #007bff; */
+    /* color: white; */
+    /* padding: 5px 10px; */
+    /* border-radius: 4px; */
+    /* display: inline-block; */
+    
+    /* Apply standard heading styles */
+    color: #333; /* Standard text color */
+    font-size: 1.1em; /* Slightly larger font size for heading */
+    font-weight: bold;
+    margin-top: 15px; /* Add space above heading */
+    margin-bottom: 8px; /* Adjust space below heading */
+    padding: 0; /* Ensure no padding */
+    display: block; /* Make it a block element */
+}
+
+/* Set margin-top to 0 for the very first heading */
+.persona-details h4:first-of-type {
+    margin-top: 0;
+}
+
+.persona-details p {
+    margin-bottom: 12px;
+    font-size: 0.85em;
+    padding-left: 0;
+    color: #555;
+    line-height: 1.4;
+}
+
+/* Download Options (Result Page - Positioned at the top right of the step) */
+.download-options {
+    text-align: right; /* Align buttons to the right */
+    border-top: none;
+    padding-top: 0;
+    margin-top: 15px; /* Add space above buttons */
+    margin-bottom: 15px; /* Add space below buttons */
+}
+
+/* General download button style (borders, padding, etc.) */
+.download-options button {
+    /* background-color: #007bff; Color set by ID below */
+    margin: 0 0 0 8px;
+    padding: 6px 16px;
+    font-size: 0.85em;
+    color: white; /* Ensure text is white */
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+/* Specific button colors */
+#download-pdf-result {
+    background-color: #ff0000; /* Red */
+}
+
+#download-ppt-result {
+    background-color: #ff8431; /* PowerPoint Orange */
+}
+
+#download-gslide-result {
+    background-color: #FFBA00; /* Yellow */
+}
+
+/* General Button Styles - Ensure these don't conflict badly */
+
+.result-step .prev-step-btn {
+    display: block;
+    margin: 20px auto 0 auto;
+    width: fit-content;
+    background-color: #6c757d;
+}
+
+/* Layout Adjustment on Result Screen (1:2 Ratio) */
+.result-active .preview-area {
+    flex: 1;
+}
+
+.result-active .form-area {
+    flex: 2; /* Keep flex ratio for width */
+    /* Height and overflow are inherited from the general .form-area rule */
+}
+
+/* Footer Styles */
+footer {
+    text-align: center;
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #e9ecef;
+    color: #6c757d;
+    font-size: 0.9em;
+}
+
+/* Responsive Design (Max-width 992px) */
+@media (max-width: 992px) {
+    body {
+        font-size: 12px;
+    }
+    
+    .main-container {
+        flex-direction: column;
+        min-height: auto;
+    }
+    
+    .result-active .preview-area,
+    .result-active .form-area {
+        flex: 1; /* Reset flex ratio on smaller screens */
+    }
+    
+    /* Hide preview area in form steps on smaller screens */
+    .preview-area {
+        display: none;
+    }
+
+    /* Show preview area again on result step */
+    .result-active .preview-area {
+        display: flex;
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 20px;
+        margin-bottom: 20px;
+    }
+
+    .form-area {
+        padding: 20px;
+    }
+    .form-grid {
+        grid-template-columns: 1fr; /* Stack form grid items */
+    }
+    .persona-result-container {
+        flex-direction: column;
+        gap: 30px;
+    }
+    .persona-profile {
+         border-right: none;
+         border-bottom: 1px solid #dee2e6;
+         padding-right: 0;
+         padding-bottom: 30px;
+         margin-bottom: 30px;
+         text-align: center;
+    }
+    .profile-details-list dt {
+         flex-basis: 80px; /* Adjust label width */
+    }
+} 
