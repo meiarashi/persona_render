@@ -85,28 +85,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         const formData = new FormData(multiStepForm);
         const data = {};
         
-        // === デバッグログ追加 START ===
-        const selectedSettingTypeRadio = document.querySelector('input[name="setting_type"]:checked');
-        if (selectedSettingTypeRadio) {
-            console.log("--- DEBUG JS: Selected setting_type radio value: ", selectedSettingTypeRadio.value);
-        } else {
-            console.log("--- DEBUG JS: No setting_type radio selected.");
-        }
-        // === デバッグログ追加 END ===
+        // デバッグログは残しておいても良いですが、ここでは一旦コメントアウトまたは削除を想定
+        // const selectedSettingTypeRadio = document.querySelector('input[name="setting_type"]:checked');
+        // if (selectedSettingTypeRadio) {
+        //     console.log("--- DEBUG JS: Selected setting_type radio value: ", selectedSettingTypeRadio.value);
+        // } else {
+        //     console.log("--- DEBUG JS: No setting_type radio selected.");
+        // }
 
-        // Collect data from all steps
         formData.forEach((value, key) => {
-            // Handle multiple values for the same key (like additional fields)
             if (key.endsWith('[]')) {
                  const cleanKey = key.slice(0, -2);
                  if (!data[cleanKey]) {
                      data[cleanKey] = [];
                  }
                  data[cleanKey].push(value);
-            } else {
+            } else if (key !== 'setting_type') { // setting_type は別途処理するのでここでは除外
                  data[key] = value;
             }
         });
+
+        // ★★★ setting_type の値をチェックされているラジオボタンから直接取得して設定 ★★★
+        const checkedSettingTypeRadio = document.querySelector('input[name="setting_type"]:checked');
+        if (checkedSettingTypeRadio) {
+            data['setting_type'] = checkedSettingTypeRadio.value;
+        } else {
+            data['setting_type'] = 'detailed'; // フォールバック（通常はどちらかが選択されているはず）
+        }
+        // ★★★ ここまでが修正点 ★★★
 
         // Add selected department based on active tab
         const activeTab = multiStepForm.querySelector('.tab-content.active');
