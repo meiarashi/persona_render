@@ -348,42 +348,45 @@ def generate_persona():
         image_url = None
 
         # --- Image Generation (常に試行) ---
-        selected_image_model = os.environ.get("SELECTED_IMAGE_MODEL", "dall-e-3")
-        image_api_key_for_dalle = os.environ.get("OPENAI_API_KEY")
-        
-        if image_api_key_for_dalle and selected_image_model and selected_image_model != "none":
-            try:
-                image_client = OpenAI(api_key=image_api_key_for_dalle)
-                img_name = profile_data.get('name', 'person')
-                img_age = profile_data.get('age', 'age unknown')
-                img_gender = profile_data.get('gender', 'gender unknown')
-                img_occupation = profile_data.get('occupation')
+        # selected_image_model = os.environ.get("SELECTED_IMAGE_MODEL", "dall-e-3")
+        # image_api_key_for_dalle = os.environ.get("OPENAI_API_KEY")
+        # 
+        # if image_api_key_for_dalle and selected_image_model and selected_image_model != "none":
+        #     try:
+        #         image_client = OpenAI(api_key=image_api_key_for_dalle)
+        #         img_name = profile_data.get('name', 'person')
+        #         img_age = profile_data.get('age', 'age unknown')
+        #         img_gender = profile_data.get('gender', 'gender unknown')
+        #         img_occupation = profile_data.get('occupation')
+        #
+        #         img_prompt_parts = [
+        #             f"Create a profile picture for a persona named {img_name}",
+        #             f"who is {img_age}, {img_gender}.",
+        #             "Style: realistic photo."
+        #         ]
+        #         if img_occupation and img_occupation.strip():
+        #             img_prompt_parts.append(f"Occupation: {img_occupation}.")
+        #         
+        #         img_prompt = " ".join(img_prompt_parts)
+        #         print(f"Attempting image generation with prompt: {img_prompt}")
+        #
+        #         image_response = image_client.images.generate(
+        #             model=selected_image_model,
+        #             prompt=img_prompt,
+        #             size="1024x1024", 
+        #             quality="standard", 
+        #             n=1,
+        #         )
+        #         image_url = image_response.data[0].url
+        #         print(f"Image generated successfully: {image_url}")
+        #     except Exception as img_e:
+        #         print(f"Image generation failed: {img_e}")
+        #         traceback.print_exc()
+        # else:
+        #     print(f"Image generation skipped: OpenAI API key for DALL-E not found or image model is '{selected_image_model}'.")
 
-                img_prompt_parts = [
-                    f"Create a profile picture for a persona named {img_name}",
-                    f"who is {img_age}, {img_gender}.",
-                    "Style: realistic photo."
-                ]
-                if img_occupation and img_occupation.strip():
-                    img_prompt_parts.append(f"Occupation: {img_occupation}.")
-                
-                img_prompt = " ".join(img_prompt_parts)
-                print(f"Attempting image generation with prompt: {img_prompt}")
-
-                image_response = image_client.images.generate(
-                    model=selected_image_model,
-                    prompt=img_prompt,
-                    size="1024x1024", 
-                    quality="standard", 
-                    n=1,
-                )
-                image_url = image_response.data[0].url
-                print(f"Image generated successfully: {image_url}")
-            except Exception as img_e:
-                print(f"Image generation failed: {img_e}")
-                traceback.print_exc()
-        else:
-            print(f"Image generation skipped: OpenAI API key for DALL-E not found or image model is '{selected_image_model}'.")
+        # Set a dummy image URL
+        image_url = "https://via.placeholder.com/1024" # Example dummy image
 
         response_data = {
             "profile": profile_data,
