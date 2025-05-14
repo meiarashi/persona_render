@@ -66,154 +66,26 @@ header nav a:hover {
 
 /* Main Layout Container */
 .main-container {
-    display: flex;
-    max-width: none; /* Allow full width */
+    /* display: flex; */ /* Removed flex display */
+    max-width: 1200px; /* Limit overall width and center */
     min-height: calc(100vh - 140px); /* Adjust this if header/footer height changes */
-    margin: 10px; /* Add a small margin back */
+    margin: 20px auto; /* Center the container with margin */
     background-color: #ffffff;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    border-radius: 0;
+    border-radius: 8px; /* Optional: Add back border-radius */
     overflow: hidden;
     position: relative; /* Needed for absolute positioning of loading overlay */
 }
 
-/* Preview Area (Left Sidebar) */
-.preview-area {
-    flex: 1;  /* Restore flex property to manage width */
-    padding: 15px 20px 30px 20px;
-    background-color: #ffffff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start; /* Align content to the top */
-    text-align: center;
-    transition: flex 0.3s ease;
-    position: sticky; /* Make it sticky */
-    top: 20px; /* Stick 20px from the top */
-    align-self: flex-start; /* Prevent stretching vertically */
-    height: calc(100vh - 40px); /* Use fixed height */
-    overflow-y: hidden; /* Hide vertical scroll */
-}
-
-/* Style for the title above the image placeholder */
-.image-title {
-    font-size: 1.4em; /* Adjust font size as needed */
-    color: #495057;  /* Match description color */
-    margin-bottom: 15px; /* Add space below the title */
-    font-weight: bold; /* Make it bold */
-}
-
-/* Hide the general image title when the result step is active */
-.result-active .preview-area .image-title {
-    display: none;
-}
-
-/* Image Placeholder/Carousel in Preview Area */
-.image-placeholder {
-    width: 95%;
-    aspect-ratio: 4 / 3;
-    background-color: #ced4da;
-    border: 1px solid #adb5bd;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    margin-bottom: 20px;
-    border-radius: 5px;
-}
-
-/* Remove styling intended for text *inside* the placeholder */
-/* .image-placeholder p { ... } */ /* Commented out or removed */
-
-.prev-btn,
-.next-btn {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: rgba(0, 0, 0, 0.3);
-    color: white;
-    border: none;
-    padding: 10px;
-    cursor: pointer;
-    border-radius: 50%;
-    font-size: 1.2em;
-    line-height: 1;
-}
-
-.prev-btn {
-    left: 10px;
-}
-
-.next-btn {
-    right: 10px;
-}
-
-.preview-area .description {
-    color: #495057;
-    font-size: 1.1em;
-}
-
-/* Preview Area - Profile Details (Shown on Result Step) */
-#result-profile-container {
-    width: 90%;
-    padding: 8px;
-    text-align: center;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-#result-profile-container .profile-image {
-    width: 150px; /* Adjusted size */
-    height: 150px; /* Adjusted size */
-    object-fit: cover;
-    border-radius: 50%; /* Make it circular */
-    border: 1px solid #dee2e6;
-    margin: 0 auto 15px auto; /* Adjusted margin */
-    display: block;
-}
-
-.preview-area .profile-details-list {
-    margin: 0;
-    padding: 0;
-    text-align: left;
-}
-
-.preview-area .profile-details-list div {
-    display: flex;
-    margin-bottom: 6px;
-    padding-bottom: 4px;
-}
-
-.preview-area .profile-details-list dt {
-    font-weight: bold;
-    color: #555;
-    flex-basis: 65px;
-    flex-shrink: 0;
-    margin-right: 8px;
-    font-size: 0.8em;
-}
-
-.preview-area .profile-details-list dd {
-    margin-left: 0;
-    color: #333;
-    flex-grow: 1;
-    font-size: 0.8em;
-    word-break: break-word;
-}
-
-/* Override default dark background for preview area on result step */
-.result-step ~ .preview-area {
-    background-color: #fff;
-}
-
-/* Form Area (Right Section) */
+/* Form Area (Now the main content area) */
 .form-area {
-    flex: 1; /* Default flex value */
-    padding: 30px 20px;
-    transition: flex 0.3s ease;
-    height: calc(100vh - 40px); /* Match preview-area height */
-    overflow-y: auto; /* Enable vertical scroll if content overflows */
+    /* flex: 1; */ /* Removed flex property */
+    padding: 30px 40px; /* Adjust padding */
+    /* transition: flex 0.3s ease; */ /* Removed transition */
+    /* height: calc(100vh - 40px); */ /* Removed fixed height */
+    /* overflow-y: auto; */ /* Removed default scroll, let content flow */
+    width: 100%; /* Take full width of the container */
+    box-sizing: border-box; /* Include padding in width */
 }
 
 /* Individual Form Step Styles */
@@ -221,7 +93,7 @@ header nav a:hover {
     display: none;
     border: 1px solid #dee2e6;
     padding: 20px;
-    padding-top: 0; /* Remove top padding */
+    padding-top: 20px; /* Add top padding */
     border-radius: 8px;
     background-color: #ffffff;
     overflow: visible;
@@ -287,77 +159,84 @@ header nav a:hover {
 /* Question text below progress bar */
 .question-text {
     margin: 0;
-    padding-top: 8px; /* Increase padding to add more space between progress bar and text */
-    font-size: 1em;
+    padding-top: 8px;
+    font-size: 1.1em; /* Slightly larger font */
     color: #495057;
-    line-height: 1.2;
+    line-height: 1.3;
     font-weight: bold;
 }
 
-/* Tab Navigation (Doctor/Dentist) */
-.tabs {
-    margin-bottom: 20px;
-    border-bottom: 1px solid #dee2e6;
-}
-
-.tab-button {
-    padding: 10px 20px;
-    border: none;
-    background-color: transparent;
-    cursor: pointer;
-    font-size: 1.2em;
-    color: #6c757d;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -1px;
-}
-
-.tab-button.active {
-    color: #007bff;
-    border-bottom-color: #007bff;
-}
-
-/* Override general button hover for tab buttons */
-.tab-button:hover {
-    background-color: transparent; /* Keep background transparent */
-    color: #6c757d; /* Keep text color the same */
-}
-
-/* Tab Content Area */
-.tab-content {
-    display: none;
-}
-
-.tab-content.active {
-    display: block;
-}
-
-/* Options Grid (Departments, Purpose) */
+/* Options Grid (Departments, Purpose, Setting Type) */
 .department-options,
-.purpose-options {
+.purpose-options,
+.setting-type-options { /* Add setting-type-options */
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 8px;
-    margin-bottom: 15px;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.department-options { /* Specific styles for department */
+    grid-template-columns: repeat(5, 1fr);
+}
+
+.purpose-options { /* Specific styles for purpose options */
+    display: grid; /* Ensure grid display */
+    grid-template-columns: repeat(3, 216px); /* Set fixed width for each button */
+    width: 668px; /* Explicit width: (3 * 216px) + (2 * 10px gap) */
+    margin: 20px auto; /* Center the grid container */
+    gap: 10px;
+}
+
+.setting-type-options { /* Add setting-type-options */
+    display: grid; /* Ensure grid display */
+    grid-template-columns: repeat(3, 216px); /* Set fixed width for each button */
+    width: 668px; /* Explicit width: (3 * 216px) + (2 * 10px gap) */
+    margin: 20px auto; /* Center the grid container */
+    gap: 10px;
 }
 
 .department-options label,
-.purpose-options label {
+.purpose-options label,
+.setting-type-options label { /* Add setting-type-options label */
     display: flex;
     align-items: center;
+    justify-content: center; /* Center text horizontally */
     background-color: #f8f9fa;
-    padding: 6px;
+    padding: 10px 12px; /* Adjust padding */
     border-radius: 4px;
     border: 1px solid #dee2e6;
-    font-weight: normal;
+    font-weight: bold; /* Make text bold */
     cursor: pointer;
-    font-size: 0.85em;
+    font-size: 1em; /* Increase font size */
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease; /* Add color transition */
+    text-align: center; /* Ensure text align center for consistency */
+}
+
+/* Style for the selected label */
+.department-options label.selected,
+.purpose-options label.selected,
+.setting-type-options label.selected { /* Add setting-type-options label.selected */
+    background-color: rgba(40, 167, 69, 0.15); /* Lighter, semi-transparent green background */
+    border-color: rgba(40, 167, 69, 0.6); /* Slightly darker green border */
+    /* color: white; */ /* Keep text color same as non-selected */
+    /* font-weight: bold; */ /* Keep font weight same */
+}
+
+/* Apply hover effect only to non-selected labels */
+.department-options label:not(.selected):hover,
+.purpose-options label:not(.selected):hover,
+.setting-type-options label:not(.selected):hover { /* Add setting-type-options hover */
+    background-color: #e9ecef; /* Add hover effect */
+    border-color: #adb5bd;
 }
 
 .department-options input[type="radio"],
-.purpose-options input[type="radio"] {
-    margin-right: 8px;
-    width: auto;
-    margin-bottom: 0;
+.purpose-options input[type="radio"],
+.setting-type-options input[type="radio"] { /* Add setting-type-options radio */
+    display: none; /* Hide the actual radio button */
+    /* margin-right: 8px; */ /* No longer needed */
+    /* width: auto; */
+    /* margin-bottom: 0; */
 }
 
 /* General Form Input Styles */
@@ -369,6 +248,7 @@ label {
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
+    font-size: 1em; /* Match tab button font size */
 }
 
 input[type="text"],
@@ -381,20 +261,49 @@ select {
     border-radius: 4px;
     box-sizing: border-box;
     margin-bottom: 10px;
-    font-size: 0.9em;
+    font-size: 1em; /* Match tab button font size */
+}
+
+/* Ensure placeholder text also matches */
+input::placeholder,
+textarea::placeholder {
+    font-size: 1em;
+}
+
+/* Form field examples (like "例: 新宿区") */
+input::placeholder,
+textarea::placeholder {
+    color: #999;
 }
 
 /* Button Styles */
 button {
-    padding: 8px 16px;
-    background-color: #007bff;
+    /* Common button styles */
+    padding: 10px 12px; /* Match department label padding */
+    background-color: #007bff; 
     color: white;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 0.9em;
+    font-size: 1em; 
+    font-weight: bold; 
     transition: background-color 0.2s ease;
     margin-top: 10px;
+    box-sizing: border-box; /* Ensure padding is included in width */
+}
+
+/* Container for Step Navigation Buttons */
+.step-nav-buttons {
+    text-align: center; /* Center the inline-block buttons */
+    margin-top: 0; /* 10px から 0 に変更 */
+}
+
+/* Ensure next button is also inline-block for alignment */
+.next-step-btn { 
+    display: inline-block; /* Changed from block */
+    width: 216px; /* Set fixed width calculated from 5 columns */
+    /* margin: 30px auto 10px auto; */ /* Remove auto margin for side-by-side */
+    vertical-align: top; /* Align buttons vertically */
 }
 
 button:hover {
@@ -403,7 +312,10 @@ button:hover {
 
 .prev-step-btn {
     background-color: #6c757d;
-    margin-right: 10px;
+    /* margin-right: 10px; */ /* Remove margin-right if using centering container */
+    width: 108px; /* Set width to half of next-step-btn */
+    display: inline-block; /* Allow side-by-side alignment */
+    margin-right: 10px; /* Add space between buttons */
 }
 
 .prev-step-btn:hover {
@@ -412,7 +324,8 @@ button:hover {
 
 #add-field-btn {
     background-color: #17a2b8;
-    margin-bottom: 20px;
+    margin-bottom: 0; /* 20px から 0 に変更 */
+    margin-top: 0; /* 上の空白をなくす */
 }
 
 #add-field-btn:hover {
@@ -439,7 +352,7 @@ button:hover {
 /* Grid Layout for Detail Form Fields (Step 3) */
 .form-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr; /* Change to 3 columns */
     row-gap: 8px;
     column-gap: 15px;
 }
@@ -452,7 +365,8 @@ button:hover {
 
 .form-grid div label {
     margin-bottom: 3px;
-    font-size: 0.9em;
+    font-size: 1em; /* Ensure consistent font size */
+    font-weight: bold; /* Make font bold to match buttons */
 }
 
 /* Adjust margin specifically for inputs/selects within the form grid */
@@ -464,14 +378,158 @@ button:hover {
     border-radius: 4px;
     box-sizing: border-box;
     margin-bottom: 5px;
-    font-size: 0.9em;
+    font-size: 1em; /* Ensure consistent font size */
+    height: 41.5px; /* Set height to match button height */
+}
+
+/* Container for patient type grid and description */
+#patient-type-selection {
+    display: flex; /* Use flexbox */
+    flex-direction: column; /* Stack items vertically */
+    align-items: center; /* Center items horizontally */
+}
+
+/* Patient Type Selection Styles (Step 3) */
+.patient-type-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0px 15px; /* Remove row gap, keep column gap */
+    margin-bottom: 0px; /* Remove margin below grid */
+}
+
+.patient-type-item {
+    /* border: 1px solid #dee2e6; */ /* Remove border */
+    border-radius: 6px; /* Keep radius for potential background on hover/select? */
+    padding: 2px 10px; /* Reduce vertical padding further */
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease; /* Keep transition for icon maybe */
+    /* Remove item hover/selected background */
+}
+
+/* Remove item-level hover/selected styles */
+/* .patient-type-item:hover { */
+/*    border-color: #adb5bd; */
+/*    background-color: #f8f9fa; */
+/* } */
+
+/* .patient-type-item.selected { */
+/*    border-color: #28a745; */
+/*    background-color: rgba(40, 167, 69, 0.1); */
+/* } */
+
+.patient-type-item input[type="radio"] {
+    display: none !important; /* Keep radio hidden */
+}
+
+.patient-type-icon {
+    width: 150px; /* Increase icon size */
+    height: 90px;  /* Increase icon size */
+    background-color: #e9ecef; /* Restore default background color */
+    margin: 0 auto 1px auto; /* Reduce margin below icon to minimum */
+    border-radius: 4px;
+    border: 1px solid transparent; /* Add transparent border for layout consistency */
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+/* Apply hover style to the icon */
+.patient-type-item:hover .patient-type-icon {
+    background-color: #dee2e6; /* Slightly darker background on hover */
+    border-color: #adb5bd; /* Add border on hover */
+}
+
+/* Apply selected style to the icon */
+.patient-type-item.selected .patient-type-icon {
+    background-color: rgba(40, 167, 69, 0.1); /* Light green background */
+    border: 2px solid #28a745; /* Green border */
+}
+
+.patient-type-name {
+    font-size: 1em; /* Match setting-type-options label font size */
+    font-weight: bold;
+    color: #333;
+    display: block;
+}
+
+#patient-type-description {
+    /* Remove all container styling */
+    background-color: transparent !important; /* Force background to be transparent */
+    border: none !important; /* Force no border */
+    border-radius: 0 !important; /* Force no border radius */
+    padding: 0 !important; /* Force no padding */
+    box-shadow: none !important; /* Force no box shadow */
+    margin-top: 2px !important; /* Force minimal top margin */
+    margin-bottom: 2px !important; /* Force minimal bottom margin */
+    text-align: left !important; /* Force left alignment */
+    width: auto !important; /* Force natural width */
+    float: none !important; /* Ensure no floating */
+    font-size: 1em; /* Match setting-type-options label font size */
+    line-height: 1.4; 
+}
+
+/* Make sure all children of description also have no border/background */
+#patient-type-description * {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 3px 0 !important;
+    font-size: 1em; /* Match setting-type-options label font size */
+}
+
+/* Specifically target possible containers within the description */
+#patient-type-description div, 
+#patient-type-description p, 
+#patient-type-description span {
+    display: block !important;
+    border: none !important;
+    background: none !important;
+    padding: 0 !important;
+    margin: 3px 0 !important;
+    border-radius: 0 !important;
+}
+
+/* Hide the heading within the description */
+#patient-type-description h5 {
+    display: none; /* Keep heading hidden */
+}
+
+/* Style for the paragraphs within the description */
+#patient-type-description p {
+    margin-bottom: 3px; /* Add small margin between paragraphs */
+    margin-top: 0; /* Remove default top margin */
+    color: #555; /* Slightly lighter text color */
+}
+
+#patient-type-description p:last-child {
+    margin-bottom: 0; /* Remove margin from the last paragraph */
+}
+
+/* Specifically target strong elements in description for consistent sizing */
+#patient-type-description strong {
+    font-size: 1em !important; /* Keep consistent with text */
+    font-weight: bold !important;
 }
 
 /* Additional Fields Styling (Step 4) */
 #additional-fields .additional-field-row {
     display: flex;
     gap: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 3px;
+    align-items: baseline; /* center から baseline に変更 */
+}
+
+#additional-fields .additional-field-row input[type="text"] {
+    padding-top: 11px;
+    padding-bottom: 11px;
+    flex: 1; /* 利用可能なスペースを分け合う */
+}
+
+#additional-fields .additional-field-row button {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+    white-space: nowrap; /* テキストの自動改行を防ぐ */
+    margin-top: 0; /* 上マージンをリセット */
 }
 
 /* Loading Indicator Styles (Step 5) - Modified for Full Overlay */
@@ -667,26 +725,15 @@ button:hover {
 }
 
 #download-gslide-result {
-    background-color: #FFBA00; /* Yellow */
+    background-color: #6c757d; /* Grey color for disabled look */
+    cursor: not-allowed;
 }
 
 /* General Button Styles - Ensure these don't conflict badly */
 
 .result-step .prev-step-btn {
-    display: block;
-    margin: 20px auto 0 auto;
-    width: fit-content;
+    margin-top: 5px;
     background-color: #6c757d;
-}
-
-/* Layout Adjustment on Result Screen (1:2 Ratio) */
-.result-active .preview-area {
-    flex: 1;
-}
-
-.result-active .form-area {
-    flex: 2; /* Keep flex ratio for width */
-    /* Height and overflow are inherited from the general .form-area rule */
 }
 
 /* Footer Styles */
@@ -702,51 +749,262 @@ footer {
 /* Responsive Design (Max-width 992px) */
 @media (max-width: 992px) {
     body {
-        font-size: 12px;
+        font-size: 14px;
     }
-    
     .main-container {
-        flex-direction: column;
-        min-height: auto;
-    }
-    
-    .result-active .preview-area,
-    .result-active .form-area {
-        flex: 1; /* Reset flex ratio on smaller screens */
-    }
-    
-    /* Hide preview area in form steps on smaller screens */
-    .preview-area {
-        display: none;
-    }
-
-    /* Show preview area again on result step */
-    .result-active .preview-area {
-        display: flex;
-        border-bottom: 1px solid #dee2e6;
-        padding-bottom: 20px;
-        margin-bottom: 20px;
+        margin: 10px; /* Reduce margin on smaller screens */
+        /* display: block; */ /* Ensure it's block if flex was used before */
     }
 
     .form-area {
-        padding: 20px;
+        padding: 20px; /* Reduce padding */
     }
+
+    /* Adjust department options for smaller screens */
+    .department-options { /* Apply responsive grid to department */
+         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+    .purpose-options,
+    .setting-type-options { /* Apply to setting-type-options as well */
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Apply responsive grid */
+        width: auto; /* Reset width for smaller screens */
+        /* margin: 20px auto; /* Keep centering */
+    }
+
+    /* Adjust next/prev button width and layout on smaller screens */
+    .next-step-btn {
+         width: 90%;
+         display: block;
+    }
+    .prev-step-btn {
+         width: 90%;
+         display: block;
+         margin: 10px auto;
+         margin-right: auto; /* Remove specific right margin */
+    }
+
     .form-grid {
-        grid-template-columns: 1fr; /* Stack form grid items */
+        grid-template-columns: 1fr; /* Stack grid items */
     }
     .persona-result-container {
-        flex-direction: column;
-        gap: 30px;
+        flex-direction: column; /* Stack persona details */
     }
     .persona-profile {
-         border-right: none;
-         border-bottom: 1px solid #dee2e6;
-         padding-right: 0;
-         padding-bottom: 30px;
-         margin-bottom: 30px;
-         text-align: center;
+        width: 100%;
+        margin-bottom: 20px;
+        position: static; /* Remove sticky positioning */
+        height: auto;
     }
     .profile-details-list dt {
-         flex-basis: 80px; /* Adjust label width */
+        flex-basis: 80px; /* Adjust label width */
     }
-} 
+}
+
+/* Styling for the new horizontally aligned location inputs */
+.location-inputs-container {
+    display: flex;
+    gap: 10px; /* Space between Prefecture and Municipality inputs */
+    align-items: flex-start; /* Align items based on their top edge */
+}
+
+.location-input-item {
+    flex: 1; /* Each item (prefecture/municipality) takes equal width */
+    display: flex;
+    flex-direction: column; /* Stack label above input */
+}
+
+/* Ensure labels within location-input-item match general form-grid labels */
+.location-input-item label {
+    /* font-size: 1em; */ /* Already inherited from .form-grid div label */
+    /* font-weight: bold; */ /* Already inherited */
+    margin-bottom: 3px; /* Consistent margin */
+    display: block; /* Ensure it takes full width above the input */
+}
+
+/* Ensure inputs/selects within location-input-item take full width of their item container */
+.location-input-item select,
+.location-input-item input[type="text"] {
+    width: 100%;
+    /* Height will be inherited from .form-grid select/input rule (41.5px) */
+    /* Other styles like padding, border, border-radius also inherited */
+}
+
+/* Grid cell containing the location inputs */
+.location-grid-cell {
+    /* Override the display:flex from .form-grid div to allow inner flex layout */
+    display: block; 
+}
+
+/* Adjust margin specifically for inputs/selects within the form grid */
+.form-grid input[type="text"],
+.form-grid select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    margin-bottom: 5px;
+    font-size: 1em; /* Ensure consistent font size */
+    height: 41.5px; /* Set height to match button height */
+}
+
+.form-grid input[type="text"],
+.form-grid select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+.additional-fixed-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* 2列に分割 */
+    gap: 15px; /* 各グリッドアイテム間の隙間 */
+    margin-bottom: 20px; /* グリッド全体の下部のマージン */
+}
+
+.additional-fixed-fields-grid div {
+    /* 個々の入力フィールドコンテナのスタイル (必要に応じて調整) */
+    margin-bottom: 0; /* form div のマージンと重複しないように */
+}
+
+.additional-fixed-fields-grid div label {
+    /* ラベルのスタイル (必要に応じて調整) */
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.additional-fixed-fields-grid div input[type="text"] {
+    /* テキスト入力フィールドのスタイル */
+    width: 100%; /* 親要素の幅いっぱいに広げる */
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+#additional-fields .additional-field-row .remove-field-btn {
+    padding-top: 9px !important;
+    padding-bottom: 10px !important; 
+    height: auto !important; /* インラインの height: fit-content を上書き */
+    align-self: baseline !important; /* インラインの align-self: center を上書き */
+}
+
+/* Confirmation Screen Specific Styles */
+.confirmation-summary .summary-section {
+    margin-bottom: 0px; /* 各セクション間のマージンを0に */
+    padding-bottom: 15px; /* 各セクションの下のパディング */
+    border-bottom: 1px solid #eee; /* セクション区切り線 */
+}
+
+.confirmation-summary .summary-section:last-child {
+    border-bottom: none; /* 最後のセクションの区切り線はなし */
+    margin-bottom: 0;
+}
+
+.confirmation-summary h5 {
+    font-size: 1.1em; 
+    font-weight: bold;
+    color: #333;
+    margin-top: 0px; /* 上の空白を調整 */
+    margin-bottom: 10px;
+    display: flex; 
+    justify-content: space-between; 
+    align-items: baseline; /* テキストとボタンの垂直中央揃え から ベースライン揃えへ変更 */
+}
+
+.confirmation-summary .edit-step-btn {
+    font-size: 0.9em; 
+    height: 40.63px; /* h5の高さに合わせる */
+    padding: 0 10px; /* 上下のpaddingは0にし、左右のpaddingは適宜調整 */
+    line-height: 48.63px; /* heightと同じ値にしてテキストを垂直中央揃え */
+    background-color: #6c757d; 
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    box-sizing: border-box; /* heightにpaddingとborderが含まれるように */
+    display: inline-flex; /* テキストをさらに中央揃えしやすくする */
+    align-items: center;
+    justify-content: center;
+}
+.confirmation-summary .edit-step-btn:hover {
+    background-color: #5a6268;
+}
+
+.confirmation-summary p,
+#summary-basic-info p, /* Ensure styles apply here */
+#summary-additional-fixed-info p,
+#summary-additional-dynamic-info p {
+    font-size: 1em; /* 標準フォントサイズに統一 (bodyが13pxなら13px) */
+    color: #333;
+    margin-bottom: 8px; /* 各情報の行間 */
+    line-height: 1.5;
+}
+
+#summary-basic-info strong,
+#summary-additional-fixed-info strong,
+#summary-additional-dynamic-info strong,
+.confirmation-summary p strong { /* summary-department と summary-purpose のstrongも対象 */
+    font-weight: bold;
+    margin-right: 8px; /* ラベルと値の間のスペース */
+    display: inline-block; /* 必要に応じて */
+}
+
+/* 基本情報と追加情報のコンテナのスタイル調整 */
+#summary-basic-info.form-grid,
+#summary-additional-fixed-info.additional-fixed-fields-grid {
+    padding: 10px;
+    border: 1px solid #e0e0e0; /* 薄い枠線を追加 */
+    border-radius: 4px;
+    margin-top: 5px;
+    display: grid; /* Keep grid for layout */
+    gap: 10px; /* Adjust gap as needed */
+}
+#summary-basic-info.form-grid p,
+#summary-additional-fixed-info.additional-fixed-fields-grid p {
+    margin-bottom: 0; /* グリッド内のpタグのmarginを調整 */
+    border-bottom: none; /* 個別の項目に下線は不要 */
+    padding-bottom: 0;
+}
+
+
+/* ボタンのフォントサイズを他と統一 (汎用ボタンスタイルに影響させるか、ここで上書き) */
+#final-generate-btn-bottom, /* 古いID指定を残すか、クラスのみにするか検討 */
+.form-step[data-step="5"] .prev-step-btn, /* 確認画面のナビゲーションボタン */
+.final-generate-btn-common { /* 新しい共通クラス */
+    font-size: 1em; /* 標準フォントサイズ */
+    padding: 10px 12px; /* 他のナビゲーションボタンに合わせる */
+}
+
+/* final-generate-btn-common のスタイルを #final-generate-btn から継承または再定義 */
+.final-generate-btn-common {
+    background-color: #28a745; /* 緑色に変更 */
+    color: white; /* テキスト色を白に (念のため) */
+}
+
+.final-generate-btn-common:hover {
+    background-color: #218838; /* ホバー色 */
+}
+
+/* 不要になった可能性のある古いIDセレクタのスタイルをコメントアウトまたは削除
+#final-generate-btn {
+    background-color: #28a745; 
+    color: white; 
+}
+
+#final-generate-btn:hover {
+    background-color: #218838; 
+}
+*/
+
+.initially-hidden-confirm-btn {
+    display: none !important; /* 初期状態は非表示。インラインの margin-left と共存させるため important を使用 */
+}
+
+.force-show-confirm-btn {
+    display: inline-block !important; /* JSからこのクラスを付与して表示を強制 */
+}
+

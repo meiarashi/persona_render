@@ -106,61 +106,132 @@ def get_ai_client(model_name, api_key):
 
 # --- Prompt and Response Parsing Helpers --- 
 def build_prompt(data):
-    # Get character limits from Environment Variables (use 100 as default)
     limit_personality = os.environ.get("LIMIT_PERSONALITY", "100")
     limit_reason = os.environ.get("LIMIT_REASON", "100")
     limit_behavior = os.environ.get("LIMIT_BEHAVIOR", "100")
     limit_reviews = os.environ.get("LIMIT_REVIEWS", "100")
     limit_values = os.environ.get("LIMIT_VALUES", "100")
     limit_demands = os.environ.get("LIMIT_DEMANDS", "100")
-    
-    prompt = f"""
-    以下の情報に基づいて、医療系のペルソナを作成してください。
-    各項目は自然な文章で記述し、**日本語で、指定されたおおよその文字数制限に従ってください**。
+
+    # --- Patient Type Descriptions (Copied from script.js) ---
+    patient_type_details_map = {
+        '利便性重視型': { "description": 'アクセスの良さ、待ち時間の短さ、診療時間の柔軟性など、便利さを最優先', "example": '忙しいビジネスパーソン、オンライン診療を好む患者' },
+        '専門医療追求型': { "description": '専門医や高度専門医療機関での治療を希望し、医師の経歴や実績を重視', "example": '難病患者、複雑な症状を持つ患者' },
+        '予防健康管理型': { "description": '病気になる前の予防や早期発見、健康維持に関心が高い', "example": '定期健診を欠かさない人、予防接種に積極的な人' },
+        '代替医療志向型': { "description": '漢方、鍼灸、ホメオパシーなど、西洋医学以外の選択肢を積極的に取り入れる', "example": '自然療法愛好者、慢性疾患の患者' },
+        '経済合理型': { "description": '自己負担額、保険適用の有無、費用対効果を重視', "example": '経済的制約のある患者、医療費控除を意識する人' },
+        '情報探求型': { "description": '徹底的な情報収集、セカンドオピニオン取得、比較検討を行う', "example": '高学歴層、慎重な意思決定を好む患者' },
+        '革新技術指向型': { "description": '最先端の医療技術、新薬、臨床試験などに積極的に関心を持つ', "example": '既存治療で効果が出なかった患者、医療イノベーションに関心がある人' },
+        '対話重視型': { "description": '医師からの丁寧な説明や対話を求め、質問が多い', "example": '不安を感じやすい患者、医療従事者' },
+        '信頼基盤型': { "description": 'かかりつけ医との長期的な関係や医療機関の評判を重視', "example": '地域密着型の患者、同じ医師に長期通院する患者' },
+        '緊急解決型': { "description": '症状の即時改善を求め、緊急性を重視', "example": '急性疾患患者、痛みに耐性が低い患者' },
+        '受動依存型': { "description": '医師の判断に全面的に依存し、自らの決定より医師の指示を優先', "example": '高齢者、医療知識が少ない患者' },
+        '自律決定型': { "description": '自分の治療に主体的に関わり、最終決定権を持ちたいと考える', "example": '医療リテラシーが高い患者、自己管理を好む慢性疾患患者' }
+    }
+
+    prompt_parts = [
+        "以下の情報に基づいて、医療系のペルソナを作成してください。",
+        "各項目は自然な文章で記述し、**日本語で、指定されたおおよその文字数制限に従ってください**。",
+        "",
+        "# 利用者からの入力情報"
+    ]
 
     # 基本情報
-    - 診療科: {data.get('department', '指定なし')}
-    - 作成目的: {data.get('purpose', '指定なし')}
-    - 名前: {data.get('name', '(自動生成)')}
-    - 性別: {data.get('gender', '(自動生成)')}
-    - 年齢: {data.get('age', '(自動生成)')}
-    - 居住地: {data.get('location', '(自動生成)')}
-    - 家族構成: {data.get('family', '(自動生成)')}
-    - 職業: {data.get('occupation', '(自動生成)')}
-    - 年収: {data.get('income', '(自動生成)')}
-    - 趣味: {data.get('hobby', '(自動生成)')}
-    """
-    if 'additional' in data and data['additional']:
-         prompt += "\n# 追加情報\n"
-         for key, value in data['additional'].items():
-              if key and value:
-                    prompt += f"- {key}: {value}\n"
-    prompt += f"""
-    # 生成項目 (日本語で、指定文字数程度で)
-    以下の項目について、上記情報に基づいた自然な文章を生成してください。
+    basic_info = {
+        "診療科": data.get('department'),
+        "ペルソナ作成目的": data.get('purpose'),
+        "名前": data.get('name'),
+        "性別": data.get('gender'),
+        "年齢": data.get('age'),
+        "都道府県": data.get('prefecture'),
+        "市区町村": data.get('municipality'),
+        "家族構成": data.get('family'),
+        "職業": data.get('occupation'),
+        "年収": data.get('income'),
+        "趣味": data.get('hobby'),
+        "ライフイベント": data.get('life_events'),
+        "患者タイプ": data.get('patient_type')
+    }
+    # setting_type と patient_type も追加
+    if data.get('setting_type'):
+        basic_info["基本情報設定タイプ"] = data.get('setting_type')
+        # 以下の重複する可能性のある「選択された患者タイプ」の追加はコメントアウトまたは削除
+        # if data.get('setting_type') == 'patient_type' and data.get('patient_type'):
+        #     basic_info["選択された患者タイプ"] = data.get('patient_type')
 
-    1.  **性格（価値観・人生観）**: (日本語で{limit_personality}文字程度)
-    2.  **通院理由**: (日本語で{limit_reason}文字程度)
-    3.  **症状通院頻度・行動パターン**: (日本語で{limit_behavior}文字程度)
-    4.  **口コミの重視ポイント**: (日本語で{limit_reviews}文字程度)
-    5.  **医療機関への価値観・行動傾向**: (日本語で{limit_values}文字程度)
-    6.  **医療機関に求めるもの**: (日本語で{limit_demands}文字程度)
 
-    回答は、各生成項目の見出しを含めず、項目に対応するテキストのみを以下の形式で記述してください。
-    ---性格---
-    [ここに性格のテキスト]
-    ---通院理由---
-    [ここに通院理由のテキスト]
-    ---行動パターン---
-    [ここに症状通院頻度・行動パターンのテキスト]
-    ---口コミ重視点---
-    [ここに口コミの重視ポイントのテキスト]
-    ---医療価値観---
-    [ここに医療機関への価値観・行動傾向のテキスト]
-    ---医療求めるもの---
-    [ここに医療機関に求めるもののテキスト]
-    """
-    return prompt
+    for key, value in basic_info.items():
+        if value: # 値が存在する場合のみプロンプトに追加
+            prompt_parts.append(f"- {key}: {value}")
+            if key == "患者タイプ" and value in patient_type_details_map:
+                details = patient_type_details_map[value]
+                prompt_parts.append(f"  - 患者タイプの特徴: {details['description']}")
+                prompt_parts.append(f"  - 患者タイプの例: {details['example']}")
+        # 「選択された患者タイプ」の(自動生成)条件から patient_type を除外 (「患者タイプ」で処理されるため)
+        elif key in ["名前", "性別", "年齢", "都道府県", "市区町村", "家族構成", "職業", "年収", "趣味", "ライフイベント"] and key != "患者タイプ": 
+             prompt_parts.append(f"- {key}: (自動生成)")
+        elif key == "患者タイプ" and not value and data.get('setting_type') == 'patient_type': # setting_typeがpatient_typeで患者タイプが未選択の場合
+             prompt_parts.append(f"- {key}: (指定なし/自動生成)")
+        # '診療科', '作成目的', '基本情報設定タイプ' は値がなければ「指定なし」とするか、キー自体含めないか検討。ここでは値がある場合のみ表示。
+
+    # Step 4の固定追加項目
+    fixed_additional_info = {
+        "座右の銘": data.get('motto'),
+        "最近の悩み/関心": data.get('concerns'),
+        "好きな有名人/尊敬する人物": data.get('favorite_person'),
+        "よく見るメディア/SNS": data.get('media_sns'),
+        "性格キーワード": data.get('personality_keywords'),
+        "最近した健康に関する行動": data.get('health_actions'),
+        "休日の過ごし方": data.get('holiday_activities'),
+        "キャッチコピー": data.get('catchphrase'),
+    }
+    has_fixed_additional_info = any(fixed_additional_info.values())
+    if has_fixed_additional_info:
+        prompt_parts.append("\n## 追加情報（固定項目）")
+        for key, value in fixed_additional_info.items():
+            if value:
+                prompt_parts.append(f"- {key}: {value}")
+
+    # Step 4の動的追加項目
+    additional_field_names = data.get('additional_field_name', [])
+    additional_field_values = data.get('additional_field_value', [])
+    
+    dynamic_additional_info = []
+    if isinstance(additional_field_names, list) and isinstance(additional_field_values, list):
+        for i in range(len(additional_field_names)):
+            field_name = additional_field_names[i]
+            field_value = additional_field_values[i] if i < len(additional_field_values) else None
+            if field_name and field_value: # 項目名と内容の両方がある場合のみ
+                dynamic_additional_info.append(f"- {field_name}: {field_value}")
+    
+    if dynamic_additional_info:
+        prompt_parts.append("\n## 追加情報（自由入力項目）")
+        prompt_parts.extend(dynamic_additional_info)
+
+    prompt_parts.append("\n# 生成項目 (日本語で、指定文字数程度で)")
+    prompt_parts.append("以下の項目について、上記情報に基づいた自然な文章を生成してください。")
+    prompt_parts.append(f"\n1.  **性格（価値観・人生観）**: (日本語で{limit_personality}文字程度)")
+    prompt_parts.append(f"2.  **通院理由**: (日本語で{limit_reason}文字程度)")
+    prompt_parts.append(f"3.  **症状通院頻度・行動パターン**: (日本語で{limit_behavior}文字程度)")
+    prompt_parts.append(f"4.  **口コミの重視ポイント**: (日本語で{limit_reviews}文字程度)")
+    prompt_parts.append(f"5.  **医療機関への価値観・行動傾向**: (日本語で{limit_values}文字程度)")
+    prompt_parts.append(f"6.  **医療機関に求めるもの**: (日本語で{limit_demands}文字程度)")
+    
+    prompt_parts.append("\n回答は、各生成項目の見出しを含めず、項目に対応するテキストのみを以下の形式で記述してください。")
+    prompt_parts.append("---性格---")
+    prompt_parts.append("[ここに性格のテキスト]")
+    prompt_parts.append("---通院理由---")
+    prompt_parts.append("[ここに通院理由のテキスト]")
+    prompt_parts.append("---行動パターン---")
+    prompt_parts.append("[ここに症状通院頻度・行動パターンのテキスト]")
+    prompt_parts.append("---口コミ重視点---")
+    prompt_parts.append("[ここに口コミの重視ポイントのテキスト]")
+    prompt_parts.append("---医療価値観---")
+    prompt_parts.append("[ここに医療機関への価値観・行動傾向のテキスト]")
+    prompt_parts.append("---医療求めるもの---")
+    prompt_parts.append("[ここに医療機関に求めるもののテキスト]")
+
+    return "\n".join(prompt_parts)
 
 def parse_ai_response(text):
     details = {}
@@ -174,6 +245,14 @@ def parse_ai_response(text):
     }
     current_key = None
     current_text = []
+
+    # AIの応答がNoneの場合のフォールバック
+    if text is None:
+        print("Warning: AI response text is None.")
+        for marker, key in sections.items():
+            details[key] = "(AIからの応答がありませんでした)"
+        return details
+
     for line in text.splitlines():
         found_key = None
         for marker, key in sections.items():
@@ -183,12 +262,15 @@ def parse_ai_response(text):
         if found_key:
             if current_key and current_text:
                 details[sections[current_key]] = "\n".join(current_text).strip()
-            current_key = marker
+            current_key = marker # ここを sections[found_key] ではなく marker にする
             current_text = []
-        elif current_key:
+        elif current_key: # current_key が None でないことを確認
             current_text.append(line)
-    if current_key and current_text:
+    
+    if current_key and current_text: # ループ終了後、最後のセクションを処理
         details[sections[current_key]] = "\n".join(current_text).strip()
+    
+    # 解析できなかったセクションにデフォルト値を設定
     for marker, key in sections.items():
         if key not in details:
             details[key] = "(AIからの応答が解析できませんでした)"
@@ -291,8 +373,8 @@ def generate_persona():
                 image_response = image_client.images.generate(
                     model=selected_image_model,
                     prompt=img_prompt,
-                    size="1024x1024",
-                    quality="standard",
+                    size="1024x1024", 
+                    quality="standard", 
                     n=1,
                 )
                 image_url = image_response.data[0].url
