@@ -449,7 +449,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 // Call showStep before populateResults
                 showStep(TOTAL_FORM_STEPS + 2); // Show result screen (Step 7)
-                populateResults(result); // Populate results on Step 7
+                // Delay populateResults to allow DOM to update
+                setTimeout(() => {
+                    populateResults(result); // Populate results on Step 7
+                }, 0); 
 
             } catch (error) {
                 console.error('Error generating persona:', error);
