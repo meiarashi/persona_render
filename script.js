@@ -446,8 +446,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const result = await response.json();
                 currentPersonaResult = result; // Store the result
-                populateResults(result); // Populate results on Step 7
+                
+                // Call showStep before populateResults
                 showStep(TOTAL_FORM_STEPS + 2); // Show result screen (Step 7)
+                populateResults(result); // Populate results on Step 7
 
             } catch (error) {
                 console.error('Error generating persona:', error);
@@ -456,7 +458,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             } finally {
                 // Hide loading screen
                 loadingStep.classList.remove('active');
-                formSteps.forEach(step => step.classList.add('active'));
             }
         });
     });
