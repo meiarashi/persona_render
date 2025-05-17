@@ -14,6 +14,7 @@ from urllib.parse import quote
 from pptx import Presentation
 from pptx.util import Inches, Pt # Inches for image size, Pt for font size
 from pptx.enum.text import PP_ALIGN # For text alignment
+from pptx.dml.color import RGBColor
 
 # --- Flask App Setup ---
 app = Flask(__name__, static_url_path='', static_folder='.')
@@ -643,7 +644,7 @@ def generate_pdf(data):
         "values": "医療機関への価値観・行動傾向",
         "demands": "医療機関に求めるもの"
     }
-    
+
     # 右カラムの開始位置を設定
     current_y = current_y - (len(additional_items) * 3.5) # 左カラムの追加情報の高さ分戻る
     if current_y < 30: # あまりに上すぎる場合は下げる
@@ -744,7 +745,7 @@ def generate_ppt(data):
     
     # 余白の設定
     margin = Inches(0.3)
-    
+
     # --- ヘッダー部分（タイトルと診療科・目的） ---
     # 名前とタイトル
     title_shape = slide.shapes.add_textbox(margin, margin, Inches(slide_width - 0.6), Inches(0.6))
@@ -753,7 +754,7 @@ def generate_ppt(data):
     title_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
     title_frame.paragraphs[0].font.size = Pt(24)
     title_frame.paragraphs[0].font.bold = True
-    
+
     # 診療科と目的を横並びで表示
     header_shape = slide.shapes.add_textbox(margin, Inches(0.9), Inches(slide_width - 0.6), Inches(0.4))
     header_frame = header_shape.text_frame
@@ -830,7 +831,7 @@ def generate_ppt(data):
         key_para.text = f"{key}:"
         key_para.font.bold = True
         key_para.font.size = Pt(10)
-        
+
         # 値
         val_box = slide.shapes.add_textbox(margin + Inches(info_col_width * 1.4), current_y, Inches(info_col_width * 0.6), item_height)
         val_frame = val_box.text_frame
@@ -878,7 +879,7 @@ def generate_ppt(data):
         val_para = val_frame.add_paragraph()
         val_para.text = str(value) if value else '-'
         val_para.font.size = Pt(9)
-        
+
         current_y += additional_item_height
     
     # 動的に追加された項目があれば表示
@@ -914,7 +915,7 @@ def generate_ppt(data):
         "values": "医療機関への価値観・行動傾向",
         "demands": "医療機関に求めるもの"
     }
-    
+
     # 詳細情報の描画
     for key, japanese_header in header_map.items():
         value = details.get(key)
@@ -936,7 +937,7 @@ def generate_ppt(data):
                 Inches(0.3)
             )
             header_rect.fill.solid()
-            header_rect.fill.fore_color.rgb = (240, 240, 240)  # 薄いグレー
+            header_rect.fill.fore_color.rgb = RGBColor(240, 240, 240)  # 薄いグレー
             header_rect.line.fill.background()  # 枠線を消す
             header_rect.zorder = 1  # 下に配置
             header_box.zorder = 2  # テキストを上に
@@ -955,7 +956,7 @@ def generate_ppt(data):
             content_para.font.size = Pt(10)
             
             right_column_y += Inches(0.9)  # 次のセクションへの間隔
-    
+
     # Save presentation to a BytesIO buffer
     ppt_buffer = io.BytesIO()
     prs.save(ppt_buffer)

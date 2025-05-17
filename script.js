@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (pptBtn) pptBtn.style.display = 'inline-block';
                     console.log('Forced display refresh for download buttons');
                 }, 500);
-                } else {
+            } else {
                 mainContainer.classList.remove('result-active');
             }
 
@@ -596,7 +596,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const htmlDownloadOptions = document.querySelector('.persona-details .download-options');
         if (htmlDownloadOptions) {
             // 上部位置を調整して線の上に載らないようにする
-            htmlDownloadOptions.style.top = '-40px'; // マイナス値に設定して上に移動
+            htmlDownloadOptions.style.top = '-30px'; // さらに上に調整（-20pxから-30pxに）
             console.log('Adjusted position of HTML download options container');
             
             // HTMLのボタンも高さを固定
@@ -625,7 +625,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const floatingContainer = document.createElement('div');
         floatingContainer.id = 'floating-download-buttons';
         floatingContainer.style.position = 'absolute'; 
-        floatingContainer.style.top = '-5px'; // マイナス値に設定して上に移動
+        floatingContainer.style.top = '-30px'; // さらに上に調整（-5pxから-30pxに）
         floatingContainer.style.right = '20px'; 
         floatingContainer.style.zIndex = '1000'; 
         floatingContainer.style.display = 'flex'; 
@@ -672,7 +672,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert('ペルソナがまだ生成されていません。');
              return;
         }
-            
+
             // ボタンスタイル変更
             pdfButton.textContent = '生成中...';
             pdfButton.disabled = true;
