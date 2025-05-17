@@ -571,16 +571,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         // DEBUG: Check if download buttons exist before population
         console.log('Before population - PDF Button:', document.getElementById('download-pdf-result'));
         console.log('Before population - PPT Button:', document.getElementById('download-ppt-result'));
-
-        // 動的にダウンロードボタンを作成・追加（確実に表示するため）
+        
+        // コンテナ検索 - 両方の可能性のあるコンテナを取得
         const personaDetails = document.querySelector('.persona-details');
-        if (personaDetails) {
-            // 既存のdownload-optionsがあれば削除
-            const existingDownloadOptions = personaDetails.querySelector('.download-options');
-            if (existingDownloadOptions) {
-                existingDownloadOptions.remove();
-            }
-            
+        const personaPreview = document.querySelector('.persona-preview');
+        
+        console.log('Container check - persona-details:', personaDetails);
+        console.log('Container check - persona-preview:', personaPreview);
+        
+        // ダウンロードボタン用のdivを作成する関数
+        function createDownloadButtons() {
             // 新しいdownload-optionsを作成
             const downloadOptions = document.createElement('div');
             downloadOptions.className = 'download-options';
@@ -729,12 +729,56 @@ document.addEventListener('DOMContentLoaded', async () => {
             downloadOptions.appendChild(pdfButton);
             downloadOptions.appendChild(pptButton);
             
-            // download-optionsをpersonaDetailsの先頭に追加
-            personaDetails.insertBefore(downloadOptions, personaDetails.firstChild);
+            return downloadOptions;
+        }
+        
+        // 1. まず.persona-detailsを試す（これがHTMLで想定されている場所）
+        if (personaDetails) {
+            // 既存のdownload-optionsがあれば削除
+            const existingDownloadOptions = personaDetails.querySelector('.download-options');
+            if (existingDownloadOptions) {
+                existingDownloadOptions.remove();
+            }
             
-            console.log('Dynamic download buttons created and added to DOM');
-        } else {
-            console.error('persona-details element not found, cannot add download buttons');
+            // ボタンを追加
+            const downloadOptions = createDownloadButtons();
+            personaDetails.insertBefore(downloadOptions, personaDetails.firstChild);
+            console.log('Download buttons added to persona-details');
+        } 
+        
+        // 2. .persona-detailsがない場合は.persona-previewに追加（フォールバック）
+        if (!personaDetails && personaPreview) {
+            // 既存のdownload-optionsがあれば削除
+            const existingDownloadOptions = personaPreview.querySelector('.download-options');
+            if (existingDownloadOptions) {
+                existingDownloadOptions.remove();
+            }
+            
+            // ボタンを追加
+            const downloadOptions = createDownloadButtons();
+            personaPreview.insertBefore(downloadOptions, personaPreview.firstChild);
+            console.log('Download buttons added to persona-preview (fallback)');
+        }
+        
+        // 3. 最悪の場合はフォーム全体に追加
+        if (!personaDetails && !personaPreview) {
+            const resultStep = document.querySelector('.form-step[data-step="7"]');
+            if (resultStep) {
+                // 既存のdownload-optionsがあれば削除
+                const existingDownloadOptions = resultStep.querySelector('.download-options');
+                if (existingDownloadOptions) {
+                    existingDownloadOptions.remove();
+                }
+                
+                // ボタンを追加（絶対位置指定で右上に配置）
+                const downloadOptions = createDownloadButtons();
+                // resultStepの位置指定が問題にならないようposition:relativeを設定
+                resultStep.style.position = 'relative';
+                resultStep.insertBefore(downloadOptions, resultStep.firstChild);
+                console.log('Download buttons added to result-step (emergency fallback)');
+            } else {
+                console.error('No suitable container found for download buttons');
+            }
         }
 
         // Populate New Header Info Section
