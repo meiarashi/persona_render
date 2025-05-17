@@ -114,6 +114,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Always force PDF and PPT buttons to be visible
                 updateDownloadButtonVisibility({ pdf: true, ppt: true });
                 
+                // HTMLに直接定義されたボタンの幅を固定する
+                const pdfBtn = document.getElementById('download-pdf-result');
+                const pptBtn = document.getElementById('download-ppt-result');
+                
+                if (pdfBtn) {
+                    pdfBtn.style.width = '80px';
+                    pdfBtn.style.textAlign = 'center';
+                    pdfBtn.style.display = 'inline-block';
+                }
+                
+                if (pptBtn) {
+                    pptBtn.style.width = '80px';
+                    pptBtn.style.textAlign = 'center';
+                    pptBtn.style.display = 'inline-block';
+                }
+                
                 // DEBUG: Check if download buttons exist
                 console.log('PDF Button:', document.getElementById('download-pdf-result'));
                 console.log('PPT Button:', document.getElementById('download-ppt-result'));
@@ -572,6 +588,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Before population - PDF Button:', document.getElementById('download-pdf-result'));
         console.log('Before population - PPT Button:', document.getElementById('download-ppt-result'));
         
+        // HTMLで定義されたダウンロードオプションコンテナのスタイルを調整
+        const htmlDownloadOptions = document.querySelector('.persona-details .download-options');
+        if (htmlDownloadOptions) {
+            // 上部位置を調整して線の上に載らないようにする
+            htmlDownloadOptions.style.top = '10px';
+            console.log('Adjusted position of HTML download options container');
+        }
+        
         // 完全に独立したフローティングダウンロードボタンを作成
         // まず既存のボタンを削除
         const existingPdfButton = document.getElementById('floating-pdf-button');
@@ -583,7 +607,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const floatingContainer = document.createElement('div');
         floatingContainer.id = 'floating-download-buttons';
         floatingContainer.style.position = 'absolute'; // fixedからabsoluteに変更
-        floatingContainer.style.top = '20px'; // 上部に配置
+        floatingContainer.style.top = '10px'; // 上部位置を10pxに調整（より上に配置）
         floatingContainer.style.right = '20px'; // 右側に配置
         floatingContainer.style.zIndex = '1000'; // z-indexを調整
         floatingContainer.style.display = 'flex'; 
@@ -602,6 +626,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         pdfButton.style.cursor = 'pointer';
         pdfButton.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'; // 影を小さく
         pdfButton.style.fontSize = '13px'; // フォントサイズを小さく
+        pdfButton.style.width = '80px'; // 幅を固定
+        pdfButton.style.textAlign = 'center'; // テキスト中央揃え
         
         // PPTボタン
         const pptButton = document.createElement('button');
@@ -615,13 +641,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         pptButton.style.cursor = 'pointer';
         pptButton.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'; // 影を小さく
         pptButton.style.fontSize = '13px'; // フォントサイズを小さく
+        pptButton.style.width = '80px'; // 幅を固定
+        pptButton.style.textAlign = 'center'; // テキスト中央揃え
         
         // PDFボタンのクリックイベント
         pdfButton.addEventListener('click', async () => {
             if (!currentPersonaResult) {
                 alert('ペルソナがまだ生成されていません。');
-                return;
-            }
+             return;
+        }
             
             // ボタンスタイル変更
             pdfButton.textContent = '生成中...';
@@ -669,9 +697,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         pptButton.addEventListener('click', async () => {
             if (!currentPersonaResult) {
                 alert('ペルソナがまだ生成されていません。');
-                return;
-            }
-            
+             return;
+        }
+
             // ボタンスタイル変更
             pptButton.textContent = '生成中...';
             pptButton.disabled = true;
@@ -679,12 +707,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             try {
                 const response = await fetch('/api/download/ppt', {
-                    method: 'POST',
+                method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(currentPersonaResult)
-                });
-                
-                if (!response.ok) {
+            });
+
+            if (!response.ok) {
                     throw new Error(`サーバーエラー ${response.status}`);
                 }
                 
@@ -702,8 +730,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 // ダウンロード処理
                 triggerDownload(blob, filename);
-                
-            } catch (error) {
+
+        } catch (error) {
                 console.error('PPT Download Error:', error);
                 alert(`エラーが発生しました: ${error.message}`);
             } finally {
@@ -963,6 +991,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Event listener for PDF download button
     const pdfDownloadBtn = document.getElementById('download-pdf-result');
     if (pdfDownloadBtn) {
+        // あらかじめ幅を固定
+        pdfDownloadBtn.style.width = '80px';
+        pdfDownloadBtn.style.textAlign = 'center';
+        
         pdfDownloadBtn.addEventListener('click', async () => {
             if (!currentPersonaResult) {
                 alert('ペルソナがまだ生成されていません。');
@@ -1042,6 +1074,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Placeholder for PPT download button
     const pptDownloadBtn = document.getElementById('download-ppt-result');
     if (pptDownloadBtn) {
+        // あらかじめ幅を固定
+        pptDownloadBtn.style.width = '80px';
+        pptDownloadBtn.style.textAlign = 'center';
+        
         pptDownloadBtn.addEventListener('click', async () => {
             if (!currentPersonaResult) {
                 alert('ペルソナがまだ生成されていません。');
