@@ -572,6 +572,171 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Before population - PDF Button:', document.getElementById('download-pdf-result'));
         console.log('Before population - PPT Button:', document.getElementById('download-ppt-result'));
 
+        // 動的にダウンロードボタンを作成・追加（確実に表示するため）
+        const personaDetails = document.querySelector('.persona-details');
+        if (personaDetails) {
+            // 既存のdownload-optionsがあれば削除
+            const existingDownloadOptions = personaDetails.querySelector('.download-options');
+            if (existingDownloadOptions) {
+                existingDownloadOptions.remove();
+            }
+            
+            // 新しいdownload-optionsを作成
+            const downloadOptions = document.createElement('div');
+            downloadOptions.className = 'download-options';
+            downloadOptions.style.position = 'absolute';
+            downloadOptions.style.top = '20px';
+            downloadOptions.style.right = '20px';
+            downloadOptions.style.zIndex = '100';
+            downloadOptions.style.display = 'flex';
+            downloadOptions.style.gap = '10px';
+            
+            // PDFダウンロードボタンを作成
+            const pdfButton = document.createElement('button');
+            pdfButton.type = 'button';
+            pdfButton.id = 'download-pdf-result';
+            pdfButton.textContent = 'PDF';
+            pdfButton.style.display = 'inline-block';
+            pdfButton.style.backgroundColor = '#ff0000';
+            pdfButton.style.color = 'white';
+            pdfButton.style.border = 'none';
+            pdfButton.style.padding = '6px 16px';
+            pdfButton.style.borderRadius = '4px';
+            pdfButton.style.margin = '0 5px';
+            pdfButton.style.cursor = 'pointer';
+            pdfButton.addEventListener('click', async () => {
+                if (!currentPersonaResult) {
+                    alert('ペルソナがまだ生成されていません。');
+                    return;
+                }
+                if (!currentPersonaResult.profile || !currentPersonaResult.details) {
+                    alert('ペルソナデータが不完全です。');
+                    console.error("Incomplete persona data for download:", currentPersonaResult);
+                    return;
+                }
+
+                // Add a simple loading indicator
+                const originalText = pdfButton.textContent;
+                pdfButton.textContent = '生成中...';
+                pdfButton.disabled = true;
+
+                try {
+                    const response = await fetch('/api/download/pdf', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(currentPersonaResult),
+                    });
+
+                    if (!response.ok) {
+                        let errorMsg = 'PDFの生成に失敗しました。';
+                        try {
+                            const errorData = await response.json();
+                            errorMsg = errorData.error || errorMsg;
+                        } catch (e) {
+                            // Ignore if response is not JSON
+                        }
+                        throw new Error(errorMsg + ` (Status: ${response.status})`);
+                    }
+
+                    const blob = await response.blob();
+                    const contentDisposition = response.headers.get('content-disposition');
+                    let filename = `${currentPersonaResult.profile.name || 'persona'}_persona.pdf`;
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+                        if (filenameMatch && filenameMatch.length > 1) {
+                            filename = filenameMatch[1];
+                        }
+                    }
+                    triggerDownload(blob, filename);
+                } catch (error) {
+                    console.error('PDF Download Error:', error);
+                    alert(`エラーが発生しました: ${error.message}`);
+                } finally {
+                    pdfButton.textContent = originalText;
+                    pdfButton.disabled = false;
+                }
+            });
+            
+            // PPTダウンロードボタンを作成
+            const pptButton = document.createElement('button');
+            pptButton.type = 'button';
+            pptButton.id = 'download-ppt-result';
+            pptButton.textContent = 'PPT';
+            pptButton.style.display = 'inline-block';
+            pptButton.style.backgroundColor = '#ff8431';
+            pptButton.style.color = 'white';
+            pptButton.style.border = 'none';
+            pptButton.style.padding = '6px 16px';
+            pptButton.style.borderRadius = '4px';
+            pptButton.style.margin = '0 5px';
+            pptButton.style.cursor = 'pointer';
+            pptButton.addEventListener('click', async () => {
+                if (!currentPersonaResult) {
+                    alert('ペルソナがまだ生成されていません。');
+                    return;
+                }
+                if (!currentPersonaResult.profile || !currentPersonaResult.details) {
+                    alert('ペルソナデータが不完全です。');
+                    console.error("Incomplete persona data for download:", currentPersonaResult);
+                    return;
+                }
+
+                // Add loading indicator
+                const originalText = pptButton.textContent;
+                pptButton.textContent = '生成中...';
+                pptButton.disabled = true;
+
+                try {
+                    const response = await fetch('/api/download/ppt', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(currentPersonaResult),
+                    });
+
+                    if (!response.ok) {
+                        let errorMsg = 'PPTの生成に失敗しました。';
+                        try {
+                            const errorData = await response.json();
+                            errorMsg = errorData.error || errorMsg;
+                        } catch (e) { /* Ignore */ }
+                        throw new Error(errorMsg + ` (Status: ${response.status})`);
+                    }
+
+                    const blob = await response.blob();
+                    const contentDisposition = response.headers.get('content-disposition');
+                    let filename = `${currentPersonaResult.profile.name || 'persona'}_persona.pptx`; // Default .pptx
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+                        if (filenameMatch && filenameMatch.length > 1) {
+                            filename = filenameMatch[1];
+                        }
+                    }
+                    triggerDownload(blob, filename);
+                } catch (error) {
+                    console.error('PPT Download Error:', error);
+                    alert(`エラーが発生しました: ${error.message}`);
+                } finally {
+                    pptButton.textContent = originalText;
+                    pptButton.disabled = false;
+                }
+            });
+            
+            // ボタンをdownload-optionsに追加
+            downloadOptions.appendChild(pdfButton);
+            downloadOptions.appendChild(pptButton);
+            
+            // download-optionsをpersonaDetailsの先頭に追加
+            personaDetails.insertBefore(downloadOptions, personaDetails.firstChild);
+            
+            console.log('Dynamic download buttons created and added to DOM');
+        } else {
+            console.error('persona-details element not found, cannot add download buttons');
+        }
+
         // Populate New Header Info Section
         let headerDepartmentDisplay = profile.department || '-';
         if (profile.department) {
