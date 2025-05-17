@@ -120,12 +120,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 if (pdfBtn) {
                     pdfBtn.style.width = '80px';
+                    pdfBtn.style.height = '30px';
+                    pdfBtn.style.lineHeight = '18px';
                     pdfBtn.style.textAlign = 'center';
                     pdfBtn.style.display = 'inline-block';
                 }
                 
                 if (pptBtn) {
                     pptBtn.style.width = '80px';
+                    pptBtn.style.height = '30px';
+                    pptBtn.style.lineHeight = '18px';
                     pptBtn.style.textAlign = 'center';
                     pptBtn.style.display = 'inline-block';
                 }
@@ -592,8 +596,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         const htmlDownloadOptions = document.querySelector('.persona-details .download-options');
         if (htmlDownloadOptions) {
             // 上部位置を調整して線の上に載らないようにする
-            htmlDownloadOptions.style.top = '10px';
+            htmlDownloadOptions.style.top = '5px';
             console.log('Adjusted position of HTML download options container');
+            
+            // HTMLのボタンも高さを固定
+            const pdfBtn = htmlDownloadOptions.querySelector('#download-pdf-result');
+            const pptBtn = htmlDownloadOptions.querySelector('#download-ppt-result');
+            
+            if (pdfBtn) {
+                pdfBtn.style.height = '30px';
+                pdfBtn.style.lineHeight = '18px';
+            }
+            
+            if (pptBtn) {
+                pptBtn.style.height = '30px';
+                pptBtn.style.lineHeight = '18px';
+            }
         }
         
         // 完全に独立したフローティングダウンロードボタンを作成
@@ -606,43 +624,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         // フローティングコンテナ作成
         const floatingContainer = document.createElement('div');
         floatingContainer.id = 'floating-download-buttons';
-        floatingContainer.style.position = 'absolute'; // fixedからabsoluteに変更
-        floatingContainer.style.top = '10px'; // 上部位置を10pxに調整（より上に配置）
-        floatingContainer.style.right = '20px'; // 右側に配置
-        floatingContainer.style.zIndex = '1000'; // z-indexを調整
+        floatingContainer.style.position = 'absolute'; 
+        floatingContainer.style.top = '5px'; // さらに上に調整（10pxから5pxに）
+        floatingContainer.style.right = '20px'; 
+        floatingContainer.style.zIndex = '1000'; 
         floatingContainer.style.display = 'flex'; 
-        floatingContainer.style.flexDirection = 'row'; // 縦方向から横方向に変更
+        floatingContainer.style.flexDirection = 'row'; 
         floatingContainer.style.gap = '10px';
         
         // PDFボタン
         const pdfButton = document.createElement('button');
         pdfButton.id = 'floating-pdf-button';
-        pdfButton.textContent = 'PDF'; // テキストをシンプルに
+        pdfButton.textContent = 'PDF'; 
         pdfButton.style.backgroundColor = '#ff0000';
         pdfButton.style.color = 'white';
         pdfButton.style.border = 'none';
         pdfButton.style.borderRadius = '4px';
-        pdfButton.style.padding = '6px 12px'; // パディングを小さく
+        pdfButton.style.padding = '6px 12px'; 
         pdfButton.style.cursor = 'pointer';
-        pdfButton.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'; // 影を小さく
-        pdfButton.style.fontSize = '13px'; // フォントサイズを小さく
-        pdfButton.style.width = '80px'; // 幅を固定
-        pdfButton.style.textAlign = 'center'; // テキスト中央揃え
+        pdfButton.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'; 
+        pdfButton.style.fontSize = '13px'; 
+        pdfButton.style.width = '80px'; 
+        pdfButton.style.height = '30px'; // 高さを固定
+        pdfButton.style.lineHeight = '18px'; // 行の高さを調整
+        pdfButton.style.textAlign = 'center'; 
         
         // PPTボタン
         const pptButton = document.createElement('button');
         pptButton.id = 'floating-ppt-button';
-        pptButton.textContent = 'PPT'; // テキストをシンプルに
+        pptButton.textContent = 'PPT'; 
         pptButton.style.backgroundColor = '#ff8431';
         pptButton.style.color = 'white';
         pptButton.style.border = 'none';
         pptButton.style.borderRadius = '4px';
-        pptButton.style.padding = '6px 12px'; // パディングを小さく
+        pptButton.style.padding = '6px 12px'; 
         pptButton.style.cursor = 'pointer';
-        pptButton.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'; // 影を小さく
-        pptButton.style.fontSize = '13px'; // フォントサイズを小さく
-        pptButton.style.width = '80px'; // 幅を固定
-        pptButton.style.textAlign = 'center'; // テキスト中央揃え
+        pptButton.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'; 
+        pptButton.style.fontSize = '13px'; 
+        pptButton.style.width = '80px'; 
+        pptButton.style.height = '30px'; // 高さを固定
+        pptButton.style.lineHeight = '18px'; // 行の高さを調整
+        pptButton.style.textAlign = 'center';
         
         // PDFボタンのクリックイベント
         pdfButton.addEventListener('click', async () => {
@@ -993,6 +1015,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (pdfDownloadBtn) {
         // あらかじめ幅を固定
         pdfDownloadBtn.style.width = '80px';
+        pdfDownloadBtn.style.height = '30px';
+        pdfDownloadBtn.style.lineHeight = '18px';
         pdfDownloadBtn.style.textAlign = 'center';
         
         pdfDownloadBtn.addEventListener('click', async () => {
@@ -1076,6 +1100,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (pptDownloadBtn) {
         // あらかじめ幅を固定
         pptDownloadBtn.style.width = '80px';
+        pptDownloadBtn.style.height = '30px';
+        pptDownloadBtn.style.lineHeight = '18px';
         pptDownloadBtn.style.textAlign = 'center';
         
         pptDownloadBtn.addEventListener('click', async () => {
