@@ -582,43 +582,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         // フローティングコンテナ作成
         const floatingContainer = document.createElement('div');
         floatingContainer.id = 'floating-download-buttons';
-        floatingContainer.style.position = 'fixed';
-        floatingContainer.style.top = '100px';
-        floatingContainer.style.right = '20px';
-        floatingContainer.style.zIndex = '9999';
-        floatingContainer.style.display = 'flex';
-        floatingContainer.style.flexDirection = 'column';
+        floatingContainer.style.position = 'absolute'; // fixedからabsoluteに変更
+        floatingContainer.style.top = '20px'; // 上部に配置
+        floatingContainer.style.right = '20px'; // 右側に配置
+        floatingContainer.style.zIndex = '1000'; // z-indexを調整
+        floatingContainer.style.display = 'flex'; 
+        floatingContainer.style.flexDirection = 'row'; // 縦方向から横方向に変更
         floatingContainer.style.gap = '10px';
         
         // PDFボタン
         const pdfButton = document.createElement('button');
         pdfButton.id = 'floating-pdf-button';
-        pdfButton.innerHTML = '<span style="font-weight: bold;">PDF</span>でダウンロード';
+        pdfButton.textContent = 'PDF'; // テキストをシンプルに
         pdfButton.style.backgroundColor = '#ff0000';
         pdfButton.style.color = 'white';
         pdfButton.style.border = 'none';
         pdfButton.style.borderRadius = '4px';
-        pdfButton.style.padding = '8px 15px';
+        pdfButton.style.padding = '6px 12px'; // パディングを小さく
         pdfButton.style.cursor = 'pointer';
-        pdfButton.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-        pdfButton.style.fontSize = '14px';
-        pdfButton.style.width = '180px';
-        pdfButton.style.textAlign = 'center';
+        pdfButton.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'; // 影を小さく
+        pdfButton.style.fontSize = '13px'; // フォントサイズを小さく
         
         // PPTボタン
         const pptButton = document.createElement('button');
         pptButton.id = 'floating-ppt-button';
-        pptButton.innerHTML = '<span style="font-weight: bold;">PPT</span>でダウンロード';
+        pptButton.textContent = 'PPT'; // テキストをシンプルに
         pptButton.style.backgroundColor = '#ff8431';
         pptButton.style.color = 'white';
         pptButton.style.border = 'none';
         pptButton.style.borderRadius = '4px';
-        pptButton.style.padding = '8px 15px';
+        pptButton.style.padding = '6px 12px'; // パディングを小さく
         pptButton.style.cursor = 'pointer';
-        pptButton.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-        pptButton.style.fontSize = '14px';
-        pptButton.style.width = '180px';
-        pptButton.style.textAlign = 'center';
+        pptButton.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'; // 影を小さく
+        pptButton.style.fontSize = '13px'; // フォントサイズを小さく
         
         // PDFボタンのクリックイベント
         pdfButton.addEventListener('click', async () => {
@@ -628,7 +624,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             
             // ボタンスタイル変更
-            pdfButton.innerHTML = '生成中...';
+            pdfButton.textContent = '生成中...';
             pdfButton.disabled = true;
             pdfButton.style.opacity = '0.7';
             
@@ -663,7 +659,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert(`エラーが発生しました: ${error.message}`);
             } finally {
                 // ボタン状態を戻す
-                pdfButton.innerHTML = '<span style="font-weight: bold;">PDF</span>でダウンロード';
+                pdfButton.textContent = 'PDF';
                 pdfButton.disabled = false;
                 pdfButton.style.opacity = '1';
             }
@@ -677,7 +673,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             
             // ボタンスタイル変更
-            pptButton.innerHTML = '生成中...';
+            pptButton.textContent = '生成中...';
             pptButton.disabled = true;
             pptButton.style.opacity = '0.7';
             
@@ -712,7 +708,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert(`エラーが発生しました: ${error.message}`);
             } finally {
                 // ボタン状態を戻す
-                pptButton.innerHTML = '<span style="font-weight: bold;">PPT</span>でダウンロード';
+                pptButton.textContent = 'PPT';
                 pptButton.disabled = false;
                 pptButton.style.opacity = '1';
             }
@@ -722,10 +718,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         floatingContainer.appendChild(pdfButton);
         floatingContainer.appendChild(pptButton);
         
-        // body要素の直接の子としてフローティングボタンを追加
-        document.body.appendChild(floatingContainer);
-        
-        console.log('Floating download buttons added directly to body');
+        // 親コンテナを見つけて追加
+        const resultContainer = document.querySelector('.result-step');
+        if (resultContainer) {
+            // 既存のものがあれば削除
+            const existingContainer = document.getElementById('floating-download-buttons');
+            if (existingContainer) {
+                existingContainer.remove();
+            }
+            
+            // 相対配置用に親コンテナにposition: relative設定
+            resultContainer.style.position = 'relative';
+            resultContainer.appendChild(floatingContainer);
+            console.log('Download buttons added to result-step container');
+        } else {
+            // フォールバック: body直下に追加
+            document.body.appendChild(floatingContainer);
+            console.log('Download buttons added to body (fallback)');
+        }
 
         // Populate New Header Info Section
         let headerDepartmentDisplay = profile.department || '-';
@@ -759,7 +769,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('preview-age').textContent = formatAgeDisplayForResult(profile.age);
         const prefectureSelectResult = document.getElementById('preview-prefecture');
         if (prefectureSelectResult) {
-            prefectureSelectResult.value = profile.prefecture || ""; // Set value for select list
+            // 選択リストの値を設定し、デバッグ情報を出力
+            console.log('Setting prefecture value:', profile.prefecture);
+            prefectureSelectResult.value = profile.prefecture || "";
+            
+            // 値が正しく設定されたか確認
+            console.log('Prefecture select after setting value:', prefectureSelectResult.value);
+            
+            // 選択肢のoption要素が存在するか確認
+            const options = Array.from(prefectureSelectResult.options);
+            const matchingOption = options.find(opt => opt.value === profile.prefecture);
+            console.log('Matching option found:', matchingOption ? 'Yes' : 'No');
+            
+            // 明示的にchangeイベントを発火させる
+            prefectureSelectResult.dispatchEvent(new Event('change'));
         }
         document.getElementById('preview-municipality').textContent = profile.municipality || '-';
         document.getElementById('preview-family').textContent = profile.family || '-';
@@ -900,23 +923,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
         
-        // 都道府県フィールドの編集リスナー設定
+        // 都道府県フィールドの編集リスナー設定 (select要素なのでchangeイベントを使用)
         const prefectureField = document.getElementById('preview-prefecture');
         if (prefectureField) {
-            prefectureField.addEventListener('input', function() {
+            prefectureField.addEventListener('change', function() {
                 // currentPersonaResultを更新
                 if (currentPersonaResult && currentPersonaResult.profile) {
-                    currentPersonaResult.profile.prefecture = this.textContent;
+                    currentPersonaResult.profile.prefecture = this.value;
+                    console.log('Prefecture changed to:', this.value);
                 }
             });
             
-            // フォーカスアウト時のトリミング処理
-            prefectureField.addEventListener('blur', function() {
-                this.textContent = this.textContent.trim();
-                if (this.textContent === '') {
-                    this.textContent = '-';
-                }
-            });
+            // populateResults時に正しく選択状態を復元するため
+            if (currentPersonaResult && currentPersonaResult.profile && currentPersonaResult.profile.prefecture) {
+                prefectureField.value = currentPersonaResult.profile.prefecture;
+            }
         }
         
         // 市区町村フィールドの編集リスナー設定
@@ -1204,6 +1225,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     setupEditableFields();
+    
+    // 都道府県選択リストのグローバルイベントリスナを追加
+    const prefectureSelect = document.getElementById('preview-prefecture');
+    if (prefectureSelect) {
+        // カスタムのchangeイベントリスナを追加
+        prefectureSelect.addEventListener('change', function() {
+            console.log('Global prefecture change event:', this.value);
+            // currentPersonaResultがなければ早期リターン
+            if (!currentPersonaResult || !currentPersonaResult.profile) return;
+            
+            // 値を更新
+            currentPersonaResult.profile.prefecture = this.value;
+            console.log('Updated prefecture in currentPersonaResult:', currentPersonaResult.profile.prefecture);
+        });
+        
+        // MutationObserverでselect要素の値変更を監視
+        const prefectureObserver = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'value') {
+                    console.log('Prefecture select value attribute changed:', prefectureSelect.value);
+                }
+            });
+        });
+        
+        prefectureObserver.observe(prefectureSelect, { attributes: true });
+    }
 
 });
 
