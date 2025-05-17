@@ -1223,22 +1223,23 @@ footer {
     display: none;
 }
 
-/* 都道府県選択リスト用スタイル */
+/* 都道府県選択リストのスタイル調整 */
 .prefecture-select {
-    padding: 5px 2px 5px 5px; /* パディングを調整 */
-    border-radius: 4px; /* ボーダー半径を調整 */
-    /* min-width: 80px; */ /* min-width は削除 */
-    width: 100px; /* 幅を他のフィールドと合わせる (150px から 100px に変更) */
-    border: 1px solid #ccc; /* ボーダーの色を調整 */
-    background-color: white; /* 背景色を調整 */
-    font-size: 0.9em;
-    appearance: menulist; /* 標準的なドロップダウン表示を強制 */
+    padding: 2px 5px; /* パディングを他のフィールドと合わせる */
+    border-radius: 4px;
+    width: 100px; /* 幅を固定 */
+    border: 1px solid #ccc;
+    background-color: white;
+    font-size: 0.9em; /* 文字サイズを他のフィールドと統一 */
+    height: 26px; /* 高さを他のフィールドと合わせる */
+    box-sizing: border-box; /* paddingとborderをwidth/heightに含める */
+    vertical-align: middle; /* 垂直方向の中央揃え */
+    font-family: 'Helvetica Neue', Arial, sans-serif; /* 他のフィールドと同じフォント */
+    line-height: normal; /* 行高さをリセット */
+    appearance: menulist; /* ドロップダウン表示を維持 */
     -webkit-appearance: menulist;
     -moz-appearance: menulist;
-    height: 26px !important; /* 高さを26pxに固定 */
-    line-height: normal !important; /* テキストの垂直位置調整 */
-    vertical-align: middle;
-    box-sizing: border-box; /* paddingとborderをwidth/heightに含める */
+    margin-left: 4px; /* 左マージンを追加 */
 }
 
 .prefecture-select:hover {
@@ -1383,5 +1384,71 @@ footer {
 
 .download-options .download-btn.gslide {
     background-color: #FBC02D; /* Yellow for Google Slides */
+}
+
+/* 市区町村の入力フィールドの調整 */
+#preview-municipality.editable-field {
+    width: 100px; /* 幅を固定 */
+    height: 26px; /* 高さを固定 */
+    padding: 2px 5px; /* パディングを調整 */
+    line-height: normal; /* 行高さをリセット */
+    display: inline-flex; /* フレックスボックスとして表示 */
+    align-items: center; /* 垂直方向の中央揃え */
+    margin-left: 4px; /* 左マージンを追加 */
+}
+
+/* 名前の入力フィールドの調整 */
+#preview-name.editable-field {
+    font-size: 1em;
+    font-weight: bold;
+    min-width: 100px;
+    text-align: center;
+    display: inline-flex; /* フレックスボックスとして表示 */
+    align-items: center; /* 垂直方向の中央揃え */
+    justify-content: center; /* 水平方向の中央揃え */
+    height: 26px; /* 高さを固定 */
+    padding: 2px 5px; /* パディングを調整 */
+}
+
+/* 項目名のラベル調整 */
+.persona-preview-grid p strong {
+    min-width: auto; /* 固定幅を解除 */
+    margin-right: 5px; /* 右マージンを追加 */
+    display: inline-block;
+    vertical-align: middle; /* 垂直方向の中央揃え */
+}
+
+/* ダウンロードボタンを強制表示 */
+.download-options {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    display: flex !important; /* 強制表示 */
+    gap: 10px;
+}
+
+.download-options button {
+    display: inline-block !important; /* 強制表示 */
+    margin: 0 5px !important;
+    padding: 6px 16px !important;
+    font-size: 0.85em !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    transition: background-color 0.2s ease !important;
+}
+
+/* PDFダウンロードボタン */
+#download-pdf-result {
+    background-color: #ff0000 !important; /* 赤色 */
+    display: inline-block !important; /* 強制表示 */
+}
+
+/* PPTダウンロードボタン */
+#download-ppt-result {
+    background-color: #ff8431 !important; /* オレンジ色 */
+    display: inline-block !important; /* 強制表示 */
 }
 
