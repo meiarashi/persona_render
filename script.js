@@ -596,7 +596,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const htmlDownloadOptions = document.querySelector('.persona-details .download-options');
         if (htmlDownloadOptions) {
             // 上部位置を調整して線の上に載らないようにする
-            htmlDownloadOptions.style.top = '5px';
+            htmlDownloadOptions.style.top = '-10; // マイナス値に設定して上に移動
             console.log('Adjusted position of HTML download options container');
             
             // HTMLのボタンも高さを固定
@@ -625,7 +625,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const floatingContainer = document.createElement('div');
         floatingContainer.id = 'floating-download-buttons';
         floatingContainer.style.position = 'absolute'; 
-        floatingContainer.style.top = '5px'; // さらに上に調整（10pxから5pxに）
+        floatingContainer.style.top = '-5px'; // マイナス値に設定して上に移動
         floatingContainer.style.right = '20px'; 
         floatingContainer.style.zIndex = '1000'; 
         floatingContainer.style.display = 'flex'; 
