@@ -1,3 +1,19 @@
+// --- Patient Type Descriptions (Store features and examples) ---
+const patientTypeDetails = {
+    '利便性重視型': { description: 'アクセスの良さ、待ち時間の短さ、診療時間の柔軟性など、便利さを最優先', example: '忙しいビジネスパーソン、オンライン診療を好む患者' },
+    '専門医療追求型': { description: '専門医や高度専門医療機関での治療を希望し、医師の経歴や実績を重視', example: '難病患者、複雑な症状を持つ患者' },
+    '予防健康管理型': { description: '病気になる前の予防や早期発見、健康維持に関心が高い', example: '定期健診を欠かさない人、予防接種に積極的な人' },
+    '代替医療志向型': { description: '漢方、鍼灸、ホメオパシーなど、西洋医学以外の選択肢を積極的に取り入れる', example: '自然療法愛好者、慢性疾患の患者' },
+    '経済合理型': { description: '自己負担額、保険適用の有無、費用対効果を重視', example: '経済的制約のある患者、医療費控除を意識する人' },
+    '情報探求型': { description: '徹底的な情報収集、セカンドオピニオン取得、比較検討を行う', example: '高学歴層、慎重な意思決定を好む患者' },
+    '革新技術指向型': { description: '最先端の医療技術、新薬、臨床試験などに積極的に関心を持つ', example: '既存治療で効果が出なかった患者、医療イノベーションに関心がある人' },
+    '対話重視型': { description: '医師からの丁寧な説明や対話を求め、質問が多い', example: '不安を感じやすい患者、医療従事者' },
+    '信頼基盤型': { description: 'かかりつけ医との長期的な関係や医療機関の評判を重視', example: '地域密着型の患者、同じ医師に長期通院する患者' },
+    '緊急解決型': { description: '症状の即時改善を求め、緊急性を重視', example: '急性疾患患者、痛みに耐性が低い患者' },
+    '受動依存型': { description: '医師の判断に全面的に依存し、自らの決定より医師の指示を優先', example: '高齢者、医療知識が少ない患者' },
+    '自律決定型': { description: '自分の治療に主体的に関わり、最終決定権を持ちたいと考える', example: '医療リテラシーが高い患者、自己管理を好む慢性疾患患者' }
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
     let currentPersonaResult = null;
 
@@ -26,22 +42,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentStep = 1;
     const TOTAL_FORM_STEPS = 5; // Step 1-4 for input, Step 5 for confirmation
     let hasVisitedConfirmationScreen = false; // 「確認画面を見たか」のフラグ
-
-    // --- Patient Type Descriptions (Store features and examples) ---
-    const patientTypeDetails = {
-        '利便性重視型': { description: 'アクセスの良さ、待ち時間の短さ、診療時間の柔軟性など、便利さを最優先', example: '忙しいビジネスパーソン、オンライン診療を好む患者' },
-        '専門医療追求型': { description: '専門医や高度専門医療機関での治療を希望し、医師の経歴や実績を重視', example: '難病患者、複雑な症状を持つ患者' },
-        '予防健康管理型': { description: '病気になる前の予防や早期発見、健康維持に関心が高い', example: '定期健診を欠かさない人、予防接種に積極的な人' },
-        '代替医療志向型': { description: '漢方、鍼灸、ホメオパシーなど、西洋医学以外の選択肢を積極的に取り入れる', example: '自然療法愛好者、慢性疾患の患者' },
-        '経済合理型': { description: '自己負担額、保険適用の有無、費用対効果を重視', example: '経済的制約のある患者、医療費控除を意識する人' },
-        '情報探求型': { description: '徹底的な情報収集、セカンドオピニオン取得、比較検討を行う', example: '高学歴層、慎重な意思決定を好む患者' },
-        '革新技術指向型': { description: '最先端の医療技術、新薬、臨床試験などに積極的に関心を持つ', example: '既存治療で効果が出なかった患者、医療イノベーションに関心がある人' },
-        '対話重視型': { description: '医師からの丁寧な説明や対話を求め、質問が多い', example: '不安を感じやすい患者、医療従事者' },
-        '信頼基盤型': { description: 'かかりつけ医との長期的な関係や医療機関の評判を重視', example: '地域密着型の患者、同じ医師に長期通院する患者' },
-        '緊急解決型': { description: '症状の即時改善を求め、緊急性を重視', example: '急性疾患患者、痛みに耐性が低い患者' },
-        '受動依存型': { description: '医師の判断に全面的に依存し、自らの決定より医師の指示を優先', example: '高齢者、医療知識が少ない患者' },
-        '自律決定型': { description: '自分の治療に主体的に関わり、最終決定権を持ちたいと考える', example: '医療リテラシーが高い患者、自己管理を好む慢性疾患患者' }
-    };
 
     // Add querySelectorAll for purpose labels and radios here
     const purposeLabels = multiStepForm.querySelectorAll('.purpose-options label');
@@ -148,8 +148,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Selected department (no longer depends on tabs)
         const departmentRadio = multiStepForm.querySelector('input[name="department"]:checked');
-        if(departmentRadio) {
-            data['department'] = departmentRadio.value;
+            if(departmentRadio) {
+                data['department'] = departmentRadio.value;
         }
          // Patient type is already collected by formData.forEach if a radio is checked.
         // If no patient_type is checked and setting_type is 'patient_type',
@@ -166,8 +166,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         const getRadioDisplayText = (groupName, value) => {
             if (!value) return 'なし';
             const radio = document.querySelector(`input[name="${groupName}"][value="${value}"]`);
-            // Make sure to access textContent of the label, not the radio itself
             return radio && radio.parentElement && radio.parentElement.textContent ? radio.parentElement.textContent.trim() : value;
+        };
+        
+        // Helper to get display text for select elements
+        const getSelectDisplayText = (selectId, value) => {
+            if (!value) return 'なし';
+            const selectElement = document.getElementById(selectId);
+            if (selectElement) {
+                const optionElement = selectElement.querySelector(`option[value="${value}"]`);
+                if (optionElement) {
+                    return optionElement.textContent.trim();
+                }
+            }
+            return value; // Fallback to value if not found
         };
 
         document.getElementById('summary-department').textContent = getRadioDisplayText('department', data.department);
@@ -177,30 +189,76 @@ document.addEventListener('DOMContentLoaded', async () => {
         basicInfoContainer.innerHTML = ''; // Clear previous content
         const basicInfoOrder = [
             { key: 'name', label: '名前:' },
-            { key: 'gender', label: '性別:' },
-            { key: 'age', label: '年齢:' },
+            // gender, age, income will be handled with custom formatting
             { key: 'prefecture', label: '都道府県:' },
             { key: 'municipality', label: '市区町村:' },
             { key: 'family', label: '家族構成:' },
             { key: 'occupation', label: '職業:' },
-            { key: 'income', label: '年収:' },
             { key: 'hobby', label: '趣味:' },
             { key: 'life_events', label: 'ライフイベント:' },
-            // patient_type is handled separately if setting_type was 'patient_type'
         ];
 
-        basicInfoOrder.forEach(item => {
-            let value = data[item.key];
-            // For gender, get the display text if a value exists
-            if (item.key === 'gender' && value) {
-                value = getRadioDisplayText('gender', value);
+        // --- Custom formatting for specific fields ---
+        let genderDisplay = 'なし';
+        if (data.gender) {
+            genderDisplay = getSelectDisplayText('gender', data.gender);
+        }
+
+        let ageDisplay = 'なし';
+        if (data.age) {
+            ageDisplay = data.age.replace('y', '歳'); 
+            if (data.age.includes('m')) { 
+                 ageDisplay = data.age.replace('y', '歳').replace('m', 'ヶ月');
             }
+        }
+
+        let incomeDisplay = 'なし';
+        if (data.income) {
+            const incomeValue = data.income;
+            if (incomeValue.startsWith('<')) {
+                incomeDisplay = `${incomeValue.substring(1)}万円未満`;
+            } else if (incomeValue.startsWith('>=')) {
+                incomeDisplay = `${incomeValue.substring(2)}万円以上`;
+            } else if (incomeValue.includes('-')) {
+                incomeDisplay = `${incomeValue}万円`;
+            } else {
+                incomeDisplay = `${incomeValue}万円`; 
+            }
+        }
+        
+        const tempSortedBasicInfo = [];
+        const originalOrderKeys = ['name', 'gender', 'age', 'prefecture', 'municipality', 'family', 'occupation', 'income', 'hobby', 'life_events'];
+        const valueMap = {
+            name: data.name,
+            gender: genderDisplay,
+            age: ageDisplay,
+            prefecture: data.prefecture,
+            municipality: data.municipality,
+            family: data.family,
+            occupation: data.occupation,
+            income: incomeDisplay,
+            hobby: data.hobby,
+            life_events: data.life_events
+        };
+        const labelMap = {
+            name: '名前:',
+            gender: '性別:',
+            age: '年齢:',
+            prefecture: '都道府県:',
+            municipality: '市区町村:',
+            family: '家族構成:',
+            occupation: '職業:',
+            income: '年収:',
+            hobby: '趣味:',
+            life_events: 'ライフイベント:'
+        };
+
+        originalOrderKeys.forEach(key => {
             const p = document.createElement('p');
-            p.innerHTML = `<strong>${item.label}</strong> ${value || 'なし'}`;
+            p.innerHTML = `<strong>${labelMap[key]}</strong> ${valueMap[key] || 'なし'}`;
             basicInfoContainer.appendChild(p);
         });
 
-        // 患者タイプが存在する場合、基本情報セクションの最後に追加表示
         if (data.patient_type) {
             const p = document.createElement('p');
             p.innerHTML = `<strong>患者タイプ:</strong> ${getRadioDisplayText('patient_type', data.patient_type) || 'なし'}`;
@@ -378,7 +436,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (parentStep && parentStep.dataset.step === "5") {
                 showStep(4); // Go back to additional info (step 4)
             } else if (currentStep > 1) {
-                showStep(currentStep - 1);
+                    showStep(currentStep - 1);
             }
         });
     });
@@ -465,8 +523,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // Add Additional Field Button (Step 4)
-    addFieldButton.addEventListener('click', () => {
+     // Add Additional Field Button (Step 4)
+     addFieldButton.addEventListener('click', () => {
         const newFieldRow = document.createElement('div');
         newFieldRow.classList.add('additional-field-row');
         newFieldRow.innerHTML = `
@@ -485,39 +543,138 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     function populateResults(result) {
-        // Populate right side (persona details)
-        document.getElementById('result-personality').textContent = result.details?.personality || '-';
-        document.getElementById('result-reason').textContent = result.details?.reason || '-';
-        document.getElementById('result-behavior').textContent = result.details?.behavior || '-';
-        document.getElementById('result-reviews').textContent = result.details?.reviews || '-';
-        document.getElementById('result-values').textContent = result.details?.values || '-';
-        document.getElementById('result-demands').textContent = result.details?.demands || '-';
-        // Add more fields if the backend provides them
+        console.log("Populating results screen with data:", result);
+        const profile = result.profile || {}; 
 
-        // Populate left side (preview profile)
-        document.getElementById('preview-persona-image').src = result.image_url || ''; // Changed to result.image_url
-        document.getElementById('preview-name').textContent = result.profile?.name || '-';
-        // Display prefecture and municipality if available
-        let locationText = '-';
-        if (result.profile?.prefecture && result.profile?.municipality) {
-            locationText = `${result.profile.prefecture} ${result.profile.municipality}`;
-        } else if (result.profile?.prefecture) {
-            locationText = result.profile.prefecture;
-        } else if (result.profile?.municipality) {
-            locationText = result.profile.municipality;
-        } else if (result.profile?.location) { // Fallback to old location if new fields not present
-            locationText = result.profile.location;
+        // Populate New Header Info Section
+        let headerDepartmentDisplay = profile.department || '-';
+        if (profile.department) {
+            const deptRadio = document.querySelector(`input[name="department"][value="${profile.department}"]`);
+            if (deptRadio && deptRadio.parentElement && deptRadio.parentElement.textContent) {
+                headerDepartmentDisplay = deptRadio.parentElement.textContent.trim();
+            }
         }
-        document.getElementById('preview-location').textContent = locationText;
+        document.getElementById('header-department').textContent = headerDepartmentDisplay;
 
-        // Separate Gender and Age population
-        document.getElementById('preview-gender').textContent = result.profile?.gender || '-';
-        document.getElementById('preview-age').textContent = result.profile?.age || '-'; 
-        // Remove combined population: document.getElementById('preview-gender-age').textContent = `${result.profile?.gender || '-'} | ${result.profile?.age || '-'}`;
-        document.getElementById('preview-occupation').textContent = result.profile?.occupation || '-';
-        document.getElementById('preview-income').textContent = result.profile?.income || '-';
-        document.getElementById('preview-hobby').textContent = result.profile?.hobby || '-';
-        // Add handling for additional fields if displayed in preview
+        let headerPurposeDisplay = profile.purpose || '-';
+        if (profile.purpose) {
+            const purposeRadio = document.querySelector(`input[name="purpose"][value="${profile.purpose}"]`);
+            if (purposeRadio && purposeRadio.parentElement && purposeRadio.parentElement.textContent) {
+                headerPurposeDisplay = purposeRadio.parentElement.textContent.trim();
+            }
+        }
+        document.getElementById('header-purpose').textContent = headerPurposeDisplay;
+        
+        // Update image
+        document.getElementById('preview-persona-image').src = result.image_url || 'https://via.placeholder.com/150';
+        document.getElementById('preview-name').textContent = profile.name || '-';
+
+        // Populate basic info in the preview pane (2-column grid)
+        // Department and Purpose are now removed from this specific section in the preview
+        // document.getElementById('preview-department').textContent = departmentDisplay; // REMOVED
+        // document.getElementById('preview-purpose').textContent = purposeDisplay; // REMOVED
+
+        document.getElementById('preview-gender').textContent = getSelectDisplayTextForResult('gender', profile.gender);
+        document.getElementById('preview-age').textContent = formatAgeDisplayForResult(profile.age);
+        document.getElementById('preview-prefecture').textContent = profile.prefecture || '-';
+        document.getElementById('preview-municipality').textContent = profile.municipality || '-';
+        document.getElementById('preview-family').textContent = profile.family || '-';
+        document.getElementById('preview-occupation').textContent = profile.occupation || '-';
+        document.getElementById('preview-income').textContent = formatIncomeDisplayForResult(profile.income);
+        document.getElementById('preview-hobby').textContent = profile.hobby || '-';
+        document.getElementById('preview-life_events').textContent = profile.life_events && Array.isArray(profile.life_events) ? profile.life_events.join(', ') : (profile.life_events || '-');
+        
+        let patientTypeDisplay = profile.patient_type || '-';
+        if (profile.patient_type && typeof patientTypeDetails !== 'undefined' && patientTypeDetails[profile.patient_type]) {
+            patientTypeDisplay = profile.patient_type; 
+        } else if (profile.patient_type) {
+            const patientTypeRadio = document.querySelector(`input[name="patient_type"][value="${profile.patient_type}"]`);
+            if (patientTypeRadio && patientTypeRadio.parentElement && patientTypeRadio.parentElement.querySelector('.patient-type-name')) {
+                patientTypeDisplay = patientTypeRadio.parentElement.querySelector('.patient-type-name').textContent.trim();
+            }
+        }
+        document.getElementById('preview-patient_type').textContent = patientTypeDisplay;
+
+        // Populate Step 4 Fixed Additional Fields (1-column in .additional-info-column)
+        document.getElementById('preview-motto').textContent = profile.motto || '-';
+        document.getElementById('preview-concerns').textContent = profile.concerns || '-';
+        document.getElementById('preview-favorite_person').textContent = profile.favorite_person || '-';
+        document.getElementById('preview-media_sns').textContent = profile.media_sns || '-';
+        document.getElementById('preview-personality_keywords').textContent = profile.personality_keywords || '-';
+        document.getElementById('preview-health_actions').textContent = profile.health_actions || '-';
+        document.getElementById('preview-holiday_activities').textContent = profile.holiday_activities || '-';
+        document.getElementById('preview-catchphrase_input').textContent = profile.catchphrase || '-'; 
+
+        // Populate Step 4 Dynamically Added Fields (1-column in .additional-info-column)
+        const dynamicFieldsContainer = document.getElementById('preview-additional-dynamic-fields');
+        dynamicFieldsContainer.innerHTML = ''; 
+        if (profile.additional_field_name && profile.additional_field_value &&
+            Array.isArray(profile.additional_field_name) && Array.isArray(profile.additional_field_value) &&
+            profile.additional_field_name.length === profile.additional_field_value.length) {
+            profile.additional_field_name.forEach((fieldName, index) => {
+                const fieldValue = profile.additional_field_value[index];
+                if (fieldName || fieldValue) { 
+                    const p = document.createElement('p');
+                    p.innerHTML = `<strong>${fieldName || '項目名なし'}:</strong> ${fieldValue || 'なし'}`;
+                    dynamicFieldsContainer.appendChild(p);
+                }
+            });
+        }
+
+        // Populate detailed persona text on the right side
+        const detailsContainer = document.querySelector('.persona-details');
+        detailsContainer.innerHTML = ''; // Clear previous details
+
+        if (result.generated_text) {
+            const detailOrder = [
+                { key: 'catchphrase', title: 'キャッチコピー' },
+                { key: 'personality_traits', title: '性格・特徴' },
+                { key: 'reason_for_visit_and_concerns', title: '来院理由・きっかけ・悩み' },
+                { key: 'health_literacy_and_behavior', title: '健康リテラシー・行動変容' },
+                { key: 'online_review_evaluation_points', title: '口コミ・評価で重視する点' },
+                { key: 'values_and_priorities_in_healthcare', title: '医療における価値観・重視する点' },
+                { key: 'requests_to_medical_institution', title: '医療機関に求めるもの' }
+            ];
+            
+            let contentAdded = false;
+            detailOrder.forEach(item => {
+                if (result.generated_text[item.key]) {
+                    const sectionTitle = document.createElement('h4');
+                    sectionTitle.textContent = item.title;
+                    detailsContainer.appendChild(sectionTitle);
+
+                    const sectionContent = document.createElement('p');
+                    if (Array.isArray(result.generated_text[item.key])) {
+                         sectionContent.innerHTML = result.generated_text[item.key].map(pText => String(pText || '').replace(/\n/g, '<br>')).join('<br>');
+                    } else {
+                        sectionContent.innerHTML = String(result.generated_text[item.key] || '').replace(/\n/g, '<br>');
+                    }
+                    detailsContainer.appendChild(sectionContent);
+                    contentAdded = true;
+                }
+            });
+
+            if (!contentAdded && typeof result.generated_text === 'string') { // Fallback for single string
+                const title = document.createElement('h4');
+                title.textContent = '生成されたペルソナ詳細';
+                detailsContainer.appendChild(title);
+                const content = document.createElement('p');
+                content.innerHTML = result.generated_text.replace(/\n/g, '<br>');
+                detailsContainer.appendChild(content);
+            } else if (!contentAdded) {
+                 const noResultText = document.createElement('p');
+                 noResultText.textContent = 'ペルソナの詳細情報が生成されませんでした。';
+                 detailsContainer.appendChild(noResultText);
+            }
+
+        } else {
+            const noResultText = document.createElement('p');
+            noResultText.textContent = 'ペルソナの詳細情報が生成されませんでした。';
+            detailsContainer.appendChild(noResultText);
+        }
+
+        // 編集可能フィールドのセットアップ
+        setupEditableFields();
     }
 
     // --- Download Functionality ---
@@ -533,6 +690,66 @@ document.addEventListener('DOMContentLoaded', async () => {
         a.click();
         window.URL.revokeObjectURL(url);
         a.remove();
+    }
+
+    // 編集可能フィールドの変更イベントを設定する関数
+    function setupEditableFields() {
+        // 名前フィールドの編集リスナー設定
+        const nameField = document.getElementById('preview-name');
+        if (nameField) {
+            nameField.addEventListener('input', function() {
+                // currentPersonaResultを更新
+                if (currentPersonaResult && currentPersonaResult.profile) {
+                    currentPersonaResult.profile.name = this.textContent;
+                }
+            });
+            
+            // フォーカスアウト時のトリミング処理
+            nameField.addEventListener('blur', function() {
+                this.textContent = this.textContent.trim();
+                if (this.textContent === '') {
+                    this.textContent = '-';
+                }
+            });
+        }
+        
+        // 都道府県フィールドの編集リスナー設定
+        const prefectureField = document.getElementById('preview-prefecture');
+        if (prefectureField) {
+            prefectureField.addEventListener('input', function() {
+                // currentPersonaResultを更新
+                if (currentPersonaResult && currentPersonaResult.profile) {
+                    currentPersonaResult.profile.prefecture = this.textContent;
+                }
+            });
+            
+            // フォーカスアウト時のトリミング処理
+            prefectureField.addEventListener('blur', function() {
+                this.textContent = this.textContent.trim();
+                if (this.textContent === '') {
+                    this.textContent = '-';
+                }
+            });
+        }
+        
+        // 市区町村フィールドの編集リスナー設定
+        const municipalityField = document.getElementById('preview-municipality');
+        if (municipalityField) {
+            municipalityField.addEventListener('input', function() {
+                // currentPersonaResultを更新
+                if (currentPersonaResult && currentPersonaResult.profile) {
+                    currentPersonaResult.profile.municipality = this.textContent;
+                }
+            });
+            
+            // フォーカスアウト時のトリミング処理
+            municipalityField.addEventListener('blur', function() {
+                this.textContent = this.textContent.trim();
+                if (this.textContent === '') {
+                    this.textContent = '-';
+                }
+            });
+        }
     }
 
     // Event listener for PDF download button
@@ -594,6 +811,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                  // Restore button text and state
                 pdfDownloadBtn.textContent = originalText;
                 pdfDownloadBtn.disabled = false;
+            }
+        });
+    }
+
+    // Event listener for "最初から" (restart) button
+    const restartBtn = document.getElementById('restart-btn');
+    if (restartBtn) {
+        restartBtn.addEventListener('click', () => {
+            // リセット確認
+            if (confirm('最初からやり直しますか？入力した内容はすべてリセットされます。')) {
+                // フォームをリセット
+                document.getElementById('multi-step-form').reset();
+                // ステップ1に戻る
+                showStep(1);
+                // 現在のペルソナ結果をクリア
+                currentPersonaResult = null;
             }
         });
     }
@@ -672,18 +905,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         const pptBtn = document.getElementById('download-ppt-result');
         const gslideBtn = document.getElementById('download-gslide-result');
 
-        if (!settings) {
-            console.warn("Output settings are undefined, cannot update button visibility.");
-            if (pdfBtn) pdfBtn.style.display = 'none';
-            if (pptBtn) pptBtn.style.display = 'none';
-            if (gslideBtn) gslideBtn.style.display = 'none';
-            return;
-        }
+        // PDFとPPTは常に表示
+        if (pdfBtn) pdfBtn.style.display = 'inline-block';
+        if (pptBtn) pptBtn.style.display = 'inline-block';
 
-        // バックエンドAPIが返すキー名に合わせて修正
-        if (pdfBtn) pdfBtn.style.display = settings.output_pdf_enabled ? 'inline-block' : 'none';
-        if (pptBtn) pptBtn.style.display = settings.output_ppt_enabled ? 'inline-block' : 'none';
-        if (gslideBtn) gslideBtn.style.display = settings.output_gslide_enabled ? 'inline-block' : 'none';
+        // Googleスライドは設定に基づいて表示/非表示
+        if (gslideBtn) {
+            if (settings && settings.output_gslide_enabled) {
+                gslideBtn.style.display = 'inline-block';
+            } else {
+                gslideBtn.style.display = 'none';
+            }
+        }
     }
 
     // Function to update the .selected class on labels
@@ -716,7 +949,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- Initial Setup --- 
-    showStep(1); // Show the first step initially
+    showStep(1); // TEMPORARY: Show result screen for UI dev
 
     // Set initial selected class based on checked radios (replaces initial updateSelectedLabel calls)
     ['department', 'purpose', 'setting_type'].forEach(type => {
@@ -789,4 +1022,49 @@ document.addEventListener('DOMContentLoaded', async () => {
          if (patientTypeSelectionDiv) patientTypeSelectionDiv.style.display = 'none';
     }
 
-}); 
+    setupEditableFields();
+
+});
+
+// Helper function (can be moved to a more global scope if needed elsewhere)
+function getSelectDisplayTextForResult(selectId, value) {
+    if (!value) return '-';
+    const selectElement = document.getElementById(selectId);
+    if (selectElement) {
+        const optionElement = selectElement.querySelector(`option[value="${value}"]`);
+        if (optionElement) {
+            return optionElement.textContent.trim();
+        }
+    }
+    return value; // Fallback
+}
+
+function formatAgeDisplayForResult(ageValue) {
+    if (!ageValue) return '-';
+    let display = ageValue.replace('y', '歳');
+    if (ageValue.includes('m')) {
+        display = display.replace('m', 'ヶ月');
+    }
+    return display;
+}
+
+function formatIncomeDisplayForResult(incomeValue) {
+    if (!incomeValue) return '-';
+    if (incomeValue.startsWith('<')) {
+        return `${incomeValue.substring(1)}万円未満`;
+    } else if (incomeValue.startsWith('>=')) {
+        return `${incomeValue.substring(2)}万円以上`;
+    } else if (incomeValue.includes('-')) {
+        return `${incomeValue}万円`;
+    }
+    return `${incomeValue}万円`;
+}
+
+/*
+// This was inside DOMContentLoaded, needs to be global or passed for populateResults to use it.
+// Consider moving this to a global scope or a shared utility object/module.
+const patientTypeDetails = {
+    '利便性重視型': { description: '...', example: '...' },
+    // ... other types
+};
+*/ 

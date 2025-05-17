@@ -600,28 +600,104 @@
 
                  <!-- Step 7: Result Display (Previously Step 6) -->
                  <div class="form-step result-step" data-step="7">
-                     <!-- Moved Download Options Here -->
-                     <div class="download-options">
-                         <button type="button" id="download-pdf-result">PDF</button>
-                         <button type="button" id="download-ppt-result">PPT</button>
-                         <button type="button" id="download-gslide-result">Googleスライド</button>
-                     </div>
-
-                     <h3>生成されたペルソナ</h3>
                      <div class="persona-result-container">
-                        <!-- Added Persona Preview Elements -->
                         <div class="persona-preview">
-                            <img id="preview-persona-image" src="" alt="ペルソナ画像" style="width: 200px; height: 200px; object-fit: cover; border-radius: 50%;">
-                            <h4 id="preview-name">-</h4>
-                            <p id="preview-location">-</p>
-                            <p><span id="preview-gender">-</span> | <span id="preview-age">-</span></p>
-                            <p>職業: <span id="preview-occupation">-</span></p>
-                            <p>年収: <span id="preview-income">-</span></p>
-                            <p>趣味: <span id="preview-hobby">-</span></p>
+                            <!-- 診療科・作成目的の情報をここに移動 -->
+                            <div class="header-info-items">
+                                <p><strong>診療科:</strong> <span id="header-department">-</span></p>
+                                <p><strong>作成目的:</strong> <span id="header-purpose">-</span></p>
+                            </div>
+                            
+                            <img id="preview-persona-image" src="" alt="ペルソナ画像">
+                            <h4 id="preview-name-container">
+                                <span id="preview-name" contenteditable="true" class="editable-field" style="width: 150px; border: 1px solid #ccc; padding: 5px; border-radius: 4px; background-color: white; margin: 10px auto; display: block; text-align: center;">-</span>
+                            </h4>
+                            <div class="persona-preview-grid"> 
+                                <p><strong>性別:</strong> <span id="preview-gender">-</span></p>
+                                <p><strong>年齢:</strong> <span id="preview-age">-</span></p>
+                                <p><strong>都道府県:</strong> 
+                                    <select id="preview-prefecture" class="editable-field prefecture-select">
+                                        <option value="">選択</option>
+                                        <option value="北海道">北海道</option>
+                                        <option value="青森県">青森県</option>
+                                        <option value="岩手県">岩手県</option>
+                                        <option value="宮城県">宮城県</option>
+                                        <option value="秋田県">秋田県</option>
+                                        <option value="山形県">山形県</option>
+                                        <option value="福島県">福島県</option>
+                                        <option value="茨城県">茨城県</option>
+                                        <option value="栃木県">栃木県</option>
+                                        <option value="群馬県">群馬県</option>
+                                        <option value="埼玉県">埼玉県</option>
+                                        <option value="千葉県">千葉県</option>
+                                        <option value="東京都">東京都</option>
+                                        <option value="神奈川県">神奈川県</option>
+                                        <option value="新潟県">新潟県</option>
+                                        <option value="富山県">富山県</option>
+                                        <option value="石川県">石川県</option>
+                                        <option value="福井県">福井県</option>
+                                        <option value="山梨県">山梨県</option>
+                                        <option value="長野県">長野県</option>
+                                        <option value="岐阜県">岐阜県</option>
+                                        <option value="静岡県">静岡県</option>
+                                        <option value="愛知県">愛知県</option>
+                                        <option value="三重県">三重県</option>
+                                        <option value="滋賀県">滋賀県</option>
+                                        <option value="京都府">京都府</option>
+                                        <option value="大阪府">大阪府</option>
+                                        <option value="兵庫県">兵庫県</option>
+                                        <option value="奈良県">奈良県</option>
+                                        <option value="和歌山県">和歌山県</option>
+                                        <option value="鳥取県">鳥取県</option>
+                                        <option value="島根県">島根県</option>
+                                        <option value="岡山県">岡山県</option>
+                                        <option value="広島県">広島県</option>
+                                        <option value="山口県">山口県</option>
+                                        <option value="徳島県">徳島県</option>
+                                        <option value="香川県">香川県</option>
+                                        <option value="愛媛県">愛媛県</option>
+                                        <option value="高知県">高知県</option>
+                                        <option value="福岡県">福岡県</option>
+                                        <option value="佐賀県">佐賀県</option>
+                                        <option value="長崎県">長崎県</option>
+                                        <option value="熊本県">熊本県</option>
+                                        <option value="大分県">大分県</option>
+                                        <option value="宮崎県">宮崎県</option>
+                                        <option value="鹿児島県">鹿児島県</option>
+                                        <option value="沖縄県">沖縄県</option>
+                                    </select>
+                                </p>
+                                <p><strong>市区町村:</strong> <span id="preview-municipality" contenteditable="true" class="editable-field" style="width: 100px; border: 1px solid #ccc; padding: 5px 5px 5px 2px; border-radius: 4px; background-color: white; display: inline-block;">-</span></p>
+                                <p><strong>家族構成:</strong> <span id="preview-family">-</span></p>
+                                <p><strong>職業:</strong> <span id="preview-occupation">-</span></p>
+                                <p><strong>年収:</strong> <span id="preview-income">-</span></p>
+                                <p><strong>趣味:</strong> <span id="preview-hobby">-</span></p>
+                                <p><strong>ライフイベント:</strong> <span id="preview-life_events">-</span></p>
+                                <p><strong>患者タイプ:</strong> <span id="preview-patient_type">-</span></p>
+                            </div>
+                            <!-- Step 4 Fixed Additional Fields in 1 column -->
+                            <div class="additional-info-column">
+                                <p><strong>座右の銘:</strong> <span id="preview-motto">-</span></p>
+                                <p><strong>最近の悩み/関心:</strong> <span id="preview-concerns">-</span></p>
+                                <p><strong>好きな有名人/尊敬する人物:</strong> <span id="preview-favorite_person">-</span></p>
+                                <p><strong>よく見るメディア/SNS:</strong> <span id="preview-media_sns">-</span></p>
+                                <p><strong>性格キーワード:</strong> <span id="preview-personality_keywords">-</span></p>
+                                <p><strong>最近した健康に関する行動:</strong> <span id="preview-health_actions">-</span></p>
+                                <p><strong>休日の過ごし方:</strong> <span id="preview-holiday_activities">-</span></p>
+                                <p><strong>キャッチコピー:</strong> <span id="preview-catchphrase_input">-</span></p>
+                            </div>
+                            <!-- Dynamically added fields from Step 4 in 1 column -->
+                            <div id="preview-additional-dynamic-fields" class="additional-info-column">
+                                <!-- Dynamically added fields will be populated here by JS -->
+                            </div>
                         </div>
-                        <!-- Persona details container (right side) -->
                         <div class="persona-details">
-                            <!-- Download Options Removed From Here -->
+                            <div class="download-options">
+                                <button type="button" id="download-pdf-result">PDF</button>
+                                <button type="button" id="download-ppt-result">PPT</button>
+                                <button type="button" id="download-gslide-result" style="display: none;">Googleスライド</button>
+                            </div>
+                            <h3 class="persona-title">生成されたペルソナ</h3>
                             <h4>性格（価値観・人生観）</h4>
                             <p id="result-personality"></p>
                             <h4>通院理由</h4>
@@ -636,7 +712,10 @@
                             <p id="result-demands"></p>
                         </div>
                      </div>
-                     <button type="button" class="prev-step-btn">&lt; 編集に戻る</button> 
+                     <div class="result-navigation">
+                         <button type="button" class="prev-step-btn">&lt; 編集に戻る</button> 
+                         <button type="button" id="restart-btn" class="restart-btn">最初から</button>
+                     </div>
                  </div>
 
             </form>
