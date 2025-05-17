@@ -596,7 +596,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const htmlDownloadOptions = document.querySelector('.persona-details .download-options');
         if (htmlDownloadOptions) {
             // 上部位置を調整して線の上に載らないようにする
-            htmlDownloadOptions.style.top = '-20px'; // マイナス値に設定して上に移動
+            htmlDownloadOptions.style.top = '-40px'; // マイナス値に設定して上に移動
             console.log('Adjusted position of HTML download options container');
             
             // HTMLのボタンも高さを固定
