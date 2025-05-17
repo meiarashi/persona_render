@@ -628,43 +628,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         const detailsContainer = document.querySelector('.persona-details');
         detailsContainer.innerHTML = ''; // Clear previous details
 
-        if (result.generated_text) {
+        if (result.details) {
+            // Map the backend keys to their display titles
             const detailOrder = [
-                { key: 'catchphrase', title: 'キャッチコピー' },
-                { key: 'personality_traits', title: '性格・特徴' },
-                { key: 'reason_for_visit_and_concerns', title: '来院理由・きっかけ・悩み' },
-                { key: 'health_literacy_and_behavior', title: '健康リテラシー・行動変容' },
-                { key: 'online_review_evaluation_points', title: '口コミ・評価で重視する点' },
-                { key: 'values_and_priorities_in_healthcare', title: '医療における価値観・重視する点' },
-                { key: 'requests_to_medical_institution', title: '医療機関に求めるもの' }
+                { key: 'personality', title: '性格（価値観・人生観）' },
+                { key: 'reason', title: '通院理由' },
+                { key: 'behavior', title: '症状通院頻度・行動パターン' },
+                { key: 'reviews', title: '口コミの重視ポイント' },
+                { key: 'values', title: '医療機関への価値観・行動傾向' },
+                { key: 'demands', title: '医療機関に求めるもの' }
             ];
             
             let contentAdded = false;
             detailOrder.forEach(item => {
-                if (result.generated_text[item.key]) {
+                if (result.details[item.key]) {
                     const sectionTitle = document.createElement('h4');
                     sectionTitle.textContent = item.title;
                     detailsContainer.appendChild(sectionTitle);
 
                     const sectionContent = document.createElement('p');
-                    if (Array.isArray(result.generated_text[item.key])) {
-                         sectionContent.innerHTML = result.generated_text[item.key].map(pText => String(pText || '').replace(/\n/g, '<br>')).join('<br>');
+                    if (Array.isArray(result.details[item.key])) {
+                         sectionContent.innerHTML = result.details[item.key].map(pText => String(pText || '').replace(/\n/g, '<br>')).join('<br>');
                     } else {
-                        sectionContent.innerHTML = String(result.generated_text[item.key] || '').replace(/\n/g, '<br>');
+                        sectionContent.innerHTML = String(result.details[item.key] || '').replace(/\n/g, '<br>');
                     }
                     detailsContainer.appendChild(sectionContent);
                     contentAdded = true;
                 }
             });
 
-            if (!contentAdded && typeof result.generated_text === 'string') { // Fallback for single string
-                const title = document.createElement('h4');
-                title.textContent = '生成されたペルソナ詳細';
-                detailsContainer.appendChild(title);
-                const content = document.createElement('p');
-                content.innerHTML = result.generated_text.replace(/\n/g, '<br>');
-                detailsContainer.appendChild(content);
-            } else if (!contentAdded) {
+            if (!contentAdded) {
                  const noResultText = document.createElement('p');
                  noResultText.textContent = 'ペルソナの詳細情報が生成されませんでした。';
                  detailsContainer.appendChild(noResultText);

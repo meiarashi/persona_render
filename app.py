@@ -248,6 +248,7 @@ def parse_ai_response(text):
 
     # AIの応答がNoneの場合のフォールバック
     if text is None:
+        print("DEBUG parse_ai_response: Input text is None.") # ログ追加
         print("Warning: AI response text is None.")
         for marker, key in sections.items():
             details[key] = "(AIからの応答がありませんでした)"
@@ -338,24 +339,20 @@ def generate_persona():
                     messages=[{"role": "user", "content": prompt}]
                 )
                 generated_text_str = completion.choices[0].message.content
+                print(f"DEBUG OpenAI Response content: >>>\n{generated_text_str}\n<<<END OpenAI Response")
                 print("DEBUG: OpenAI API call for text generation successful.")
             except Exception as e:
-                print(f"ERROR calling OpenAI API for text generation ({selected_text_model}): {str(e)}") # <--- OpenAI APIエラーログ
-                traceback.print_exc() # スタックトレースも出力
-                # エラーが発生した場合でも、処理を続行し、画像生成は試みる
-                # generated_text_str は None のまま
+                print(f"ERROR calling OpenAI API for text generation ({selected_text_model}): {str(e)}")
+                traceback.print_exc()
+                generated_text_str = None # Ensure it's None on error
         elif selected_text_model.startswith("claude"):
             try:
                 print(f"DEBUG: Calling Anthropic API ({selected_text_model}) for text generation...")
-                # Ensure the client is an Anthropic client
                 if not isinstance(text_generation_client, Anthropic):
                     raise TypeError("Expected Anthropic client for Claude model")
-
-                # Placeholder for actual Anthropic API call structure
-                # Modify this according to the Anthropic SDK
                 response = text_generation_client.messages.create(
                     model=selected_text_model,
-                    max_tokens=2000, # Adjust as needed
+                    max_tokens=2000,
                     messages=[{"role": "user", "content": prompt}]
                 )
                 generated_text_str = response.content[0].text if response.content else None
@@ -363,27 +360,23 @@ def generate_persona():
             except Exception as e:
                 print(f"ERROR calling Anthropic API for text generation ({selected_text_model}): {str(e)}")
                 traceback.print_exc()
+                generated_text_str = None # Ensure it's None on error
         elif selected_text_model.startswith("gemini"):
             try:
                 print(f"DEBUG: Calling Google Gemini API ({selected_text_model}) for text generation...")
-                # Ensure the client is a GenerativeModel client (or similar, depending on exact SDK usage)
-                # if not isinstance(text_generation_client, genai.GenerativeModel):
-                #     raise TypeError("Expected Google GenerativeModel client for Gemini model")
-                
                 response = text_generation_client.generate_content(prompt)
                 generated_text_str = response.text
                 print("DEBUG: Google Gemini API call for text generation successful.")
             except Exception as e:
                 print(f"ERROR calling Google Gemini API for text generation ({selected_text_model}): {str(e)}")
                 traceback.print_exc()
+                generated_text_str = None # Ensure it's None on error
         else:
             print(f"WARNING: Text generation skipped, unsupported model type: {selected_text_model}")
-
-
-        # --- Image Generation ---
-        # ... (image generation logic using selected_image_model and its specific API key if needed)
+            generated_text_str = None # Ensure it's None if skipped
 
         generated_details = parse_ai_response(generated_text_str)
+        print(f"DEBUG parse_ai_response output: {generated_details}")
 
         # --- Image Generation (常に試行) ---
         # selected_image_model = os.environ.get("SELECTED_IMAGE_MODEL", "dall-e-3")
