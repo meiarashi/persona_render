@@ -288,64 +288,102 @@ def serve_admin():
 # --- API Endpoints --- 
 @app.route('/api/generate', methods=['POST'])
 def generate_persona():
-    data_from_frontend = request.json
-    if not data_from_frontend:
-        return jsonify({"error": "No data provided"}), 400
-
-    profile_data = data_from_frontend.copy()
-
-    print(f"--- DEBUG: Received setting_type: '{profile_data.get('setting_type')}' (type: {type(profile_data.get('setting_type'))})")
-    is_auto_setting = (profile_data.get('setting_type') == 'auto')
-    print(f"--- DEBUG: is_auto_setting evaluated to: {is_auto_setting}")
-
-    if is_auto_setting:
-        profile_data['name'] = profile_data.get('name') or "山田 太郎"
-        profile_data['gender'] = profile_data.get('gender') or "男性"
-        profile_data['age'] = profile_data.get('age') or "30"
-        profile_data['location'] = profile_data.get('location') or "東京都 渋谷区"
-        profile_data['occupation'] = profile_data.get('occupation') or "会社員"
-        profile_data['income'] = profile_data.get('income') or "500-600万円"
-        profile_data['hobby'] = profile_data.get('hobby') or "読書"
-
-    selected_text_model = os.environ.get("SELECTED_TEXT_MODEL", "gpt-4.1")
-    api_key = None
-    if selected_text_model.startswith("gpt"):
-        api_key = os.environ.get("OPENAI_API_KEY")
-    elif selected_text_model.startswith("claude"):
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-    elif selected_text_model.startswith("gemini"):
-        api_key = os.environ.get("GOOGLE_API_KEY")
-
-    if not api_key:
-        error_message = f"{selected_text_model} を利用するための APIキーが環境変数に設定されていません。"
-        if selected_text_model.startswith("gpt"): error_message += " (環境変数名: OPENAI_API_KEY)"
-        elif selected_text_model.startswith("claude"): error_message += " (環境変数名: ANTHROPIC_API_KEY)"
-        elif selected_text_model.startswith("gemini"): error_message += " (環境変数名: GOOGLE_API_KEY)"
-        return jsonify({"error": error_message}), 500
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "リクエストが空です。"}), 400
 
     try:
-        ai_client = get_ai_client(selected_text_model, api_key)
-        prompt = build_prompt(profile_data)
-        response_text = ""
-        if selected_text_model.startswith("gpt"):
-            chat_completion = ai_client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
-                model=selected_text_model,
-            )
-            response_text = chat_completion.choices[0].message.content
-        elif selected_text_model.startswith("claude"):
-            message = ai_client.messages.create(
-                model=selected_text_model,
-                max_tokens=2000,
-                messages=[{"role": "user", "content": prompt}]
-            )
-            response_text = message.content[0].text
-        elif selected_text_model.startswith("gemini"):
-            response = ai_client.generate_content(prompt)
-            response_text = response.text
+        # --- Get API keys and selected models from environment variables ---
+        openai_api_key = os.environ.get("OPENAI_API_KEY")
+        print(f"DEBUG: Attempting to use OpenAI API Key from env: '{openai_api_key}'") # <--- ログ出力追加
 
-        generated_details = parse_ai_response(response_text)
-        image_url = None
+        anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
+        google_api_key = os.environ.get("GOOGLE_API_KEY")
+
+        selected_text_model = os.environ.get("SELECTED_TEXT_MODEL", "gpt-4.1") # Default if not set
+        print(f"DEBUG: Selected text model: {selected_text_model}") # <--- モデルもログ出力
+        selected_image_model = os.environ.get("SELECTED_IMAGE_MODEL", "dall-e-3") # Default
+
+        # Determine which API key to use based on the selected text model
+        api_key_to_use = None
+        if selected_text_model.startswith("gpt"):
+            api_key_to_use = openai_api_key
+        elif selected_text_model.startswith("claude"):
+            api_key_to_use = anthropic_api_key
+        elif selected_text_model.startswith("gemini"):
+            api_key_to_use = google_api_key
+        else: # Fallback or if model doesn't clearly indicate provider
+            api_key_to_use = openai_api_key # Default to OpenAI key if unsure
+
+        # APIキーがNoneの場合のエラーチェックを追加
+        if api_key_to_use is None and selected_text_model.startswith("gpt"):
+             print("ERROR: OpenAI API key is None after selection logic!")
+             raise ValueError("OpenAI APIキーが環境変数から取得できませんでした。適切なAPIキーが設定されているか確認してください。")
+
+        # --- Initialize AI Client for Text Generation ---
+        text_generation_client = get_ai_client(selected_text_model, api_key_to_use)
+        
+        prompt = build_prompt(data)
+        # print(f"DEBUG: Generated Prompt:\n{prompt}") # 必要に応じてプロンプトもログ出力
+
+        generated_text_str = None # 初期化
+        image_url = None # 初期化
+
+        # --- Text Generation ---
+        if selected_text_model.startswith("gpt"):
+            try:
+                print(f"DEBUG: Calling OpenAI API ({selected_text_model}) for text generation...")
+                completion = text_generation_client.chat.completions.create(
+                    model=selected_text_model,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                generated_text_str = completion.choices[0].message.content
+                print("DEBUG: OpenAI API call for text generation successful.")
+            except Exception as e:
+                print(f"ERROR calling OpenAI API for text generation ({selected_text_model}): {str(e)}") # <--- OpenAI APIエラーログ
+                traceback.print_exc() # スタックトレースも出力
+                # エラーが発生した場合でも、処理を続行し、画像生成は試みる
+                # generated_text_str は None のまま
+        elif selected_text_model.startswith("claude"):
+            try:
+                print(f"DEBUG: Calling Anthropic API ({selected_text_model}) for text generation...")
+                # Ensure the client is an Anthropic client
+                if not isinstance(text_generation_client, Anthropic):
+                    raise TypeError("Expected Anthropic client for Claude model")
+
+                # Placeholder for actual Anthropic API call structure
+                # Modify this according to the Anthropic SDK
+                response = text_generation_client.messages.create(
+                    model=selected_text_model,
+                    max_tokens=2000, # Adjust as needed
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                generated_text_str = response.content[0].text if response.content else None
+                print("DEBUG: Anthropic API call for text generation successful.")
+            except Exception as e:
+                print(f"ERROR calling Anthropic API for text generation ({selected_text_model}): {str(e)}")
+                traceback.print_exc()
+        elif selected_text_model.startswith("gemini"):
+            try:
+                print(f"DEBUG: Calling Google Gemini API ({selected_text_model}) for text generation...")
+                # Ensure the client is a GenerativeModel client (or similar, depending on exact SDK usage)
+                # if not isinstance(text_generation_client, genai.GenerativeModel):
+                #     raise TypeError("Expected Google GenerativeModel client for Gemini model")
+                
+                response = text_generation_client.generate_content(prompt)
+                generated_text_str = response.text
+                print("DEBUG: Google Gemini API call for text generation successful.")
+            except Exception as e:
+                print(f"ERROR calling Google Gemini API for text generation ({selected_text_model}): {str(e)}")
+                traceback.print_exc()
+        else:
+            print(f"WARNING: Text generation skipped, unsupported model type: {selected_text_model}")
+
+
+        # --- Image Generation ---
+        # ... (image generation logic using selected_image_model and its specific API key if needed)
+
+        generated_details = parse_ai_response(generated_text_str)
 
         # --- Image Generation (常に試行) ---
         # selected_image_model = os.environ.get("SELECTED_IMAGE_MODEL", "dall-e-3")
@@ -389,7 +427,7 @@ def generate_persona():
         image_url = "https://via.placeholder.com/1024" # Example dummy image
 
         response_data = {
-            "profile": profile_data,
+            "profile": data,
             "details": generated_details,
             "image_url": image_url
         }

@@ -576,7 +576,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         document.getElementById('preview-gender').textContent = getSelectDisplayTextForResult('gender', profile.gender);
         document.getElementById('preview-age').textContent = formatAgeDisplayForResult(profile.age);
-        document.getElementById('preview-prefecture').textContent = profile.prefecture || '-';
+        const prefectureSelectResult = document.getElementById('preview-prefecture');
+        if (prefectureSelectResult) {
+            prefectureSelectResult.value = profile.prefecture || ""; // Set value for select list
+        }
         document.getElementById('preview-municipality').textContent = profile.municipality || '-';
         document.getElementById('preview-family').textContent = profile.family || '-';
         document.getElementById('preview-occupation').textContent = profile.occupation || '-';
