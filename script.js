@@ -108,9 +108,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             if (stepNumber === 7) { // Result step is now 7
+                console.log('Showing Step 7 (Result Step)');
                 mainContainer.classList.add('result-active');
+                
                 // Always force PDF and PPT buttons to be visible
                 updateDownloadButtonVisibility({ pdf: true, ppt: true });
+                
+                // DEBUG: Check if download buttons exist
+                console.log('PDF Button:', document.getElementById('download-pdf-result'));
+                console.log('PPT Button:', document.getElementById('download-ppt-result'));
+                
+                // Force refresh download buttons visibility with setTimeout
+                setTimeout(() => {
+                    const pdfBtn = document.getElementById('download-pdf-result');
+                    const pptBtn = document.getElementById('download-ppt-result');
+                    if (pdfBtn) pdfBtn.style.display = 'inline-block';
+                    if (pptBtn) pptBtn.style.display = 'inline-block';
+                    console.log('Forced display refresh for download buttons');
+                }, 500);
             } else {
                 mainContainer.classList.remove('result-active');
             }
@@ -553,6 +568,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log("Populating results screen with data:", result);
         const profile = result.profile || {}; 
 
+        // DEBUG: Check if download buttons exist before population
+        console.log('Before population - PDF Button:', document.getElementById('download-pdf-result'));
+        console.log('Before population - PPT Button:', document.getElementById('download-ppt-result'));
+
         // Populate New Header Info Section
         let headerDepartmentDisplay = profile.department || '-';
         if (profile.department) {
@@ -678,6 +697,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // 編集可能フィールドのセットアップ
         setupEditableFields();
+        
+        // DEBUG: Final check of download buttons after population
+        console.log('After population - PDF Button:', document.getElementById('download-pdf-result'));
+        console.log('After population - PPT Button:', document.getElementById('download-ppt-result'));
+        
+        // Force buttons to be visible again
+        const pdfBtn = document.getElementById('download-pdf-result');
+        const pptBtn = document.getElementById('download-ppt-result');
+        if (pdfBtn) pdfBtn.style.display = 'inline-block';
+        if (pptBtn) pptBtn.style.display = 'inline-block';
     }
 
     // --- Download Functionality ---
