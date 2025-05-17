@@ -53,15 +53,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (response.ok) {
             const outputSettings = await response.json();
             console.log("Fetched output settings for user:", outputSettings);
-            window.currentOutputSettings = outputSettings; 
+            // Always override the settings to make PDF and PPT enabled
+            window.currentOutputSettings = { 
+                ...outputSettings,
+                pdf: true, 
+                ppt: true 
+            }; 
             // DO NOT call updateDownloadButtonVisibility here, buttons may not exist.
         } else {
             console.error("Failed to fetch output settings for user:", response.status);
             // Keep default settings if fetch fails
+            window.currentOutputSettings = { pdf: true, ppt: true, gslide: false };
         }
     } catch (error) {
         console.error("Error fetching output settings:", error);
         // Keep default settings on error
+        window.currentOutputSettings = { pdf: true, ppt: true, gslide: false };
     }
 
     // --- Helper Functions ---
@@ -102,12 +109,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (stepNumber === 7) { // Result step is now 7
                 mainContainer.classList.add('result-active');
-                if (window.currentOutputSettings) {
-                    updateDownloadButtonVisibility(window.currentOutputSettings);
-                } else {
-                    console.warn("window.currentOutputSettings not set when trying to show step 7 buttons");
-                    updateDownloadButtonVisibility({ pdf: true, ppt: true, gslide: false }); 
-                }
+                // Always force PDF and PPT buttons to be visible
+                updateDownloadButtonVisibility({ pdf: true, ppt: true });
             } else {
                 mainContainer.classList.remove('result-active');
             }
@@ -897,7 +900,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const pptBtn = document.getElementById('download-ppt-result');
         // const gslideBtn = document.getElementById('download-gslide-result'); // Removed Googleスライド button
 
-        // PDFとPPTは常に表示
+        // Always force PDF and PPT buttons to be visible regardless of settings
         if (pdfBtn) pdfBtn.style.display = 'inline-block';
         if (pptBtn) pptBtn.style.display = 'inline-block';
 
