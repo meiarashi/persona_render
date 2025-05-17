@@ -354,7 +354,7 @@ def generate_persona():
                     model=selected_text_model,
                     max_tokens=2000,
                     messages=[{"role": "user", "content": prompt}]
-                )
+                 )
                 generated_text_str = response.content[0].text if response.content else None
                 print("DEBUG: Anthropic API call for text generation successful.")
             except Exception as e:
@@ -417,7 +417,7 @@ def generate_persona():
         #     print(f"Image generation skipped: OpenAI API key for DALL-E not found or image model is '{selected_image_model}'.")
 
         # Set a dummy image URL
-        image_url = "https://via.placeholder.com/1024" # Example dummy image
+        image_url = "https://placehold.jp/150x150.png" # 以前のプレースホルダーURLを変更
 
         response_data = {
             "profile": data,

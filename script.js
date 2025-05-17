@@ -527,10 +527,14 @@ document.addEventListener('DOMContentLoaded', async () => {
      addFieldButton.addEventListener('click', () => {
         const newFieldRow = document.createElement('div');
         newFieldRow.classList.add('additional-field-row');
+        newFieldRow.style.display = 'flex';
+        newFieldRow.style.alignItems = 'center';
+        newFieldRow.style.marginBottom = '10px';
+        newFieldRow.style.gap = '10px';
         newFieldRow.innerHTML = `
-            <input type="text" name="additional_field_name[]" placeholder="項目">
-            <input type="text" name="additional_field_value[]" placeholder="内容">
-            <button type="button" class="remove-field-btn" style="background-color: #dc3545; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; height: fit-content; align-self: center;">削除</button>
+            <input type="text" name="additional_field_name[]" placeholder="項目" style="height: 32px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 8px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.9em; flex: 1;">
+            <input type="text" name="additional_field_value[]" placeholder="内容" style="height: 32px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 8px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.9em; flex: 2;">
+            <button type="button" class="remove-field-btn" style="background-color: #dc3545; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; height: fit-content;">削除</button>
         `;
         additionalFieldsContainer.appendChild(newFieldRow);
     });
@@ -886,26 +890,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Placeholder for Google Slides download button
-    const gslideDownloadBtn = document.getElementById('download-gslide-result');
-    if (gslideDownloadBtn) {
-         gslideDownloadBtn.addEventListener('click', () => {
-            alert('Google スライド エクスポート機能は現在開発中です。');
-        });
-    }
-
     // --- Function to control button visibility ---
     function updateDownloadButtonVisibility(settings) {
         console.log("Updating download button visibility with settings:", settings);
         const pdfBtn = document.getElementById('download-pdf-result');
         const pptBtn = document.getElementById('download-ppt-result');
-        const gslideBtn = document.getElementById('download-gslide-result');
+        // const gslideBtn = document.getElementById('download-gslide-result'); // Removed Googleスライド button
 
         // PDFとPPTは常に表示
         if (pdfBtn) pdfBtn.style.display = 'inline-block';
         if (pptBtn) pptBtn.style.display = 'inline-block';
 
-        // Googleスライドは設定に基づいて表示/非表示
+        // Googleスライドは設定に基づいて表示/非表示 - このセクションを削除
+        /*
         if (gslideBtn) {
             if (settings && settings.output_gslide_enabled) {
                 gslideBtn.style.display = 'inline-block';
@@ -913,6 +910,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 gslideBtn.style.display = 'none';
             }
         }
+        */
     }
 
     // Function to update the .selected class on labels
