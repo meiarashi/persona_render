@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (pptBtn) pptBtn.style.display = 'inline-block';
                     console.log('Forced display refresh for download buttons');
                 }, 500);
-            } else {
+                } else {
                 mainContainer.classList.remove('result-active');
             }
 
@@ -168,7 +168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const departmentRadio = multiStepForm.querySelector('input[name="department"]:checked');
             if(departmentRadio) {
                 data['department'] = departmentRadio.value;
-        }
+            }
          // Patient type is already collected by formData.forEach if a radio is checked.
         // If no patient_type is checked and setting_type is 'patient_type',
         // it might be undefined in data. This is handled in populateConfirmationScreen.
@@ -572,214 +572,160 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Before population - PDF Button:', document.getElementById('download-pdf-result'));
         console.log('Before population - PPT Button:', document.getElementById('download-ppt-result'));
         
-        // コンテナ検索 - 両方の可能性のあるコンテナを取得
-        const personaDetails = document.querySelector('.persona-details');
-        const personaPreview = document.querySelector('.persona-preview');
+        // 完全に独立したフローティングダウンロードボタンを作成
+        // まず既存のボタンを削除
+        const existingPdfButton = document.getElementById('floating-pdf-button');
+        const existingPptButton = document.getElementById('floating-ppt-button');
+        if (existingPdfButton) existingPdfButton.remove();
+        if (existingPptButton) existingPptButton.remove();
         
-        console.log('Container check - persona-details:', personaDetails);
-        console.log('Container check - persona-preview:', personaPreview);
+        // フローティングコンテナ作成
+        const floatingContainer = document.createElement('div');
+        floatingContainer.id = 'floating-download-buttons';
+        floatingContainer.style.position = 'fixed';
+        floatingContainer.style.top = '100px';
+        floatingContainer.style.right = '20px';
+        floatingContainer.style.zIndex = '9999';
+        floatingContainer.style.display = 'flex';
+        floatingContainer.style.flexDirection = 'column';
+        floatingContainer.style.gap = '10px';
         
-        // ダウンロードボタン用のdivを作成する関数
-        function createDownloadButtons() {
-            // 新しいdownload-optionsを作成
-            const downloadOptions = document.createElement('div');
-            downloadOptions.className = 'download-options';
-            downloadOptions.style.position = 'absolute';
-            downloadOptions.style.top = '20px';
-            downloadOptions.style.right = '20px';
-            downloadOptions.style.zIndex = '100';
-            downloadOptions.style.display = 'flex';
-            downloadOptions.style.gap = '10px';
-            
-            // PDFダウンロードボタンを作成
-            const pdfButton = document.createElement('button');
-            pdfButton.type = 'button';
-            pdfButton.id = 'download-pdf-result';
-            pdfButton.textContent = 'PDF';
-            pdfButton.style.display = 'inline-block';
-            pdfButton.style.backgroundColor = '#ff0000';
-            pdfButton.style.color = 'white';
-            pdfButton.style.border = 'none';
-            pdfButton.style.padding = '6px 16px';
-            pdfButton.style.borderRadius = '4px';
-            pdfButton.style.margin = '0 5px';
-            pdfButton.style.cursor = 'pointer';
-            pdfButton.addEventListener('click', async () => {
-                if (!currentPersonaResult) {
-                    alert('ペルソナがまだ生成されていません。');
-                    return;
-                }
-                if (!currentPersonaResult.profile || !currentPersonaResult.details) {
-                    alert('ペルソナデータが不完全です。');
-                    console.error("Incomplete persona data for download:", currentPersonaResult);
-                    return;
-                }
-
-                // Add a simple loading indicator
-                const originalText = pdfButton.textContent;
-                pdfButton.textContent = '生成中...';
-                pdfButton.disabled = true;
-
-                try {
-                    const response = await fetch('/api/download/pdf', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(currentPersonaResult),
-                    });
-
-                    if (!response.ok) {
-                        let errorMsg = 'PDFの生成に失敗しました。';
-                        try {
-                            const errorData = await response.json();
-                            errorMsg = errorData.error || errorMsg;
-                        } catch (e) {
-                            // Ignore if response is not JSON
-                        }
-                        throw new Error(errorMsg + ` (Status: ${response.status})`);
-                    }
-
-                    const blob = await response.blob();
-                    const contentDisposition = response.headers.get('content-disposition');
-                    let filename = `${currentPersonaResult.profile.name || 'persona'}_persona.pdf`;
-                    if (contentDisposition) {
-                        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
-                        if (filenameMatch && filenameMatch.length > 1) {
-                            filename = filenameMatch[1];
-                        }
-                    }
-                    triggerDownload(blob, filename);
-                } catch (error) {
-                    console.error('PDF Download Error:', error);
-                    alert(`エラーが発生しました: ${error.message}`);
-                } finally {
-                    pdfButton.textContent = originalText;
-                    pdfButton.disabled = false;
-                }
-            });
-            
-            // PPTダウンロードボタンを作成
-            const pptButton = document.createElement('button');
-            pptButton.type = 'button';
-            pptButton.id = 'download-ppt-result';
-            pptButton.textContent = 'PPT';
-            pptButton.style.display = 'inline-block';
-            pptButton.style.backgroundColor = '#ff8431';
-            pptButton.style.color = 'white';
-            pptButton.style.border = 'none';
-            pptButton.style.padding = '6px 16px';
-            pptButton.style.borderRadius = '4px';
-            pptButton.style.margin = '0 5px';
-            pptButton.style.cursor = 'pointer';
-            pptButton.addEventListener('click', async () => {
-                if (!currentPersonaResult) {
-                    alert('ペルソナがまだ生成されていません。');
-                    return;
-                }
-                if (!currentPersonaResult.profile || !currentPersonaResult.details) {
-                    alert('ペルソナデータが不完全です。');
-                    console.error("Incomplete persona data for download:", currentPersonaResult);
-                    return;
-                }
-
-                // Add loading indicator
-                const originalText = pptButton.textContent;
-                pptButton.textContent = '生成中...';
-                pptButton.disabled = true;
-
-                try {
-                    const response = await fetch('/api/download/ppt', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(currentPersonaResult),
-                    });
-
-                    if (!response.ok) {
-                        let errorMsg = 'PPTの生成に失敗しました。';
-                        try {
-                            const errorData = await response.json();
-                            errorMsg = errorData.error || errorMsg;
-                        } catch (e) { /* Ignore */ }
-                        throw new Error(errorMsg + ` (Status: ${response.status})`);
-                    }
-
-                    const blob = await response.blob();
-                    const contentDisposition = response.headers.get('content-disposition');
-                    let filename = `${currentPersonaResult.profile.name || 'persona'}_persona.pptx`; // Default .pptx
-                    if (contentDisposition) {
-                        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
-                        if (filenameMatch && filenameMatch.length > 1) {
-                            filename = filenameMatch[1];
-                        }
-                    }
-                    triggerDownload(blob, filename);
-                } catch (error) {
-                    console.error('PPT Download Error:', error);
-                    alert(`エラーが発生しました: ${error.message}`);
-                } finally {
-                    pptButton.textContent = originalText;
-                    pptButton.disabled = false;
-                }
-            });
-            
-            // ボタンをdownload-optionsに追加
-            downloadOptions.appendChild(pdfButton);
-            downloadOptions.appendChild(pptButton);
-            
-            return downloadOptions;
-        }
+        // PDFボタン
+        const pdfButton = document.createElement('button');
+        pdfButton.id = 'floating-pdf-button';
+        pdfButton.innerHTML = '<span style="font-weight: bold;">PDF</span>でダウンロード';
+        pdfButton.style.backgroundColor = '#ff0000';
+        pdfButton.style.color = 'white';
+        pdfButton.style.border = 'none';
+        pdfButton.style.borderRadius = '4px';
+        pdfButton.style.padding = '8px 15px';
+        pdfButton.style.cursor = 'pointer';
+        pdfButton.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+        pdfButton.style.fontSize = '14px';
+        pdfButton.style.width = '180px';
+        pdfButton.style.textAlign = 'center';
         
-        // 1. まず.persona-detailsを試す（これがHTMLで想定されている場所）
-        if (personaDetails) {
-            // 既存のdownload-optionsがあれば削除
-            const existingDownloadOptions = personaDetails.querySelector('.download-options');
-            if (existingDownloadOptions) {
-                existingDownloadOptions.remove();
+        // PPTボタン
+        const pptButton = document.createElement('button');
+        pptButton.id = 'floating-ppt-button';
+        pptButton.innerHTML = '<span style="font-weight: bold;">PPT</span>でダウンロード';
+        pptButton.style.backgroundColor = '#ff8431';
+        pptButton.style.color = 'white';
+        pptButton.style.border = 'none';
+        pptButton.style.borderRadius = '4px';
+        pptButton.style.padding = '8px 15px';
+        pptButton.style.cursor = 'pointer';
+        pptButton.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+        pptButton.style.fontSize = '14px';
+        pptButton.style.width = '180px';
+        pptButton.style.textAlign = 'center';
+        
+        // PDFボタンのクリックイベント
+        pdfButton.addEventListener('click', async () => {
+            if (!currentPersonaResult) {
+                alert('ペルソナがまだ生成されていません。');
+                return;
             }
             
-            // ボタンを追加
-            const downloadOptions = createDownloadButtons();
-            personaDetails.insertBefore(downloadOptions, personaDetails.firstChild);
-            console.log('Download buttons added to persona-details');
-        } 
-        
-        // 2. .persona-detailsがない場合は.persona-previewに追加（フォールバック）
-        if (!personaDetails && personaPreview) {
-            // 既存のdownload-optionsがあれば削除
-            const existingDownloadOptions = personaPreview.querySelector('.download-options');
-            if (existingDownloadOptions) {
-                existingDownloadOptions.remove();
-            }
+            // ボタンスタイル変更
+            pdfButton.innerHTML = '生成中...';
+            pdfButton.disabled = true;
+            pdfButton.style.opacity = '0.7';
             
-            // ボタンを追加
-            const downloadOptions = createDownloadButtons();
-            personaPreview.insertBefore(downloadOptions, personaPreview.firstChild);
-            console.log('Download buttons added to persona-preview (fallback)');
-        }
-        
-        // 3. 最悪の場合はフォーム全体に追加
-        if (!personaDetails && !personaPreview) {
-            const resultStep = document.querySelector('.form-step[data-step="7"]');
-            if (resultStep) {
-                // 既存のdownload-optionsがあれば削除
-                const existingDownloadOptions = resultStep.querySelector('.download-options');
-                if (existingDownloadOptions) {
-                    existingDownloadOptions.remove();
+            try {
+                const response = await fetch('/api/download/pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentPersonaResult)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`サーバーエラー ${response.status}`);
                 }
                 
-                // ボタンを追加（絶対位置指定で右上に配置）
-                const downloadOptions = createDownloadButtons();
-                // resultStepの位置指定が問題にならないようposition:relativeを設定
-                resultStep.style.position = 'relative';
-                resultStep.insertBefore(downloadOptions, resultStep.firstChild);
-                console.log('Download buttons added to result-step (emergency fallback)');
-            } else {
-                console.error('No suitable container found for download buttons');
+                const blob = await response.blob();
+                let filename = `${currentPersonaResult.profile.name || 'persona'}_persona.pdf`;
+                
+                // Content-Dispositionが存在すればファイル名を取得
+                const contentDisposition = response.headers.get('content-disposition');
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+                    if (filenameMatch && filenameMatch.length > 1) {
+                        filename = filenameMatch[1];
+                    }
+                }
+                
+                // ダウンロード処理
+                triggerDownload(blob, filename);
+                
+            } catch (error) {
+                console.error('PDF Download Error:', error);
+                alert(`エラーが発生しました: ${error.message}`);
+            } finally {
+                // ボタン状態を戻す
+                pdfButton.innerHTML = '<span style="font-weight: bold;">PDF</span>でダウンロード';
+                pdfButton.disabled = false;
+                pdfButton.style.opacity = '1';
             }
-        }
+        });
+        
+        // PPTボタンのクリックイベント
+        pptButton.addEventListener('click', async () => {
+            if (!currentPersonaResult) {
+                alert('ペルソナがまだ生成されていません。');
+                return;
+            }
+            
+            // ボタンスタイル変更
+            pptButton.innerHTML = '生成中...';
+            pptButton.disabled = true;
+            pptButton.style.opacity = '0.7';
+            
+            try {
+                const response = await fetch('/api/download/ppt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentPersonaResult)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`サーバーエラー ${response.status}`);
+                }
+                
+                const blob = await response.blob();
+                let filename = `${currentPersonaResult.profile.name || 'persona'}_persona.pptx`;
+                
+                // Content-Dispositionが存在すればファイル名を取得
+                const contentDisposition = response.headers.get('content-disposition');
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+                    if (filenameMatch && filenameMatch.length > 1) {
+                        filename = filenameMatch[1];
+                    }
+                }
+                
+                // ダウンロード処理
+                triggerDownload(blob, filename);
+                
+            } catch (error) {
+                console.error('PPT Download Error:', error);
+                alert(`エラーが発生しました: ${error.message}`);
+            } finally {
+                // ボタン状態を戻す
+                pptButton.innerHTML = '<span style="font-weight: bold;">PPT</span>でダウンロード';
+                pptButton.disabled = false;
+                pptButton.style.opacity = '1';
+            }
+        });
+        
+        // ボタンをコンテナに追加
+        floatingContainer.appendChild(pdfButton);
+        floatingContainer.appendChild(pptButton);
+        
+        // body要素の直接の子としてフローティングボタンを追加
+        document.body.appendChild(floatingContainer);
+        
+        console.log('Floating download buttons added directly to body');
 
         // Populate New Header Info Section
         let headerDepartmentDisplay = profile.department || '-';
