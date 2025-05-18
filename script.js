@@ -48,31 +48,32 @@ const personaRandomValues = {
     ],
     // Based on 令和５年（2023年）10月1日現在人口推計（総務省統計局）
     // 人口（千人）をそのままウェイトとして使用。合計約124,352千人。
-    // 未成年者の選出確率を意図的に下げるため、19歳以下のweightを調整 (元の値の30%に)
+    // 未成年者の選出確率を意図的に下げるため、19歳以下のweightを調整 (元の値の約7.5%に)
     ageDistributionWeights: [
         // 0歳児の月齢表現のため、0歳は特別扱い
-        { ageGroup: "0y_months", weight: 216 }, // 元: 720
-        { ageRange: "1-4y", weight: 897 },   // 元: 2989
-        { ageRange: "5-9y", weight: 1212 },   // 元: 4039
-        { ageRange: "10-14y", weight: 1343 }, // 元: 4477
-        { ageRange: "15-19y", weight: 1538 }, // 元: 5128
-        { ageRange: "20-24y", weight: 5891 },
-        { ageRange: "25-29y", weight: 6207 },
-        { ageRange: "30-34y", weight: 6295 },
-        { ageRange: "35-39y", weight: 6570 }, // 35-39歳: 6570千人
-        { ageRange: "40-44y", weight: 7196 }, // 40-44歳: 7196千人
-        { ageRange: "45-49y", weight: 8179 }, // 45-49歳: 8179千人
-        { ageRange: "50-54y", weight: 9718 }, // 50-54歳: 9718千人 (団塊ジュニア)
-        { ageRange: "55-59y", weight: 7526 }, // 55-59歳: 7526千人
-        { ageRange: "60-64y", weight: 6730 }, // 60-64歳: 6730千人
-        { ageRange: "65-69y", weight: 7214 }, // 65-69歳: 7214千人
-        { ageRange: "70-74y", weight: 8597 }, // 70-74歳: 8597千人 (団塊世代)
-        { ageRange: "75-79y", weight: 7165 }, // 75-79歳: 7165千人
-        { ageRange: "80-84y", weight: 5473 }, // 80-84歳: 5473千人
-        { ageRange: "85-89y", weight: 3842 }, // 85-89歳: 3842千人
-        { ageRange: "90-94y", weight: 2076 }, // 90-94歳: 2076千人
-        { ageRange: "95-99y", weight: 764 },  // 95-99歳: 764千人
-        { ageValue: "100y", weight: 156 }     // 100歳以上: 156千人 (まとめて100yとする)
+        { ageGroup: "0y_months", weight: 54 },   // 元: 720 -> 216 -> 54
+        { ageRange: "1-4y", weight: 224 },    // 元: 2989 -> 897 -> 224
+        { ageRange: "5-9y", weight: 303 },    // 元: 4039 -> 1212 -> 303
+        { ageRange: "10-14y", weight: 336 },   // 元: 4477 -> 1343 -> 336
+        { ageRange: "15-19y", weight: 385 },   // 元: 5128 -> 1538 -> 385
+        // 成人層のweightは未成年からの削減分を比例配分して増加
+        { ageRange: "20-24y", weight: 6142 },  // 元: 5891
+        { ageRange: "25-29y", weight: 6472 },  // 元: 6207
+        { ageRange: "30-34y", weight: 6564 },  // 元: 6295
+        { ageRange: "35-39y", weight: 6850 },  // 元: 6570
+        { ageRange: "40-44y", weight: 7503 },  // 元: 7196
+        { ageRange: "45-49y", weight: 8528 },  // 元: 8179
+        { ageRange: "50-54y", weight: 10132 }, // 元: 9718
+        { ageRange: "55-59y", weight: 7847 },  // 元: 7526
+        { ageRange: "60-64y", weight: 7017 },  // 元: 6730
+        { ageRange: "65-69y", weight: 7521 },  // 元: 7214
+        { ageRange: "70-74y", weight: 8964 },  // 元: 8597
+        { ageRange: "75-79y", weight: 7470 },  // 元: 7165
+        { ageRange: "80-84y", weight: 5706 },  // 元: 5473
+        { ageRange: "85-89y", weight: 4006 },  // 元: 3842
+        { ageRange: "90-94y", weight: 2165 },  // 元: 2076
+        { ageRange: "95-99y", weight: 797 },   // 元: 764
+        { ageValue: "100y", weight: 163 }      // 元: 156
     ],
     prefectureCityPairs: [
         "北海道札幌市", "北海道函館市", "北海道旭川市", "北海道釧路市", "北海道帯広市",
@@ -1502,7 +1503,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const floatingContainer = document.createElement('div');
         floatingContainer.id = 'floating-download-buttons';
         floatingContainer.style.position = 'absolute'; 
-        floatingContainer.style.top = '-30px'; // さらに上に調整（-5pxから-30pxに）
+        floatingContainer.style.top = '-20px'; // -30px から -20px に変更して少し下げる
         floatingContainer.style.right = '20px'; 
         floatingContainer.style.zIndex = '1000'; 
         floatingContainer.style.display = 'flex'; 

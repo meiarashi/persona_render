@@ -16,6 +16,7 @@ from pptx import Presentation
 from pptx.util import Inches, Pt # Inches for image size, Pt for font size
 from pptx.enum.text import PP_ALIGN # For text alignment
 from pptx.dml.color import RGBColor
+from pptx.enum.text import MSO_AUTO_SIZE
 
 # --- Flask App Setup ---
 app = Flask(__name__, static_url_path='/', static_folder='.')
@@ -200,7 +201,7 @@ def build_prompt(data):
              prompt_parts.append(f"- {key}: (自動生成)")
         elif key == "患者タイプ" and not value and data.get('setting_type') == 'patient_type': # setting_typeがpatient_typeで患者タイプが未選択の場合
              prompt_parts.append(f"- {key}: (指定なし/自動生成)")
-        # '診療科', '作成目的', '基本情報設定タイプ' は値がなければ「指定なし」とするか、キー自体含めないか検討。ここでは値がある場合のみ表示。
+        # '診療科', '作成目的', '基本情報設定タイプ' は値がある場合のみ表示。
 
     # Step 4の固定追加項目
     fixed_additional_info = {
@@ -841,6 +842,28 @@ def download_pdf():
 
 # Helper function to generate PPT (basic implementation)
 def generate_ppt(data):
+    # --- Helper function to add text to a shape with styling ---
+    def add_text_to_shape(shape, text, font_size=Pt(10), font_name='メイリオ', is_bold=False, align=PP_ALIGN.LEFT, color_rgb=None):
+        text_frame = shape.text_frame
+        text_frame.clear()  # Clear existing text
+        # text_frame.word_wrap = True # Enable word wrap
+        text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE # Or SHAPE_TO_FIT_TEXT
+
+        p = text_frame.paragraphs[0]
+        run = p.add_run()
+        run.text = str(text) # Ensure text is string
+
+        font = run.font
+        font.name = font_name
+        font.size = font_size
+        font.bold = is_bold
+        if color_rgb:
+            font.color.rgb = RGBColor(*color_rgb)
+        
+        p.alignment = align
+        # Vertical alignment (less direct in python-pptx, often handled by shape positioning and text box size)
+        # text_frame.vertical_anchor = MSO_VERTICAL_ANCHOR.MIDDLE # Example, if needed
+
     prs = Presentation()
     profile = data.get('profile', {})
     details = data.get('details', {})
@@ -851,43 +874,20 @@ def generate_ppt(data):
     slide = prs.slides.add_slide(slide_layout)
     slide_width = prs.slide_width
     slide_height = prs.slide_height
-    margin = Inches(0.25) # General margin
+    margin = Inches(0.25) # 全体のマージン
+    content_width = slide_width - (2 * margin)
+    content_height = slide_height - (2 * margin)
 
-    # --- Column Definitions (35% Left, 65% Right) ---
-    left_column_width = slide_width * 0.35
-    right_column_width = slide_width * 0.60 # Slightly less to allow for a clear gap
-    column_gap = slide_width * 0.05
+    # --- カラム定義 (左35%, 右60%, 間5%) ---
+    left_column_width = content_width * 0.35
+    right_column_start_x = margin + left_column_width + (content_width * 0.05)
+    # 右カラムの幅を少し調整してはみ出しを防ぐ
+    right_column_width = content_width * 0.58 # 60% から 58% に縮小
+    
+    # --- 左カラムのY座標トラッカー ---
+    current_y_left = margin
 
-    left_column_x = margin
-    right_column_x = left_column_x + left_column_width + column_gap
-
-    # --- Theme Colors (Optional, for consistency) ---
-    theme_color_bg_section = RGBColor(240, 240, 240) # Light gray for section backgrounds
-
-    # --- Helper function to add text to a shape (textbox) ---
-    def add_text_to_shape(shape, text, font_size=Pt(10), is_bold=False, font_name='メイリオ', align=PP_ALIGN.LEFT, color=RGBColor(0,0,0)):
-        tf = shape.text_frame
-        tf.word_wrap = True
-        p = tf.paragraphs[0]
-        if len(tf.paragraphs) > 1: # Clear existing paragraphs if any beyond the first
-            for i in range(len(tf.paragraphs)-1, 0, -1):
-                del tf.paragraphs[i]
-
-        p.text = str(text) if text else "-"
-        p.font.size = font_size
-        p.font.bold = is_bold
-        p.font.name = font_name
-        p.font.color.rgb = color
-        p.alignment = align
-        # For additional paragraphs, one would use tf.add_paragraph()
-
-    # --- Current Y positions for each column ---
-    current_left_y = margin
-    current_right_y = margin # Right column will start at the same Y as icon
-
-    # --- Left Column ---
-
-    # 1. Persona Icon & Name
+    # 1. ペルソナアイコン (左カラム)
     icon_size = Inches(1.0)  # Approx 25mm, adjust as needed
     icon_placeholder_text = "画像なし"
     
@@ -895,47 +895,47 @@ def generate_ppt(data):
         try:
             image_data = urlopen(image_url).read()
             img_file_obj = io.BytesIO(image_data)
-            pic = slide.shapes.add_picture(img_file_obj, left_column_x, current_left_y, width=icon_size, height=icon_size)
+            pic = slide.shapes.add_picture(img_file_obj, current_y_left, current_y_left, width=icon_size, height=icon_size)
         except Exception as e:
             print(f"Error loading image for PPT: {e}")
-            tb = slide.shapes.add_textbox(left_column_x, current_left_y, icon_size, icon_size)
+            tb = slide.shapes.add_textbox(current_y_left, current_y_left, icon_size, icon_size)
             add_text_to_shape(tb, icon_placeholder_text, Pt(8), align=PP_ALIGN.CENTER)
     else:
-        tb = slide.shapes.add_textbox(left_column_x, current_left_y, icon_size, icon_size)
+        tb = slide.shapes.add_textbox(current_y_left, current_y_left, icon_size, icon_size)
         add_text_to_shape(tb, icon_placeholder_text, Pt(8), align=PP_ALIGN.CENTER)
 
-    name_x = left_column_x + icon_size + Inches(0.1)
+    name_x = current_y_left + icon_size + Inches(0.1)
     name_width = left_column_width - icon_size - Inches(0.1)
     name_height = icon_size # Attempt to vertically center name next to icon
-    name_tb = slide.shapes.add_textbox(name_x, current_left_y, name_width, name_height)
+    name_tb = slide.shapes.add_textbox(name_x, current_y_left, name_width, name_height)
     # Vertically center text in textbox (Note: python-pptx has limited direct vertical centering for text within a shape)
     # We can adjust the top position of the text_frame or rely on the textbox height.
     # For simplicity, we ensure the textbox itself is appropriately sized and positioned.
     add_text_to_shape(name_tb, profile.get('name', '-'), Pt(16), is_bold=True, font_name='メイリオ', align=PP_ALIGN.LEFT)
     
-    current_left_y += icon_size + Inches(0.2) # Space after icon/name block
+    current_y_left += icon_size + Inches(0.2) # Space after icon/name block
     right_column_y_start = margin # Right column starts aligned with top of icon
 
     # 2. Department and Purpose
     item_height_small = Inches(0.25)
     department_val = profile.get('department', '-')
     department_display = DEPARTMENT_MAP.get(str(department_val).lower(), department_val)
-    dep_tb = slide.shapes.add_textbox(left_column_x, current_left_y, left_column_width, item_height_small)
+    dep_tb = slide.shapes.add_textbox(current_y_left, current_y_left, left_column_width, item_height_small)
     add_text_to_shape(dep_tb, f"診療科: {department_display}", Pt(10), font_name='メイリオ')
-    current_left_y += item_height_small
+    current_y_left += item_height_small
 
     purpose_val = profile.get('purpose', '-')
     purpose_display = PURPOSE_MAP.get(str(purpose_val).lower(), purpose_val)
-    pur_tb = slide.shapes.add_textbox(left_column_x, current_left_y, left_column_width, item_height_small)
+    pur_tb = slide.shapes.add_textbox(current_y_left, current_y_left, left_column_width, item_height_small)
     add_text_to_shape(pur_tb, f"作成目的: {purpose_display}", Pt(10), font_name='メイリオ')
-    current_left_y += item_height_small + Inches(0.2) # Extra space before Basic Info
+    current_y_left += item_height_small + Inches(0.2) # Extra space before Basic Info
 
     # 3. Basic Information Section
     title_height = Inches(0.3)
-    basic_title_tb = slide.shapes.add_textbox(left_column_x, current_left_y, left_column_width, title_height)
+    basic_title_tb = slide.shapes.add_textbox(current_y_left, current_y_left, left_column_width, title_height)
     add_text_to_shape(basic_title_tb, "基本情報", Pt(12), is_bold=True, font_name='メイリオ')
     # Underline for title (achieved by adding a line shape or border if supported easily, otherwise skip)
-    current_left_y += title_height
+    current_y_left += title_height
 
     info_items = [
         ("性別", GENDER_MAP.get(str(profile.get('gender', '-')).lower(), profile.get('gender', '-'))),
@@ -954,23 +954,23 @@ def generate_ppt(data):
 
     for key, value in info_items:
         # Key textbox
-        key_tb_info = slide.shapes.add_textbox(left_column_x, current_left_y, key_width_info, item_height_small)
+        key_tb_info = slide.shapes.add_textbox(current_y_left, current_y_left, key_width_info, item_height_small)
         add_text_to_shape(key_tb_info, f"{key}:", Pt(9), font_name='メイリオ')
         # Value textbox
-        val_tb_info = slide.shapes.add_textbox(left_column_x + key_width_info, current_left_y, value_width_info, item_height_small)
+        val_tb_info = slide.shapes.add_textbox(current_y_left + key_width_info, current_y_left, value_width_info, item_height_small)
         add_text_to_shape(val_tb_info, str(value), Pt(9), font_name='メイリオ')
-        current_left_y += item_height_small
-    current_left_y += Inches(0.2) # Space after Basic Info items
+        current_y_left += item_height_small
+    current_y_left += Inches(0.2) # Space after Basic Info items
 
     # 4. Other Characteristics Section
-    other_title_bg = slide.shapes.add_shape(1, left_column_x, current_left_y, left_column_width, title_height) # 1 for rectangle
+    other_title_bg = slide.shapes.add_shape(1, current_y_left, current_y_left, left_column_width, title_height) # 1 for rectangle
     other_title_bg.fill.solid()
-    other_title_bg.fill.fore_color.rgb = theme_color_bg_section
+    other_title_bg.fill.fore_color.rgb = RGBColor(240, 240, 240)
     other_title_bg.line.fill.background() # No border
 
-    other_title_tb = slide.shapes.add_textbox(left_column_x, current_left_y, left_column_width, title_height)
+    other_title_tb = slide.shapes.add_textbox(current_y_left, current_y_left, left_column_width, title_height)
     add_text_to_shape(other_title_tb, "その他の特徴", Pt(12), is_bold=True, font_name='メイリオ')
-    current_left_y += title_height
+    current_y_left += title_height
 
     additional_items_data = [
         ("座右の銘", profile.get('motto', '-')),
@@ -985,39 +985,39 @@ def generate_ppt(data):
     key_width_add = left_column_width * 0.4 # Adjust key width for this section
 
     for key, value in additional_items_data:
-        key_tb_add = slide.shapes.add_textbox(left_column_x, current_left_y, key_width_add, item_height_small)
+        key_tb_add = slide.shapes.add_textbox(current_y_left, current_y_left, key_width_add, item_height_small)
         add_text_to_shape(key_tb_add, f"{key}:", Pt(9), font_name='メイリオ')
-        val_tb_add = slide.shapes.add_textbox(left_column_x + key_width_add, current_left_y, left_column_width - key_width_add, item_height_small)
+        val_tb_add = slide.shapes.add_textbox(current_y_left + key_width_add, current_y_left, left_column_width - key_width_add, item_height_small)
         add_text_to_shape(val_tb_add, str(value), Pt(9), font_name='メイリオ')
-        current_left_y += item_height_small
+        current_y_left += item_height_small
 
     # Dynamic additional fields
     if profile.get('additional_field_name') and profile.get('additional_field_value'):
-        current_left_y += Inches(0.05) # Small space before dynamic fields
+        current_y_left += Inches(0.05) # Small space before dynamic fields
         additional_fields = zip(profile.get('additional_field_name'), profile.get('additional_field_value'))
         for field_name, field_value in additional_fields:
             if field_name or field_value:
-                key_tb_dyn = slide.shapes.add_textbox(left_column_x, current_left_y, key_width_add, item_height_small) # Use same key_width_add
+                key_tb_dyn = slide.shapes.add_textbox(current_y_left, current_y_left, key_width_add, item_height_small) # Use same key_width_add
                 add_text_to_shape(key_tb_dyn, f"{field_name if field_name else ''}:", Pt(9), font_name='メイリオ')
-                val_tb_dyn = slide.shapes.add_textbox(left_column_x + key_width_add, current_left_y, left_column_width - key_width_add, item_height_small)
+                val_tb_dyn = slide.shapes.add_textbox(current_y_left + key_width_add, current_y_left, left_column_width - key_width_add, item_height_small)
                 add_text_to_shape(val_tb_dyn, str(field_value) if field_value else '-', Pt(9), font_name='メイリオ')
-                current_left_y += item_height_small
+                current_y_left += item_height_small
 
     # --- Right Column (Detailed Information) ---
-    current_right_y = right_column_y_start # Align with top of icon
+    current_y_right = right_column_y_start # Align with top of icon
 
     for detail_key, japanese_header_text in HEADER_MAP.items():
         value = details.get(detail_key)
         if value and str(value).strip():
             # Section Header (with background)
-            sec_header_bg = slide.shapes.add_shape(1, right_column_x, current_right_y, right_column_width, title_height)
+            sec_header_bg = slide.shapes.add_shape(1, right_column_start_x, current_y_right, right_column_width, title_height)
             sec_header_bg.fill.solid()
-            sec_header_bg.fill.fore_color.rgb = theme_color_bg_section
+            sec_header_bg.fill.fore_color.rgb = RGBColor(240, 240, 240)
             sec_header_bg.line.fill.background()
 
-            sec_header_tb = slide.shapes.add_textbox(right_column_x, current_right_y, right_column_width, title_height)
+            sec_header_tb = slide.shapes.add_textbox(right_column_start_x, current_y_right, right_column_width, title_height)
             add_text_to_shape(sec_header_tb, japanese_header_text, Pt(12), is_bold=True, font_name='メイリオ')
-            current_right_y += title_height
+            current_y_right += title_height
 
             # Content
             # Estimate content height: this is tricky. For now, use a fixed moderate height or calculate based on text length.
@@ -1026,9 +1026,9 @@ def generate_ppt(data):
             content_est_height = Inches(0.20 * num_lines + 0.2) # Base + per line
             content_height = max(Inches(0.5), min(content_est_height, Inches(2.5))) # Min/Max height
 
-            content_tb = slide.shapes.add_textbox(right_column_x, current_right_y, right_column_width, content_height)
+            content_tb = slide.shapes.add_textbox(right_column_start_x, current_y_right, right_column_width, content_height)
             add_text_to_shape(content_tb, str(value), Pt(9), font_name='メイリオ')
-            current_right_y += content_height + Inches(0.15) # Space after content block
+            current_y_right += content_height + Inches(0.15) # Space after content block
 
     # Save presentation to a BytesIO buffer
     ppt_buffer = io.BytesIO()
