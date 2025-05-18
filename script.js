@@ -989,6 +989,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     let currentPersonaResult = null;
     let hasRandomizedDetailsEver = false; // ランダム初期化実行フラグ
+    let loadingStep; // <--- loadingStep をここで宣言
 
     // (Keep checkDepartmentIcons function here if it exists)
     function checkDepartmentIcons() {
@@ -1036,7 +1037,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- NEW showStep FUNCTION DEFINITION --- 
     function showStep(stepNumberToShow) {
-        const loadingStep = document.querySelector('.loading-step');
+        loadingStep = document.querySelector('.loading-step'); // <--- ここで代入
         const resultStep = document.querySelector('.result-step');
 
         formSteps.forEach(s => s.classList.remove('active'));
@@ -1434,7 +1435,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showStep(TOTAL_FORM_STEPS); // Go back to confirmation screen on error
             } finally {
                 // Hide loading screen
-                loadingStep.classList.remove('active');
+                if (loadingStep) { // <--- 存在確認を追加
+                    loadingStep.classList.remove('active');
+                }
             }
         });
     });
@@ -2357,6 +2360,12 @@ function getRandomAnnualIncome(ageInYears, currentOccupation, allPossibleHtmlInc
         o.includes("学生") || o.includes("生徒") || o.includes("浪人生") || o.includes("未就学児") || o.includes("幼稚園児") || o.includes("保育園児")
     ).concat(["小学生", "中学生", "高校生"]);
 
+    const lowIncomeElderlyProfessions = [
+        "年金受給者", "無職（高齢）", "清掃員", "警備員", "軽作業スタッフ", 
+        "農業（小規模）", "漁業（小規模）", "秘書", "事務職（一般）", 
+        "事務職（専門）", "受付", "販売員", "接客業" 
+    ];
+
     if (studentOccupations.includes(currentOccupation) || ageInYears < 18) {
         console.log("Selecting '<100' (100万円未満) due to student status or age < 18");
         return "<100";
@@ -2574,7 +2583,7 @@ function getRandomAnnualIncome(ageInYears, currentOccupation, allPossibleHtmlInc
         }
 
         // 秘書・事務職・受付など特定職種は70歳以上では特に収入上限を低く設定
-        const lowIncomeElderlyProfessions = ["秘書", "事務職（一般）", "事務職（専門）", "受付", "販売員", "接客業"];
+        // const lowIncomeElderlyProfessions = ["秘書", "事務職（一般）", "事務職（専門）", "受付", "販売員", "接客業"]; // Moved to function scope
         if (lowIncomeElderlyProfessions.includes(currentOccupation)) {
             ageCap = Math.min(ageCap, 700); // 70歳以上の秘書などは最大700万円
             console.log(`70歳以上の${currentOccupation}の収入上限を700万円に制限`);
