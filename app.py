@@ -327,10 +327,10 @@ def generate_persona():
         text_generation_client = get_ai_client(selected_text_model, api_key_to_use)
         
         prompt = build_prompt(data)
-        # print(f"DEBUG: Generated Prompt:\n{prompt}") # 必要に応じてプロンプトもログ出力
+        # print(f"DEBUG: Generated Prompt:\\\\n{prompt}") # 必要に応じてプロンプトもログ出力
 
-        generated_text_str = None # 初期化
-        image_url = None # 初期化
+        generated_text_str = None 
+        # image_url = None # This was commented out, assuming it's handled later or not needed here
 
         # --- Text Generation ---
         if selected_text_model.startswith("gpt"):
@@ -341,12 +341,12 @@ def generate_persona():
                     messages=[{"role": "user", "content": prompt}]
                 )
                 generated_text_str = completion.choices[0].message.content
-                print(f"DEBUG OpenAI Response content: >>>\n{generated_text_str}\n<<<END OpenAI Response")
+                print(f"DEBUG OpenAI Response content: >>>\\\\\\\\n{generated_text_str}\\\\\\\\n<<<END OpenAI Response")
                 print("DEBUG: OpenAI API call for text generation successful.")
             except Exception as e:
                 print(f"ERROR calling OpenAI API for text generation ({selected_text_model}): {str(e)}")
                 traceback.print_exc()
-                generated_text_str = None # Ensure it's None on error
+                generated_text_str = None
         elif selected_text_model.startswith("claude"):
             try:
                 print(f"DEBUG: Calling Anthropic API ({selected_text_model}) for text generation...")
@@ -361,8 +361,8 @@ def generate_persona():
                 print("DEBUG: Anthropic API call for text generation successful.")
             except Exception as e:
                 print(f"ERROR calling Anthropic API for text generation ({selected_text_model}): {str(e)}")
-            traceback.print_exc()
-            generated_text_str = None # Ensure it's None on error
+                traceback.print_exc()
+                generated_text_str = None
         elif selected_text_model.startswith("gemini"):
             try:
                 print(f"DEBUG: Calling Google Gemini API ({selected_text_model}) for text generation...")
@@ -372,10 +372,10 @@ def generate_persona():
             except Exception as e:
                 print(f"ERROR calling Google Gemini API for text generation ({selected_text_model}): {str(e)}")
                 traceback.print_exc()
-                generated_text_str = None # Ensure it's None on error
+                generated_text_str = None
         else:
             print(f"WARNING: Text generation skipped, unsupported model type: {selected_text_model}")
-            generated_text_str = None # Ensure it's None if skipped
+            generated_text_str = None
 
         generated_details = parse_ai_response(generated_text_str)
         print(f"DEBUG parse_ai_response output: {generated_details}")
@@ -520,105 +520,153 @@ def generate_pdf(data):
     details = data.get('details', {})
     image_url = data.get('image_url')
 
-    # --- 左寄せヘッダー --- 
-    header_start_y = pdf.get_y()
+    # --- 日本語表示用マッピングとヘルパー関数 ---
+    GENDER_MAP = {
+        "male": "男性", "female": "女性", "other": "その他",
+    }
+    INCOME_MAP = {
+        "<100": "100万円未満", "100-200": "100-200万円", "200-300": "200-300万円",
+        "300-400": "300-400万円", "400-500": "400-500万円", "500-600": "500-600万円",
+        "600-700": "600-700万円", "700-800": "700-800万円", "800-900": "800-900万円",
+        "900-1000": "900-1000万円", "1000-1100": "1000-1100万円", "1100-1200": "1100-1200万円",
+        "1200-1300": "1200-1300万円", "1300-1400": "1300-1400万円", "1400-1500": "1400-1500万円",
+        "1500-1600": "1500-1600万円", "1600-1700": "1600-1700万円", "1700-1800": "1700-1800万円",
+        "1800-1900": "1800-1900万円", "1900-2000": "1900-2000万円", "2000-2100": "2000-2100万円",
+        "2100-2200": "2100-2200万円", "2200-2300": "2200-2300万円", "2300-2400": "2300-2400万円",
+        "2400-2500": "2400-2500万円", "2500-2600": "2500-2600万円", "2600-2700": "2600-2700万円",
+        "2700-2800": "2700-2800万円", "2800-2900": "2800-2900万円", "2900-3000": "2900-3000万円",
+        "3000-3100": "3000-3100万円", "3100-3200": "3100-3200万円", "3200-3300": "3200-3300万円",
+        "3300-3400": "3300-3400万円", "3400-3500": "3400-3500万円", "3500-3600": "3500-3600万円",
+        "3600-3700": "3600-3700万円", "3700-3800": "3700-3800万円", "3800-3900": "3800-3900万円",
+        "3900-4000": "3900-4000万円", "4000-4100": "4000-4100万円", "4100-4200": "4100-4200万円",
+        "4200-4300": "4200-4300万円", "4300-4400": "4300-4400万円", "4400-4500": "4400-4500万円",
+        "4500-4600": "4500-4600万円", "4600-4700": "4600-4700万円", "4700-4800": "4700-4800万円",
+        # Add more income mappings if necessary based on index.html
+    }
+    DEPARTMENT_MAP = {
+        "internal_medicine": "内科", "surgery": "外科", "pediatrics": "小児科",
+        "orthopedics": "整形外科", "dermatology": "皮膚科", "ophthalmology": "眼科",
+        "cardiology": "循環器内科", "psychiatry": "精神科", "dentistry": "歯科", # dentistry は 一般歯科 の可能性もあるが一旦このまま
+        "pediatric_dentistry": "小児歯科", "otorhinolaryngology": "耳鼻咽喉科", # ent のエイリアスとして
+        "ent": "耳鼻咽喉科", # index.html でのキー
+        "gynecology": "婦人科",
+        "urology": "泌尿器科",
+        "neurosurgery": "脳神経外科",
+        "general_dentistry": "一般歯科",
+        "orthodontics": "矯正歯科",
+        "cosmetic_dentistry": "審美歯科",
+        "oral_surgery": "口腔外科",
+        "anesthesiology": "麻酔科",
+        "radiology": "放射線科",
+        "rehabilitation": "リハビリテーション科",
+        "allergy": "アレルギー科",
+        "gastroenterology": "消化器内科", # index.html では 消化器科
+        "respiratory_medicine": "呼吸器内科",
+        "diabetes_medicine": "糖尿病内科",
+        "nephrology": "腎臓内科",
+        "neurology": "神経内科",
+        "hematology": "血液内科",
+        "plastic_surgery": "形成外科",
+        "beauty_surgery": "美容外科",
+        # ここまで index.html から抽出・マージした診療科
+    }
+    PURPOSE_MAP = {
+        "increase_patients": "患者数を増やす",
+        "increase_frequency": "来院頻度を増やす",
+        "increase_spend": "客単価を増やす",
+        # Add more mappings as needed
+    }
+    def format_age_for_pdf(age_value):
+        if not age_value: return '-'
+        age_value_str = str(age_value) # Ensure it's a string
+        if 'm' in age_value_str and 'y' in age_value_str:
+            parts = age_value_str.split('y')
+            years = parts[0]
+            months = parts[1].replace('m', '')
+            return f"{years}歳{months}ヶ月"
+        elif 'y' in age_value_str:
+            return f"{age_value_str.replace('y', '')}歳"
+        elif 'm' in age_value_str:
+             return f"0歳{age_value_str.replace('m','')}ヶ月"
+        return age_value_str
+
+    # --- ページとカラムの基本設定 ---
     left_column_content_x = pdf.l_margin
-    page_width = pdf.w - pdf.l_margin - pdf.r_margin # ページ全体の描画可能幅
+    page_width = pdf.w - pdf.l_margin - pdf.r_margin
     left_column_width = page_width * 0.35
-
-    # 1. 診療科
-    pdf.set_xy(left_column_content_x, pdf.get_y())
-    pdf.set_font("ipa", '', 10)
-    pdf.multi_cell(left_column_width, 7, f"診療科: {profile.get('department', '-')}", 0, 'L')
-    # pdf.ln(1) # multi_cellが自動で改行するので不要な場合あり
-
-    # 2. 作成目的
-    pdf.set_xy(left_column_content_x, pdf.get_y())
-    pdf.multi_cell(left_column_width, 7, f"作成目的: {profile.get('purpose', '-')}", 0, 'L')
-    pdf.ln(3)
-
-    # 3. ペルソナアイコン
-    icon_size = 30  # アイコンのサイズ (mm)
-    if image_url:
-        try:
-            with urlopen(image_url) as img_file:
-                img_data = io.BytesIO(img_file.read())
-            # アイコンを左カラムのX座標に配置
-            pdf.image(img_data, x=left_column_content_x, y=pdf.get_y(), w=icon_size, h=icon_size)
-            pdf.ln(icon_size + 2)
-        except Exception as e:
-            print(f"Error loading image for PDF from {image_url}: {e}")
-            pdf.set_xy(left_column_content_x, pdf.get_y()) # Y座標をエラー時も進める
-            pdf.cell(icon_size, icon_size, "[画像エラー]", 1, 1, 'C') # エラー表示とスペース確保
-            pdf.ln(2)
-    else:
-        pdf.set_xy(left_column_content_x, pdf.get_y()) # Y座標をスペース確保のために進める
-        pdf.cell(icon_size, icon_size, "[No Img]", 1, 1, 'C') # 画像なし表示とスペース確保
-        pdf.ln(2)
-
-    # 4. ペルソナ名
-    pdf.set_xy(left_column_content_x, pdf.get_y())
-    pdf.set_font("ipa", 'B', 16)
-    pdf.multi_cell(left_column_width, 10, profile.get('name', 'ペルソナ名なし'), 0, 'L')
-    pdf.ln(5)
-
-    content_start_y = pdf.get_y() # 左カラムと右カラムのコンテンツ開始Y座標
-
-    # --- カラム設定 (変更なし) ---
     right_column_width = page_width * 0.65
     column_gap = 5
+    right_column_x = left_column_content_x + left_column_width + column_gap
     
-    # --- 左カラム (基本情報とその他の特徴) ---
-    # 基本情報セクション
-    pdf.set_xy(left_column_content_x, content_start_y) 
+    content_start_y = pdf.get_y() # 全体のコンテンツ開始Y座標（一番上の要素に合わせる）
+
+    # --- 左カラムの描画 ---
+    current_y_left = content_start_y
+
+    # 1. 診療科 (左カラム)
+    pdf.set_xy(left_column_content_x, current_y_left)
+    pdf.set_font("ipa", '', 10)
+    department_val = profile.get('department', '-')
+    department_display = DEPARTMENT_MAP.get(department_val.lower(), department_val) # Lowercase for map key
+    pdf.multi_cell(left_column_width, 7, f"診療科: {department_display}", 0, 'L')
+    current_y_left = pdf.get_y()
+
+    # 2. 作成目的 (左カラム)
+    pdf.set_xy(left_column_content_x, current_y_left)
+    purpose_val = profile.get('purpose', '-')
+    purpose_display = PURPOSE_MAP.get(purpose_val.lower(), purpose_val) # Lowercase for map key
+    pdf.multi_cell(left_column_width, 7, f"作成目的: {purpose_display}", 0, 'L')
+    current_y_left = pdf.get_y()
+    pdf.ln(3) # 少しスペース
+    current_y_left = pdf.get_y()
+
+    # 3. 基本情報セクション (左カラム)
+    pdf.set_xy(left_column_content_x, current_y_left) 
     pdf.set_font("ipa", 'B', 11)
     pdf.set_fill_color(240, 240, 240)
     pdf.cell(left_column_width, 6, "基本情報", 0, 1, 'L', fill=True)
+    current_y_left = pdf.get_y()
     pdf.ln(1)
-    
     current_y_left = pdf.get_y()
     
-    # 基本情報の項目を表示
     pdf.set_font("ipa", '', 9)
     info_items = [
-        ("性別", profile.get('gender', '-')),
-        ("年齢", profile.get('age', '-')),
+        ("性別", GENDER_MAP.get(profile.get('gender', '-'), profile.get('gender', '-'))),
+        ("年齢", format_age_for_pdf(profile.get('age', '-'))),
         ("都道府県", profile.get('prefecture', '-')),
         ("市区町村", profile.get('municipality', '-')),
         ("職業", profile.get('occupation', '-')),
-        ("年収", profile.get('income', '-')),
+        ("年収", INCOME_MAP.get(profile.get('income', '-'), profile.get('income', '-'))),
         ("家族構成", profile.get('family', '-')),
         ("趣味", profile.get('hobby', '-')),
         ("ライフイベント", profile.get('life_events', '-')),
         ("患者タイプ", profile.get('patient_type', '-'))
     ]
     
-    item_height = 4
-    key_width = 25
+    item_height = 4 
+    key_width = 25 
     value_width = left_column_width - key_width
 
-    for key, value in info_items:
+    for key, value_display in info_items:
         pdf.set_xy(left_column_content_x, current_y_left)
         pdf.set_font("ipa", 'B', 9)
         pdf.cell(key_width, item_height, f"{key}:", 0, 0, 'L')
         pdf.set_font("ipa", '', 9)
-        
         pdf.set_xy(left_column_content_x + key_width, current_y_left)
-        pdf.multi_cell(value_width, item_height, str(value) if value else '-', 0, 'L')
-        current_y_left = pdf.get_y()
+        pdf.multi_cell(value_width, item_height, str(value_display), 0, 'L')
+        current_y_left = pdf.get_y() 
 
-    current_y_left += 3
+    current_y_left += 3 
     
-    # その他の特徴セクション
+    # 4. その他の特徴セクション (左カラム)
     pdf.set_xy(left_column_content_x, current_y_left)
     pdf.set_font("ipa", 'B', 11)
     pdf.set_fill_color(240, 240, 240) 
     pdf.cell(left_column_width, 6, "その他の特徴", 0, 1, 'L', fill=True)
-    current_y_left = pdf.get_y()
+    current_y_left = pdf.get_y() 
     pdf.ln(1)
-    current_y_left = pdf.get_y()
+    current_y_left = pdf.get_y() 
     
-    # 追加情報の項目
     additional_items = [
         ("座右の銘", profile.get('motto', '-')),
         ("最近の悩み/関心", profile.get('concerns', '-')),
@@ -638,31 +686,61 @@ def generate_pdf(data):
         pdf.set_font("ipa", 'B', 9)
         pdf.cell(additional_key_width, item_height, f"{key}:", 0, 0, 'L')
         pdf.set_font("ipa", '', 9)
-        
         pdf.set_xy(left_column_content_x + additional_key_width, current_y_left)
-        pdf.multi_cell(additional_value_width, item_height, str(value) if value else '-', 0, 'L')
+        pdf.multi_cell(additional_value_width, item_height, str(value), 0, 'L')
         current_y_left = pdf.get_y()
 
-    # 動的に追加された項目があれば表示
     if profile.get('additional_field_name') and profile.get('additional_field_value'):
         additional_fields = zip(profile.get('additional_field_name'), profile.get('additional_field_value'))
-        current_y_left +=1
+        current_y_left +=1 
         for field_name, field_value in additional_fields:
-            if field_name or field_value:
+            if field_name or field_value: 
                 pdf.set_xy(left_column_content_x, current_y_left)
                 pdf.set_font("ipa", 'B', 9)
                 pdf.cell(additional_key_width, item_height, f"{field_name if field_name else ''}:", 0, 0, 'L')
                 pdf.set_font("ipa", '', 9)
-                
                 pdf.set_xy(left_column_content_x + additional_key_width, current_y_left)
                 pdf.multi_cell(additional_value_width, item_height, str(field_value) if field_value else '-', 0, 'L')
                 current_y_left = pdf.get_y()
     
     max_left_y = current_y_left # 左カラムの最終Y座標
 
-    # --- 右カラム (詳細情報) ---
-    right_column_x = left_column_content_x + left_column_width + column_gap
+    # --- 右カラムの描画 ---
+    current_y_right = content_start_y # 右カラムも同じ高さから開始
+
+    # 1. ペルソナアイコン (右カラム上部)
+    icon_size = 30
+    # アイコンを右カラムのX座標に配置 (右カラム内で左寄せ)
+    icon_x_position = right_column_x 
+    if image_url:
+        try:
+            with urlopen(image_url) as img_file:
+                img_data = io.BytesIO(img_file.read())
+            pdf.image(img_data, x=icon_x_position, y=current_y_right, w=icon_size, h=icon_size)
+            current_y_right += icon_size 
+        except Exception as e:
+            print(f"Error loading image for PDF from {image_url}: {e}")
+            pdf.set_xy(icon_x_position, current_y_right)
+            pdf.cell(icon_size, icon_size, "[画像]", 1, 0, 'C') # 枠線とテキストで示す
+            current_y_right += icon_size
+    else: # 画像URLがない場合
+        pdf.set_xy(icon_x_position, current_y_right)
+        pdf.cell(icon_size, icon_size, "[NoImg]", 1, 0, 'C')
+        current_y_right += icon_size
     
+    pdf.ln(2) # アイコンと名前の間のスペース
+    current_y_right = pdf.get_y() if pdf.get_y() > current_y_right else current_y_right # Y座標更新
+
+    # 2. ペルソナ名 (右カラム、アイコンの下)
+    pdf.set_xy(right_column_x, current_y_right)
+    pdf.set_font("ipa", 'B', 16)
+    # 名前は右カラムの幅で表示
+    pdf.multi_cell(right_column_width, 10, profile.get('name', 'ペルソナ名なし'), 0, 'L')
+    current_y_right = pdf.get_y()
+    pdf.ln(5)
+    current_y_right = pdf.get_y()
+    
+    # 3. 詳細情報セクション (右カラム、名前の下)
     header_map = {
         "personality": "性格（価値観・人生観）",
         "reason": "通院理由",
@@ -672,32 +750,29 @@ def generate_pdf(data):
         "demands": "医療機関に求めるもの"
     }
 
-    current_y_right = content_start_y # 右カラムの開始Y座標を左カラムのコンテンツ開始位置に合わせる
-
     for key, japanese_header in header_map.items():
-        value = details.get(key)
-        if value:
+        value = details.get(key) 
+        if value: 
             pdf.set_xy(right_column_x, current_y_right)
             pdf.set_font("ipa", 'B', 11)
             pdf.set_fill_color(240, 240, 240) 
             pdf.cell(right_column_width, 6, japanese_header, 0, 1, 'L', fill=True)
-            current_y_right = pdf.get_y()
+            current_y_right = pdf.get_y() 
             pdf.ln(1)
-            current_y_right = pdf.get_y()
+            current_y_right = pdf.get_y() 
             
             pdf.set_xy(right_column_x, current_y_right)
             pdf.set_font("ipa", '', 9)
             
-            paragraphs = str(value).split('\n')
-            for paragraph_text in paragraphs:
-                if paragraph_text.strip() == "":
-                    current_y_right += 1 # 空行は小さなスペース
+            paragraphs = str(value).split('\\n') # detailsの値がAI応答の改行文字 \\n を含む場合を想定
+            for para_idx, paragraph_text in enumerate(paragraphs):
+                if paragraph_text.strip() == "" and para_idx < len(paragraphs) -1 : # 最後の空行は無視、途中の空行はスペースに
+                    current_y_right += 1 
                     continue
-                pdf.set_xy(right_column_x, current_y_right)
-                pdf.multi_cell(right_column_width, 4, paragraph_text, 0, 'L')
-                current_y_right = pdf.get_y() + 0.5 # multi_cellは自動改行するので、その後のY座標を取得し、段落間余白を少し追加
-            
-            current_y_right += 2 # 次のセクションまでの余白を調整
+                pdf.set_xy(right_column_x, current_y_right) # 各段落の開始位置を再設定
+                pdf.multi_cell(right_column_width, 4, paragraph_text.strip(), 0, 'L')
+                current_y_right = pdf.get_y() + 0.5 
+            current_y_right += 2 
 
     # Generate PDF in memory
     pdf_output = pdf.output() # Get output as bytes directly
