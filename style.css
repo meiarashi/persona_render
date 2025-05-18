@@ -175,8 +175,8 @@ header nav a:hover {
     margin-bottom: 20px;
 }
 
-.department-options { /* Specific styles for department */
-    grid-template-columns: repeat(5, 1fr);
+.department-options {
+    grid-template-columns: repeat(8, 1fr); /* 8列表示を維持 */
 }
 
 .purpose-options { /* Specific styles for purpose options */
@@ -195,48 +195,68 @@ header nav a:hover {
     gap: 10px;
 }
 
-.department-options label,
+.department-options label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+    padding: 0px 0 1px 0; /* 上0px、右0、下1px、左0 - 上側のパディングを削除 */
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.86em;
+    transition: all 0.2s ease;
+    text-align: center;
+    height: 85px; /* 90pxから85pxに縮小 - 上側が少しカットされる */
+    width: auto;
+    min-width: 0;
+}
+
+.department-icon {
+    width: 96px; /* 87pxをさらに1.1倍に拡大（87px × 1.1 ≈ 96px） */
+    height: 96px; /* 87pxをさらに1.1倍に拡大（87px × 1.1 ≈ 96px） */
+    margin-bottom: 0px;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* Purpose and Setting Type Options */
 .purpose-options label,
-.setting-type-options label { /* Add setting-type-options label */
+.setting-type-options label {
     display: flex;
     align-items: center;
     justify-content: center; /* Center text horizontally */
     background-color: #f8f9fa;
-    padding: 10px 12px; /* Adjust padding */
+    padding: 8px 10px; /* 10px 12pxから8px 10pxに縮小 */
     border-radius: 4px;
     border: 1px solid #dee2e6;
     font-weight: bold; /* Make text bold */
     cursor: pointer;
-    font-size: 1em; /* Increase font size */
+    font-size: 0.9em; /* 1emから0.9emに縮小 */
     transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease; /* Add color transition */
     text-align: center; /* Ensure text align center for consistency */
 }
 
 /* Style for the selected label */
-.department-options label.selected,
 .purpose-options label.selected,
-.setting-type-options label.selected { /* Add setting-type-options label.selected */
+.setting-type-options label.selected {
     background-color: rgba(40, 167, 69, 0.15); /* Lighter, semi-transparent green background */
     border-color: rgba(40, 167, 69, 0.6); /* Slightly darker green border */
-    /* color: white; */ /* Keep text color same as non-selected */
-    /* font-weight: bold; */ /* Keep font weight same */
 }
 
 /* Apply hover effect only to non-selected labels */
-.department-options label:not(.selected):hover,
 .purpose-options label:not(.selected):hover,
-.setting-type-options label:not(.selected):hover { /* Add setting-type-options hover */
+.setting-type-options label:not(.selected):hover {
     background-color: #e9ecef; /* Add hover effect */
     border-color: #adb5bd;
 }
 
-.department-options input[type="radio"],
 .purpose-options input[type="radio"],
-.setting-type-options input[type="radio"] { /* Add setting-type-options radio */
+.setting-type-options input[type="radio"] {
     display: none; /* Hide the actual radio button */
-    /* margin-right: 8px; */ /* No longer needed */
-    /* width: auto; */
-    /* margin-bottom: 0; */
 }
 
 /* General Form Input Styles */
@@ -318,6 +338,16 @@ button {
 .step-nav-buttons {
     text-align: center; /* Center the inline-block buttons */
     margin-top: 0; /* 10px から 0 に変更 */
+    display: block !important; /* 強制的に表示 */
+    visibility: visible !important; /* 強制的に表示 */
+}
+
+/* 確認画面上部のボタンコンテナ用の特別なスタイル */
+.form-step[data-step="5"] .step-nav-buttons {
+    display: block !important; /* 強制的に表示 */
+    visibility: visible !important; /* 強制的に表示 */
+    margin-bottom: 20px !important; /* 下部のマージンを確保 */
+    text-align: center !important; /* 中央揃え */
 }
 
 /* Ensure next button is also inline-block for alignment */
@@ -422,7 +452,7 @@ button:hover {
 .patient-type-item {
     /* border: 1px solid #dee2e6; */ /* Remove border */
     border-radius: 6px; /* Keep radius for potential background on hover/select? */
-    padding: 2px 10px; /* Reduce vertical padding further */
+    padding: 2px 2px; /* 左右のパディングを10pxから2pxに縮小してアイコンに合わせる */
     text-align: center;
     cursor: pointer;
     transition: background-color 0.2s ease; /* Keep transition for icon maybe */
@@ -435,35 +465,53 @@ button:hover {
 /*    background-color: #f8f9fa; */
 /* } */
 
-/* .patient-type-item.selected { */
-/*    border-color: #28a745; */
-/*    background-color: rgba(40, 167, 69, 0.1); */
-/* } */
+/* ホバー時のアイコンスタイル - 枠線だけ変更 */
+.patient-type-item:hover .patient-type-icon {
+    border-color: #adb5bd; /* ホバー時に境界線を表示 */
+}
+
+/* 選択された状態のアイコンのスタイル - 枠線のみ変更 */
+.patient-type-item.selected .patient-type-icon {
+    border: 3px solid #28a745; /* 選択時に太めの緑の境界線 */
+}
+
+/* 選択された状態かつホバー時のスタイル - 選択状態を優先 */
+.patient-type-item.selected:hover .patient-type-icon {
+    border: 3px solid #28a745; /* 選択時の緑枠線を維持 */
+}
+
+/* 選択された患者タイプアイテム全体のスタイル */
+.patient-type-item.selected {
+    background-color: transparent; /* 背景を透明に */
+    border: 1px solid transparent; /* 枠線も透明に */
+    border-radius: 4px; /* 角を丸くする */
+}
 
 .patient-type-item input[type="radio"] {
     display: none !important; /* Keep radio hidden */
 }
 
+/* アイコンのコンテナスタイル - 画像を含むコンテナ */
 .patient-type-icon {
-    width: 150px; /* Increase icon size */
-    height: 90px;  /* Increase icon size */
-    background-color: #e9ecef; /* Restore default background color */
-    margin: 0 auto 1px auto; /* Reduce margin below icon to minimum */
+    width: 129px; /* 横幅 */
+    height: 87px;  /* 高さ */
+    margin: 0 auto 1px auto; /* 下マージンを最小に */
     border-radius: 4px;
-    border: 1px solid transparent; /* Add transparent border for layout consistency */
-    transition: border-color 0.2s ease, background-color 0.2s ease;
+    border: 1px solid transparent; /* 通常時は透明な境界線 */
+    background-color: transparent; /* 背景を透明に */
+    position: relative; /* 中の画像要素の位置決めの基準点 */
+    overflow: hidden; /* はみ出した画像を隠す */
 }
 
-/* Apply hover style to the icon */
-.patient-type-item:hover .patient-type-icon {
-    background-color: #dee2e6; /* Slightly darker background on hover */
-    border-color: #adb5bd; /* Add border on hover */
-}
-
-/* Apply selected style to the icon */
-.patient-type-item.selected .patient-type-icon {
-    background-color: rgba(40, 167, 69, 0.1); /* Light green background */
-    border: 2px solid #28a745; /* Green border */
+/* 実際の画像要素のスタイル */
+.patient-type-icon img {
+    width: 100%; /* コンテナいっぱいに表示 */
+    height: 100%; /* コンテナいっぱいに表示 */
+    object-fit: contain; /* アスペクト比を維持 */
+    object-position: center; /* 中央に配置 */
+    position: absolute; /* 絶対位置指定 */
+    top: 0;
+    left: 0;
 }
 
 .patient-type-name {
@@ -1028,7 +1076,6 @@ footer {
     gap: 15px; /* 各グリッドアイテム間の隙間 */
     margin-bottom: 20px; /* グリッド全体の下部のマージン */
 }
-
 .additional-fixed-fields-grid div {
     /* 個々の入力フィールドコンテナのスタイル (必要に応じて調整) */
     margin-bottom: 0; /* form div のマージンと重複しないように */
@@ -1451,4 +1498,37 @@ footer {
     background-color: #ff8431 !important; /* オレンジ色 */
     display: inline-block !important; /* 強制表示 */
 }
+
+/* Style for the selected department label */
+.department-options label.selected {
+    background-color: rgba(40, 167, 69, 0.15); /* Lighter, semi-transparent green background */
+    border-color: rgba(40, 167, 69, 0.6); /* Slightly darker green border */
+    box-shadow: 0 0 5px rgba(40, 167, 69, 0.3);
+}
+
+/* Apply hover effect only to non-selected department labels */
+.department-options label:not(.selected):hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+    transform: translateY(-2px);
+}
+
+.department-options input[type="radio"] {
+    display: none;
+}
+
+/* 生成ボタン共通スタイル */
+.final-generate-btn-common {
+    display: inline-block !important; /* 強制的に表示 */
+    visibility: visible !important; /* 強制的に表示 */
+    background-color: #28a745 !important; /* 緑色 */
+    color: white !important; /* テキスト色を白に */
+}
+
+/* トップの生成ボタン専用のスタイル */
+#final-generate-btn-top {
+    display: inline-block !important; /* 強制的に表示 */
+    visibility: visible !important; /* 強制的に表示 */
+}
+
 

@@ -360,8 +360,8 @@ def generate_persona():
                 print("DEBUG: Anthropic API call for text generation successful.")
             except Exception as e:
                 print(f"ERROR calling Anthropic API for text generation ({selected_text_model}): {str(e)}")
-                traceback.print_exc()
-                generated_text_str = None # Ensure it's None on error
+            traceback.print_exc()
+            generated_text_str = None # Ensure it's None on error
         elif selected_text_model.startswith("gemini"):
             try:
                 print(f"DEBUG: Calling Google Gemini API ({selected_text_model}) for text generation...")
@@ -520,16 +520,16 @@ def generate_pdf(data):
 
     # --- ヘッダー部分（タイトルと診療科・目的） ---
     # 名前とタイトル
-    pdf.set_font_size(14)
-    pdf.cell(0, 8, profile.get('name', 'Unknown Persona'), ln=True, align='C')
+    pdf.set_font_size(16)
+    pdf.cell(0, 10, profile.get('name', 'ペルソナ'), ln=True, align='C')
     
     # 診療科と目的を横並びで表示
-    pdf.set_font_size(9)
+    pdf.set_font_size(10)
     pdf.cell(30, 5, "診療科:", align='R')
     pdf.cell(70, 5, profile.get('department', '-'), ln=0)
     pdf.cell(30, 5, "作成目的:", align='R')
     pdf.cell(50, 5, profile.get('purpose', '-'), ln=1)
-    pdf.ln(2)
+    pdf.ln(3)
     
     # ページを2段組にレイアウト - 左側に基本情報とアイコン、右側に詳細情報
     
@@ -538,24 +538,18 @@ def generate_pdf(data):
     left_margin = pdf.l_margin
     current_y = pdf.get_y()
     
-    # プロフィール画像用のスペース (仮のテキスト)
-    pdf.set_xy(left_margin, current_y)
-    pdf.set_font_size(8)
-    pdf.cell(left_column_width, 5, "ペルソナ画像", border=0, ln=1, align='C')
-    pdf.ln(15) # 画像用スペース
-    
     # 基本情報セクション
-    current_y = pdf.get_y()
     pdf.set_xy(left_margin, current_y)
-    pdf.set_font("ipa", 'B', 11)
-    pdf.cell(left_column_width, 5, "基本情報", ln=1, fill=False)
-    pdf.ln(1)
+    pdf.set_font("ipa", 'B', 12)
+    pdf.set_fill_color(240, 240, 240) # 薄いグレー
+    pdf.cell(left_column_width, 6, "基本情報", ln=1, fill=True)
+    pdf.ln(2)
     
     # 基本情報の項目を2列に表示するための設定
     info_col_width = left_column_width / 2
     
     # 左列の情報項目
-    pdf.set_font("ipa", 'B', 8)
+    pdf.set_font("ipa", 'B', 9)
     info_items_left = [
         ("性別", profile.get('gender', '-')),
         ("年齢", profile.get('age', '-')),
@@ -577,29 +571,30 @@ def generate_pdf(data):
     current_y = pdf.get_y()
     for key, value in info_items_left:
         pdf.set_xy(left_margin, current_y)
-        pdf.set_font("ipa", 'B', 8)
-        pdf.cell(25, 4, f"{key}:", 0)
-        pdf.set_font("ipa", '', 8)
-        pdf.cell(info_col_width - 25, 4, str(value) if value else '-', 0)
-        current_y += 4
+        pdf.set_font("ipa", 'B', 9)
+        pdf.cell(25, 5, f"{key}:", 0)
+        pdf.set_font("ipa", '', 9)
+        pdf.cell(info_col_width - 25, 5, str(value) if value else '-', 0)
+        current_y += 5
     
     # 右列の描画
-    current_y = pdf.get_y() - 20 # 上に戻る
+    current_y = pdf.get_y() - 25 # 上に戻る
     for key, value in info_items_right:
         pdf.set_xy(left_margin + info_col_width, current_y)
-        pdf.set_font("ipa", 'B', 8)
-        pdf.cell(25, 4, f"{key}:", 0)
-        pdf.set_font("ipa", '', 8)
-        pdf.cell(info_col_width - 25, 4, str(value) if value else '-', 0)
-        current_y += 4
+        pdf.set_font("ipa", 'B', 9)
+        pdf.cell(25, 5, f"{key}:", 0)
+        pdf.set_font("ipa", '', 9)
+        pdf.cell(info_col_width - 25, 5, str(value) if value else '-', 0)
+        current_y += 5
     
     # 追加情報セクション（一列表示）
     pdf.ln(5)
-    current_y = pdf.get_y()
+    current_y = pdf.get_y() + 5
     pdf.set_xy(left_margin, current_y)
-    pdf.set_font("ipa", 'B', 11)
-    pdf.cell(left_column_width, 5, "その他の特徴", ln=1, fill=False)
-    pdf.ln(1)
+    pdf.set_font("ipa", 'B', 12)
+    pdf.set_fill_color(240, 240, 240) # 薄いグレー
+    pdf.cell(left_column_width, 6, "その他の特徴", ln=1, fill=True)
+    pdf.ln(2)
     
     # 追加情報の項目
     additional_items = [
@@ -613,23 +608,48 @@ def generate_pdf(data):
         ("キャッチコピー", profile.get('catchphrase', '-'))
     ]
     
-    # 追加項目の描画（幅を短くして説明文を追加）
+    # 追加項目の描画
+    current_y = pdf.get_y()
     for key, value in additional_items:
-        pdf.set_font("ipa", 'B', 7)
-        pdf.cell(30, 3.5, f"{key}:", 0)
-        pdf.set_font("ipa", '', 7)
-        # 長いテキストは折り返して表示するが、高さは固定
-        pdf.cell(left_column_width - 30, 3.5, str(value) if value else '-', 0, ln=1)
+        pdf.set_xy(left_margin, current_y)
+        pdf.set_font("ipa", 'B', 8)
+        pdf.cell(30, 4, f"{key}:", 0)
+        pdf.set_font("ipa", '', 8)
+        
+        # 長いテキストは折り返して表示
+        if len(str(value)) > 20:
+            text_width = left_column_width - 30
+            # 長いテキストの場合、MultiCellを使用して折り返し表示
+            pdf.set_xy(left_margin + 30, current_y)
+            pdf.multi_cell(text_width, 4, str(value) if value else '-', 0)
+            # MultiCellの高さを計算（概算）
+            lines = (len(str(value)) / 20) + 1  # 20文字で1行と仮定
+            current_y += max(4, 4 * lines)
+        else:
+            # 短いテキストの場合、通常のcellを使用
+            pdf.cell(left_column_width - 30, 4, str(value) if value else '-', 0, ln=1)
+            current_y += 4
     
     # 動的に追加された項目があれば表示
     if profile.get('additional_field_name') and profile.get('additional_field_value'):
         additional_fields = zip(profile.get('additional_field_name'), profile.get('additional_field_value'))
         for field_name, field_value in additional_fields:
             if field_name or field_value:
-                pdf.set_font("ipa", 'B', 7)
-                pdf.cell(30, 3.5, f"{field_name}:", 0)
-                pdf.set_font("ipa", '', 7)
-                pdf.cell(left_column_width - 30, 3.5, str(field_value) if field_value else '-', 0, ln=1)
+                pdf.set_xy(left_margin, current_y)
+                pdf.set_font("ipa", 'B', 8)
+                pdf.cell(30, 4, f"{field_name}:", 0)
+                pdf.set_font("ipa", '', 8)
+                
+                # 長いテキストの場合
+                if len(str(field_value)) > 20:
+                    text_width = left_column_width - 30
+                    pdf.set_xy(left_margin + 30, current_y)
+                    pdf.multi_cell(text_width, 4, str(field_value) if field_value else '-', 0)
+                    lines = (len(str(field_value)) / 20) + 1
+                    current_y += max(4, 4 * lines)
+                else:
+                    pdf.cell(left_column_width - 30, 4, str(field_value) if field_value else '-', 0, ln=1)
+                    current_y += 4
     
     # --- 右カラム (詳細情報) ---
     right_column_width = pdf.w - pdf.r_margin - left_margin - left_column_width
@@ -646,44 +666,39 @@ def generate_pdf(data):
     }
 
     # 右カラムの開始位置を設定
-    current_y = current_y - (len(additional_items) * 3.5) # 左カラムの追加情報の高さ分戻る
-    if current_y < 30: # あまりに上すぎる場合は下げる
-        current_y = 30
-        
+    right_column_y = 30 # 固定位置から開始
+
     # 詳細情報の描画
-    pdf.set_xy(right_margin, current_y)
     for key, japanese_header in header_map.items():
         value = details.get(key) # Get value using the internal key
         if value: # Only add if value exists
             # ヘッダー
-            pdf.set_xy(right_margin, current_y)
+            pdf.set_xy(right_margin, right_column_y)
             pdf.set_font("ipa", 'B', 10)
-            pdf.set_fill_color(240, 240, 240) # より薄いグレー
-            pdf.cell(right_column_width, 5, japanese_header, ln=1, fill=True)
-            current_y += 5
+            pdf.set_fill_color(240, 240, 240) # 薄いグレー
+            pdf.cell(right_column_width, 6, japanese_header, ln=1, fill=True)
+            right_column_y += 6
             
-            # 内容
-            pdf.set_xy(right_margin, current_y)
+            # 内容 - MultiCellを使用して折り返し表示
+            pdf.set_xy(right_margin, right_column_y)
             pdf.set_font("ipa", '', 9)
             
-            # テキストを複数行に分割してレンダリング（MultiCellの高さを固定）
-            text_height = pdf.font_size * 1.5
-            lines = str(value).split('\n')
-            for line in lines:
-                while len(line) > 0:
-                    # 約60文字で改行
-                    if len(line) > 60:
-                        chunk = line[:60]
-                        line = line[60:]
-                    else:
-                        chunk = line
-                        line = ""
+            # 日本語テキストを適切に処理
+            # 改行で分割し、各段落を独立して処理
+            paragraphs = str(value).split('\n')
+            for paragraph in paragraphs:
+                if paragraph.strip() == "":
+                    # 空の段落は小さい余白として処理
+                    right_column_y += 2
+                    continue
                     
-                    pdf.set_xy(right_margin, current_y)
-                    pdf.cell(right_column_width, text_height, chunk, ln=1)
-                    current_y += text_height
+                # 段落を描画
+                pdf.set_xy(right_margin, right_column_y)
+                pdf.multi_cell(right_column_width, 4.5, paragraph)
+                right_column_y = pdf.get_y() + 1  # 段落間の余白
             
-            current_y += 2 # 各セクション間の余白
+            # 次のセクションまでの余白
+            right_column_y += 3
 
     # Generate PDF in memory
     pdf_output = pdf.output() # Get output as bytes directly
@@ -734,7 +749,7 @@ def generate_ppt(data):
     profile = data.get('profile', {})
     details = data.get('details', {})
 
-    # --- 1枚のスライドに全ての情報を収める ---
+    # --- スライドの基本設定 ---
     # ワイドスクリーン(16:9)のきれいなレイアウトを使用
     slide_layout = prs.slide_layouts[5]  # 白紙のレイアウト
     slide = prs.slides.add_slide(slide_layout)
@@ -745,22 +760,38 @@ def generate_ppt(data):
     
     # 余白の設定
     margin = Inches(0.3)
+    
+    # --- ベーステーマカラーの定義 ---
+    # PowerPointのRGB値は整数で指定 (0-255)
+    theme_color_bg = RGBColor(240, 240, 240)  # 薄いグレー背景
+    theme_color_accent = RGBColor(0, 112, 192)  # 青色アクセント
 
     # --- ヘッダー部分（タイトルと診療科・目的） ---
     # 名前とタイトル
     title_shape = slide.shapes.add_textbox(margin, margin, Inches(slide_width - 0.6), Inches(0.6))
     title_frame = title_shape.text_frame
-    title_frame.text = profile.get('name', 'Unknown Persona')
+    title_frame.text = profile.get('name', 'ペルソナ')
     title_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
-    title_frame.paragraphs[0].font.size = Pt(24)
+    title_frame.paragraphs[0].font.size = Pt(28)
     title_frame.paragraphs[0].font.bold = True
+    # 日本語フォントを明示的に設定
+    try:
+        title_frame.paragraphs[0].font.name = 'メイリオ'  # 日本語フォントを指定
+    except:
+        # フォントがなければデフォルトを使用
+        pass
 
     # 診療科と目的を横並びで表示
     header_shape = slide.shapes.add_textbox(margin, Inches(0.9), Inches(slide_width - 0.6), Inches(0.4))
     header_frame = header_shape.text_frame
     header_para = header_frame.add_paragraph()
     header_para.text = f"診療科: {profile.get('department', '-')}    作成目的: {profile.get('purpose', '-')}"
-    header_para.font.size = Pt(12)
+    header_para.font.size = Pt(14)
+    header_para.alignment = PP_ALIGN.CENTER
+    try:
+        header_para.font.name = 'メイリオ'
+    except:
+        pass
     
     # 2段組レイアウトの寸法計算
     column_height = slide_height - 1.7  # ヘッダー部分を引く
@@ -770,13 +801,33 @@ def generate_ppt(data):
     # --- 左カラム (基本情報) ---
     left_column_y = Inches(1.3)
     
+    # 基本情報のヘッダー背景
+    basic_header_bg = slide.shapes.add_shape(
+        1,  # 長方形
+        margin, 
+        left_column_y, 
+        Inches(left_column_width), 
+        Inches(0.3)
+    )
+    basic_header_bg.fill.solid()
+    basic_header_bg.fill.fore_color.rgb = theme_color_bg
+    basic_header_bg.line.fill.background()  # 枠線を消す
+    
     # 「基本情報」ヘッダー
     basic_header = slide.shapes.add_textbox(margin, left_column_y, Inches(left_column_width), Inches(0.3))
     basic_header_frame = basic_header.text_frame
     basic_para = basic_header_frame.add_paragraph()
     basic_para.text = "基本情報"
-    basic_para.font.size = Pt(14)
+    basic_para.font.size = Pt(16)
     basic_para.font.bold = True
+    try:
+        basic_para.font.name = 'メイリオ'
+    except:
+        pass
+    
+    # Z順序の設定
+    basic_header_bg.zorder = 1  # 背景を下に
+    basic_header.zorder = 2     # テキストを上に
     
     # 基本情報の項目を2列に表示するための設定
     left_column_y += Inches(0.4)
@@ -800,55 +851,80 @@ def generate_ppt(data):
         ("患者タイプ", profile.get('patient_type', '-'))
     ]
     
-    # 左列の描画
-    current_y = left_column_y
-    item_height = Inches(0.25)
-    for key, value in info_items_left:
+    # 基本情報を描画する関数
+    def draw_info_item(key, value, x, y):
         # キー
-        key_box = slide.shapes.add_textbox(margin, current_y, Inches(info_col_width * 0.4), item_height)
+        key_box = slide.shapes.add_textbox(x, y, Inches(info_col_width * 0.4), Inches(0.25))
         key_frame = key_box.text_frame
         key_para = key_frame.add_paragraph()
         key_para.text = f"{key}:"
         key_para.font.bold = True
-        key_para.font.size = Pt(10)
+        key_para.font.size = Pt(11)
+        try:
+            key_para.font.name = 'メイリオ'
+        except:
+            pass
         
         # 値
-        val_box = slide.shapes.add_textbox(margin + Inches(info_col_width * 0.4), current_y, Inches(info_col_width * 0.6), item_height)
+        value_str = str(value) if value else '-'
+        # 英語表記を修正
+        if value_str == "Unknown Persona":
+            value_str = "ペルソナ"
+        
+        val_box = slide.shapes.add_textbox(x + Inches(info_col_width * 0.4), y, Inches(info_col_width * 0.6), Inches(0.25))
         val_frame = val_box.text_frame
         val_para = val_frame.add_paragraph()
-        val_para.text = str(value) if value else '-'
-        val_para.font.size = Pt(10)
+        val_para.text = value_str
+        val_para.font.size = Pt(11)
+        try:
+            val_para.font.name = 'メイリオ'
+        except:
+            pass
         
+        return Inches(0.25)  # 項目の高さを返す
+    
+    # 左列の描画
+    current_y = left_column_y
+    for key, value in info_items_left:
+        item_height = draw_info_item(key, value, margin, current_y)
         current_y += item_height
     
     # 右列の描画
     current_y = left_column_y
     for key, value in info_items_right:
-        # キー
-        key_box = slide.shapes.add_textbox(margin + Inches(info_col_width), current_y, Inches(info_col_width * 0.4), item_height)
-        key_frame = key_box.text_frame
-        key_para = key_frame.add_paragraph()
-        key_para.text = f"{key}:"
-        key_para.font.bold = True
-        key_para.font.size = Pt(10)
-
-        # 値
-        val_box = slide.shapes.add_textbox(margin + Inches(info_col_width * 1.4), current_y, Inches(info_col_width * 0.6), item_height)
-        val_frame = val_box.text_frame
-        val_para = val_frame.add_paragraph()
-        val_para.text = str(value) if value else '-'
-        val_para.font.size = Pt(10)
-        
+        item_height = draw_info_item(key, value, margin + Inches(info_col_width), current_y)
         current_y += item_height
     
-    # その他の特徴
-    additional_header_y = current_y + Inches(0.2)
+    # --- その他の特徴 ---
+    additional_header_y = current_y + Inches(0.3)
+    
+    # その他の特徴の背景
+    additional_header_bg = slide.shapes.add_shape(
+        1,  # 長方形
+        margin, 
+        additional_header_y, 
+        Inches(left_column_width), 
+        Inches(0.3)
+    )
+    additional_header_bg.fill.solid()
+    additional_header_bg.fill.fore_color.rgb = theme_color_bg
+    additional_header_bg.line.fill.background()  # 枠線を消す
+    
+    # その他の特徴のヘッダー
     additional_header = slide.shapes.add_textbox(margin, additional_header_y, Inches(left_column_width), Inches(0.3))
     additional_header_frame = additional_header.text_frame
     additional_para = additional_header_frame.add_paragraph()
     additional_para.text = "その他の特徴"
-    additional_para.font.size = Pt(14)
+    additional_para.font.size = Pt(16)
     additional_para.font.bold = True
+    try:
+        additional_para.font.name = 'メイリオ'
+    except:
+        pass
+    
+    # Z順序の設定
+    additional_header_bg.zorder = 1  # 背景を下に
+    additional_header.zorder = 2     # テキストを上に
     
     # 追加情報の項目
     additional_items = [
@@ -862,51 +938,53 @@ def generate_ppt(data):
         ("キャッチコピー", profile.get('catchphrase', '-'))
     ]
     
-    # 追加項目の描画
-    current_y = additional_header_y + Inches(0.3)
-    additional_item_height = Inches(0.20)
-    for key, value in additional_items:
-        # 1行に収める形式で描画
-        key_box = slide.shapes.add_textbox(margin, current_y, Inches(left_column_width * 0.35), additional_item_height)
+    # 追加項目を描画する関数
+    def draw_additional_item(key, value, y):
+        # キー
+        key_box = slide.shapes.add_textbox(margin, y, Inches(left_column_width * 0.35), Inches(0.25))
         key_frame = key_box.text_frame
         key_para = key_frame.add_paragraph()
         key_para.text = f"{key}:"
         key_para.font.bold = True
-        key_para.font.size = Pt(9)
+        key_para.font.size = Pt(10)
+        try:
+            key_para.font.name = 'メイリオ'
+        except:
+            pass
         
-        val_box = slide.shapes.add_textbox(margin + Inches(left_column_width * 0.35), current_y, Inches(left_column_width * 0.65), additional_item_height)
+        # 値（ワードラップを有効にして長いテキストも対応）
+        val_box = slide.shapes.add_textbox(margin + Inches(left_column_width * 0.35), y, Inches(left_column_width * 0.65), Inches(0.25))
         val_frame = val_box.text_frame
+        val_frame.word_wrap = True
         val_para = val_frame.add_paragraph()
         val_para.text = str(value) if value else '-'
-        val_para.font.size = Pt(9)
-
-        current_y += additional_item_height
+        val_para.font.size = Pt(10)
+        try:
+            val_para.font.name = 'メイリオ'
+        except:
+            pass
+        
+        return Inches(0.25)  # 項目の高さを返す
+    
+    # 追加項目の描画
+    current_y = additional_header_y + Inches(0.35)
+    for key, value in additional_items:
+        item_height = draw_additional_item(key, value, current_y)
+        current_y += item_height
     
     # 動的に追加された項目があれば表示
     if profile.get('additional_field_name') and profile.get('additional_field_value'):
         additional_fields = zip(profile.get('additional_field_name'), profile.get('additional_field_value'))
         for field_name, field_value in additional_fields:
             if field_name or field_value:
-                key_box = slide.shapes.add_textbox(margin, current_y, Inches(left_column_width * 0.35), additional_item_height)
-                key_frame = key_box.text_frame
-                key_para = key_frame.add_paragraph()
-                key_para.text = f"{field_name}:"
-                key_para.font.bold = True
-                key_para.font.size = Pt(9)
-                
-                val_box = slide.shapes.add_textbox(margin + Inches(left_column_width * 0.35), current_y, Inches(left_column_width * 0.65), additional_item_height)
-                val_frame = val_box.text_frame
-                val_para = val_frame.add_paragraph()
-                val_para.text = str(field_value) if field_value else '-'
-                val_para.font.size = Pt(9)
-                
-                current_y += additional_item_height
+                item_height = draw_additional_item(field_name, field_value, current_y)
+                current_y += item_height
     
     # --- 右カラム (詳細情報) ---
     right_column_x = margin + Inches(left_column_width + 0.2)
     right_column_y = Inches(1.3)
     
-    # ヘッダーマップ
+    # ヘッダーマップ（英語キーを日本語に変換）
     header_map = {
         "personality": "性格（価値観・人生観）",
         "reason": "通院理由",
@@ -916,46 +994,88 @@ def generate_ppt(data):
         "demands": "医療機関に求めるもの"
     }
 
+    # 詳細情報を描画する関数
+    def draw_detail_section(header_text, content_text, y):
+        # 背景色付けのための長方形
+        header_rect = slide.shapes.add_shape(
+            1, # 長方形
+            right_column_x, 
+            y, 
+            Inches(right_column_width), 
+            Inches(0.35)
+        )
+        header_rect.fill.solid()
+        header_rect.fill.fore_color.rgb = theme_color_bg
+        header_rect.line.fill.background()  # 枠線を消す
+        
+        # ヘッダー
+        header_box = slide.shapes.add_textbox(right_column_x, y, Inches(right_column_width), Inches(0.35))
+        header_frame = header_box.text_frame
+        header_para = header_frame.add_paragraph()
+        header_para.text = header_text
+        header_para.font.bold = True
+        header_para.font.size = Pt(14)
+        try:
+            header_para.font.name = 'メイリオ'
+        except:
+            pass
+        
+        # Z順序の設定
+        header_rect.zorder = 1  # 背景を下に
+        header_box.zorder = 2   # テキストを上に
+        
+        # テキストの長さに基づいて高さを調整
+        paragraphs = str(content_text).split('\n')
+        text_length = sum(len(p) for p in paragraphs)
+        paragraph_count = len([p for p in paragraphs if p.strip()])
+        
+        # 長いテキストほど大きなボックスを用意
+        content_height = max(
+            Inches(0.8),  # 最小高さ
+            Inches(0.2 + min(3.0, 0.1 * paragraph_count + text_length / 500))  # テキスト量に応じた高さ
+        )
+        
+        # 内容のテキストボックス
+        content_box = slide.shapes.add_textbox(
+            right_column_x, 
+            y + Inches(0.4), 
+            Inches(right_column_width), 
+            content_height
+        )
+        content_frame = content_box.text_frame
+        content_frame.word_wrap = True
+        
+        # テキストを段落ごとに分割して追加
+        first_para = True
+        for paragraph in paragraphs:
+            if paragraph.strip() == "":
+                continue  # 空の段落はスキップ
+            
+            if first_para:
+                # 最初の段落は既に作成されているものを利用
+                content_para = content_frame.paragraphs[0]
+                first_para = False
+            else:
+                # 2つ目以降は新しい段落を追加
+                content_para = content_frame.add_paragraph()
+            
+            content_para.text = paragraph.strip()
+            content_para.font.size = Pt(11)
+            content_para.space_after = Pt(4)  # 段落間の余白
+            try:
+                content_para.font.name = 'メイリオ'
+            except:
+                pass
+        
+        # テキストボックスと余白を含めた合計高さを返す
+        return Inches(0.4) + content_height + Inches(0.25)
+    
     # 詳細情報の描画
     for key, japanese_header in header_map.items():
         value = details.get(key)
         if value:
-            # ヘッダー
-            header_box = slide.shapes.add_textbox(right_column_x, right_column_y, Inches(right_column_width), Inches(0.3))
-            header_frame = header_box.text_frame
-            header_para = header_frame.add_paragraph()
-            header_para.text = japanese_header
-            header_para.font.bold = True
-            header_para.font.size = Pt(12)
-            
-            # 背景色付けのための長方形
-            header_rect = slide.shapes.add_shape(
-                1, # 長方形
-                right_column_x, 
-                right_column_y, 
-                Inches(right_column_width), 
-                Inches(0.3)
-            )
-            header_rect.fill.solid()
-            header_rect.fill.fore_color.rgb = RGBColor(240, 240, 240)  # 薄いグレー
-            header_rect.line.fill.background()  # 枠線を消す
-            header_rect.zorder = 1  # 下に配置
-            header_box.zorder = 2  # テキストを上に
-
-            # 内容
-            content_box = slide.shapes.add_textbox(
-                right_column_x, 
-                right_column_y + Inches(0.3), 
-                Inches(right_column_width), 
-                Inches(0.5)  # 高さは仮設定、後で調整
-            )
-            content_frame = content_box.text_frame
-            content_frame.word_wrap = True
-            content_para = content_frame.add_paragraph()
-            content_para.text = str(value)
-            content_para.font.size = Pt(10)
-            
-            right_column_y += Inches(0.9)  # 次のセクションへの間隔
+            section_height = draw_detail_section(japanese_header, value, right_column_y)
+            right_column_y += section_height
 
     # Save presentation to a BytesIO buffer
     ppt_buffer = io.BytesIO()
