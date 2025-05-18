@@ -1117,32 +1117,39 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
 
-        formSteps.forEach((stepElem) => {
-            const stepIdx = parseInt(stepElem.dataset.step);
-            const confirmBtn = stepElem.querySelector('.confirm-and-proceed-btn');
-            const nextBtn = stepElem.querySelector('.next-step-btn');
-            const prevBtn = stepElem.querySelector('.prev-step-btn');
+        // currentStep がローディングステップ(TOTAL_FORM_STEPS + 1)や結果ステップ(TOTAL_FORM_STEPS + 2)の場合は、
+        // 以下の汎用ボタン表示ロジックをスキップする
+        if (currentStep === TOTAL_FORM_STEPS + 1 || currentStep === TOTAL_FORM_STEPS + 2) {
+            // ローディングステップまたは結果ステップでは、専用の表示制御が既に行われているため、
+            // または return; で関数が終了しているため、ここでは何もしない
+        } else {
+            formSteps.forEach((stepElem) => {
+                const stepIdx = parseInt(stepElem.dataset.step);
+                const confirmBtn = stepElem.querySelector('.confirm-and-proceed-btn');
+                const nextBtn = stepElem.querySelector('.next-step-btn');
+                const prevBtn = stepElem.querySelector('.prev-step-btn');
 
-            if (stepIdx === currentStep) {
-                if (confirmBtn) confirmBtn.style.display = (currentStep >= 1 && currentStep <= numInputSteps) ? 'inline-block' : 'none';
-                if (nextBtn) nextBtn.style.display = (currentStep < numInputSteps) ? 'inline-block' : 'none';
-                if (prevBtn) prevBtn.style.display = (currentStep > 1 && currentStep <= TOTAL_FORM_STEPS) ? 'inline-block' : 'none';
-                } else {
-                if (confirmBtn) confirmBtn.style.display = 'none';
-                if (nextBtn) nextBtn.style.display = 'none';
-                if (prevBtn) prevBtn.style.display = 'none';
-            }
-        });
+                if (stepIdx === currentStep) {
+                    if (confirmBtn) confirmBtn.style.display = (currentStep >= 1 && currentStep <= numInputSteps) ? 'inline-block' : 'none';
+                    if (nextBtn) nextBtn.style.display = (currentStep < numInputSteps) ? 'inline-block' : 'none';
+                    if (prevBtn) prevBtn.style.display = (currentStep > 1 && currentStep <= TOTAL_FORM_STEPS) ? 'inline-block' : 'none';
+                    } else {
+                    if (confirmBtn) confirmBtn.style.display = 'none';
+                    if (nextBtn) nextBtn.style.display = 'none';
+                    if (prevBtn) prevBtn.style.display = 'none';
+                }
+            });
 
-        if (currentStep === numInputSteps) {
-            const lastInputStepElement = formSteps[numInputSteps - 1];
-            if (lastInputStepElement) {
-                const nextBtnOnLast = lastInputStepElement.querySelector('.next-step-btn');
-                if (nextBtnOnLast) nextBtnOnLast.style.display = 'none';
-                const confirmBtnOnLast = lastInputStepElement.querySelector('.confirm-and-proceed-btn');
-                if (confirmBtnOnLast) confirmBtnOnLast.style.display = 'inline-block';
+            if (currentStep === numInputSteps) {
+                const lastInputStepElement = formSteps[numInputSteps - 1];
+                if (lastInputStepElement) {
+                    const nextBtnOnLast = lastInputStepElement.querySelector('.next-step-btn');
+                    if (nextBtnOnLast) nextBtnOnLast.style.display = 'none';
+                    const confirmBtnOnLast = lastInputStepElement.querySelector('.confirm-and-proceed-btn');
+                    if (confirmBtnOnLast) confirmBtnOnLast.style.display = 'inline-block';
+                }
             }
-        }
+        } // この閉じ括弧は、if (currentStep === TOTAL_FORM_STEPS + 1 || ...) の else ブロックのものです。
     }
     console.log('Debug: typeof showStep before assignment:', typeof showStep); // ADD THIS
     window.showStep = showStep; // Assign to window object
