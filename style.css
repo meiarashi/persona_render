@@ -358,6 +358,13 @@ button {
     vertical-align: top; /* Align buttons vertically */
 }
 
+.next-step-btn:disabled {
+    background-color: #cccccc; /* 薄いグレー */
+    color: #666666;          /* やや薄い文字色 */
+    cursor: not-allowed;     /* 禁止カーソル */
+    opacity: 0.7;            /* 少し透明にする */
+}
+
 button:hover {
     background-color: #0056b3;
 }
