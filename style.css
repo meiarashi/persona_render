@@ -927,13 +927,19 @@ Styling for the dynamic fields container if it uses .additional-info-column
 
 /* Specific button colors */
 #download-pdf-result {
-    background-color: #ff0000; /* Red */
+    background-color: #ff0000 !important; /* 赤色 */
     display: inline-block !important; /* 強制表示 */
+    height: 40px !important; /* 高さを固定 */
+    padding: 10px 16px !important; /* パディングを調整 */
+    font-size: 14px !important; /* フォントサイズを調整 */
 }
 
 #download-ppt-result {
-    background-color: #ff8431; /* PowerPoint Orange */
+    background-color: #ff8431 !important; /* オレンジ色 */
     display: inline-block !important; /* 強制表示 */
+    height: 40px !important; /* 高さを固定 */
+    padding: 10px 16px !important; /* パディングを調整 */
+    font-size: 14px !important; /* フォントサイズを調整 */
 }
 
 #download-gslide-result {
@@ -1491,12 +1497,18 @@ footer {
 #download-pdf-result {
     background-color: #ff0000 !important; /* 赤色 */
     display: inline-block !important; /* 強制表示 */
+    height: 40px !important; /* 高さを固定 */
+    padding: 10px 16px !important; /* パディングを調整 */
+    font-size: 14px !important; /* フォントサイズを調整 */
 }
 
 /* PPTダウンロードボタン */
 #download-ppt-result {
     background-color: #ff8431 !important; /* オレンジ色 */
     display: inline-block !important; /* 強制表示 */
+    height: 40px !important; /* 高さを固定 */
+    padding: 10px 16px !important; /* パディングを調整 */
+    font-size: 14px !important; /* フォントサイズを調整 */
 }
 
 /* Style for the selected department label */

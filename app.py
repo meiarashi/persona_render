@@ -495,12 +495,12 @@ def get_output_settings_for_user():
 
 # --- PDF Generation --- 
 def generate_pdf(data):
-    # A4サイズに設定、レイアウト最適化
-    pdf = FPDF(orientation='P', unit='mm', format='A4')
+    # A4サイズ横長に設定、レイアウト最適化
+    pdf = FPDF(orientation='L', unit='mm', format='A4')
     
-    # 余白を小さく設定 (左右上下の余白を10mmに)
-    pdf.set_margins(10, 10, 10)
-    pdf.set_auto_page_break(True, margin=10)
+    # 余白を小さく設定 (左右上下の余白を8mmに)
+    pdf.set_margins(8, 8, 8)
+    pdf.set_auto_page_break(True, margin=8)
     
     pdf.add_page()
     
@@ -520,46 +520,42 @@ def generate_pdf(data):
 
     # --- ヘッダー部分（タイトルと診療科・目的） ---
     # 名前とタイトル
-    pdf.set_font_size(16)
-    pdf.cell(0, 10, profile.get('name', 'ペルソナ'), ln=True, align='C')
+    pdf.set_font_size(14)
+    pdf.cell(0, 8, profile.get('name', 'ペルソナ'), ln=True, align='C')
     
     # 診療科と目的を横並びで表示
     pdf.set_font_size(10)
-    pdf.cell(30, 5, "診療科:", align='R')
-    pdf.cell(70, 5, profile.get('department', '-'), ln=0)
-    pdf.cell(30, 5, "作成目的:", align='R')
+    pdf.cell(25, 5, "診療科:", align='R')
+    pdf.cell(60, 5, profile.get('department', '-'), ln=0)
+    pdf.cell(25, 5, "作成目的:", align='R')
     pdf.cell(50, 5, profile.get('purpose', '-'), ln=1)
-    pdf.ln(3)
+    pdf.ln(2)
     
-    # ページを2段組にレイアウト - 左側に基本情報とアイコン、右側に詳細情報
+    # 横長レイアウトを3カラムに分割
+    page_width = pdf.w - pdf.l_margin - pdf.r_margin
+    left_column_width = page_width * 0.25  # 左カラム（基本情報）: 25%
+    middle_column_width = page_width * 0.25  # 中央カラム（追加情報）: 25%
+    right_column_width = page_width * 0.5   # 右カラム（詳細情報）: 50%
     
-    # --- 左カラム (80mm幅) ---
-    left_column_width = 80
+    # --- 左カラム (基本情報) ---
     left_margin = pdf.l_margin
     current_y = pdf.get_y()
     
     # 基本情報セクション
     pdf.set_xy(left_margin, current_y)
-    pdf.set_font("ipa", 'B', 12)
+    pdf.set_font("ipa", 'B', 11)
     pdf.set_fill_color(240, 240, 240) # 薄いグレー
     pdf.cell(left_column_width, 6, "基本情報", ln=1, fill=True)
-    pdf.ln(2)
+    pdf.ln(1)
     
-    # 基本情報の項目を2列に表示するための設定
-    info_col_width = left_column_width / 2
-    
-    # 左列の情報項目
-    pdf.set_font("ipa", 'B', 9)
-    info_items_left = [
+    # 基本情報の項目を表示
+    pdf.set_font("ipa", '', 9)
+    info_items = [
         ("性別", profile.get('gender', '-')),
         ("年齢", profile.get('age', '-')),
         ("都道府県", profile.get('prefecture', '-')),
         ("市区町村", profile.get('municipality', '-')),
-        ("職業", profile.get('occupation', '-'))
-    ]
-    
-    # 右列の情報項目
-    info_items_right = [
+        ("職業", profile.get('occupation', '-')),
         ("年収", profile.get('income', '-')),
         ("家族構成", profile.get('family', '-')),
         ("趣味", profile.get('hobby', '-')),
@@ -567,34 +563,28 @@ def generate_pdf(data):
         ("患者タイプ", profile.get('patient_type', '-'))
     ]
     
-    # 左列の描画
-    current_y = pdf.get_y()
-    for key, value in info_items_left:
-        pdf.set_xy(left_margin, current_y)
+    # 項目の描画
+    for key, value in info_items:
+        pdf.set_x(left_margin)
         pdf.set_font("ipa", 'B', 9)
-        pdf.cell(25, 5, f"{key}:", 0)
+        pdf.cell(25, 4, f"{key}:", 0)
         pdf.set_font("ipa", '', 9)
-        pdf.cell(info_col_width - 25, 5, str(value) if value else '-', 0)
-        current_y += 5
+        
+        # 値が長い場合は折り返し
+        if len(str(value)) > 15:
+            text_width = left_column_width - 25
+            pdf.set_x(left_margin + 25)
+            pdf.multi_cell(text_width, 4, str(value) if value else '-', 0)
+        else:
+            pdf.cell(left_column_width - 25, 4, str(value) if value else '-', ln=1)
     
-    # 右列の描画
-    current_y = pdf.get_y() - 25 # 上に戻る
-    for key, value in info_items_right:
-        pdf.set_xy(left_margin + info_col_width, current_y)
-        pdf.set_font("ipa", 'B', 9)
-        pdf.cell(25, 5, f"{key}:", 0)
-        pdf.set_font("ipa", '', 9)
-        pdf.cell(info_col_width - 25, 5, str(value) if value else '-', 0)
-        current_y += 5
-    
-    # 追加情報セクション（一列表示）
-    pdf.ln(5)
-    current_y = pdf.get_y() + 5
-    pdf.set_xy(left_margin, current_y)
-    pdf.set_font("ipa", 'B', 12)
+    # --- 中央カラム (追加情報) ---
+    middle_margin = left_margin + left_column_width
+    pdf.set_xy(middle_margin, current_y)
+    pdf.set_font("ipa", 'B', 11)
     pdf.set_fill_color(240, 240, 240) # 薄いグレー
-    pdf.cell(left_column_width, 6, "その他の特徴", ln=1, fill=True)
-    pdf.ln(2)
+    pdf.cell(middle_column_width, 6, "その他の特徴", ln=1, fill=True)
+    pdf.ln(1)
     
     # 追加情報の項目
     additional_items = [
@@ -609,51 +599,36 @@ def generate_pdf(data):
     ]
     
     # 追加項目の描画
-    current_y = pdf.get_y()
+    additional_y = pdf.get_y()
     for key, value in additional_items:
-        pdf.set_xy(left_margin, current_y)
+        pdf.set_xy(middle_margin, additional_y)
         pdf.set_font("ipa", 'B', 8)
         pdf.cell(30, 4, f"{key}:", 0)
         pdf.set_font("ipa", '', 8)
         
         # 長いテキストは折り返して表示
-        if len(str(value)) > 20:
-            text_width = left_column_width - 30
-            # 長いテキストの場合、MultiCellを使用して折り返し表示
-            pdf.set_xy(left_margin + 30, current_y)
-            pdf.multi_cell(text_width, 4, str(value) if value else '-', 0)
-            # MultiCellの高さを計算（概算）
-            lines = (len(str(value)) / 20) + 1  # 20文字で1行と仮定
-            current_y += max(4, 4 * lines)
-        else:
-            # 短いテキストの場合、通常のcellを使用
-            pdf.cell(left_column_width - 30, 4, str(value) if value else '-', 0, ln=1)
-            current_y += 4
+        text_width = middle_column_width - 30
+        pdf.set_xy(middle_margin + 30, additional_y)
+        pdf.multi_cell(text_width, 4, str(value) if value else '-', 0)
+        additional_y = pdf.get_y() + 1
     
     # 動的に追加された項目があれば表示
     if profile.get('additional_field_name') and profile.get('additional_field_value'):
         additional_fields = zip(profile.get('additional_field_name'), profile.get('additional_field_value'))
         for field_name, field_value in additional_fields:
             if field_name or field_value:
-                pdf.set_xy(left_margin, current_y)
+                pdf.set_xy(middle_margin, additional_y)
                 pdf.set_font("ipa", 'B', 8)
                 pdf.cell(30, 4, f"{field_name}:", 0)
                 pdf.set_font("ipa", '', 8)
                 
-                # 長いテキストの場合
-                if len(str(field_value)) > 20:
-                    text_width = left_column_width - 30
-                    pdf.set_xy(left_margin + 30, current_y)
-                    pdf.multi_cell(text_width, 4, str(field_value) if field_value else '-', 0)
-                    lines = (len(str(field_value)) / 20) + 1
-                    current_y += max(4, 4 * lines)
-                else:
-                    pdf.cell(left_column_width - 30, 4, str(field_value) if field_value else '-', 0, ln=1)
-                    current_y += 4
+                # テキスト表示
+                pdf.set_xy(middle_margin + 30, additional_y)
+                pdf.multi_cell(text_width, 4, str(field_value) if field_value else '-', 0)
+                additional_y = pdf.get_y() + 1
     
     # --- 右カラム (詳細情報) ---
-    right_column_width = pdf.w - pdf.r_margin - left_margin - left_column_width
-    right_margin = left_margin + left_column_width
+    right_margin = middle_margin + middle_column_width
     
     # Map internal keys to Japanese headers
     header_map = {
@@ -666,7 +641,8 @@ def generate_pdf(data):
     }
 
     # 右カラムの開始位置を設定
-    right_column_y = 30 # 固定位置から開始
+    pdf.set_xy(right_margin, current_y)
+    right_column_y = current_y
 
     # 詳細情報の描画
     for key, japanese_header in header_map.items():
@@ -689,16 +665,16 @@ def generate_pdf(data):
             for paragraph in paragraphs:
                 if paragraph.strip() == "":
                     # 空の段落は小さい余白として処理
-                    right_column_y += 2
+                    right_column_y += 1
                     continue
                     
                 # 段落を描画
                 pdf.set_xy(right_margin, right_column_y)
-                pdf.multi_cell(right_column_width, 4.5, paragraph)
+                pdf.multi_cell(right_column_width, 4, paragraph)
                 right_column_y = pdf.get_y() + 1  # 段落間の余白
             
             # 次のセクションまでの余白
-            right_column_y += 3
+            right_column_y += 2
 
     # Generate PDF in memory
     pdf_output = pdf.output() # Get output as bytes directly
@@ -886,6 +862,7 @@ def generate_ppt(data):
     # 左列の描画
     current_y = left_column_y
     for key, value in info_items_left:
+        # 基本情報の項目をPowerPointに描画
         item_height = draw_info_item(key, value, margin, current_y)
         current_y += item_height
     
@@ -925,7 +902,7 @@ def generate_ppt(data):
     # Z順序の設定
     additional_header_bg.zorder = 1  # 背景を下に
     additional_header.zorder = 2     # テキストを上に
-    
+
     # 追加情報の項目
     additional_items = [
         ("座右の銘", profile.get('motto', '-')),
