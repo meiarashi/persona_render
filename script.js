@@ -48,16 +48,17 @@ const personaRandomValues = {
     ],
     // Based on 令和５年（2023年）10月1日現在人口推計（総務省統計局）
     // 人口（千人）をそのままウェイトとして使用。合計約124,352千人。
+    // 未成年者の選出確率を意図的に下げるため、19歳以下のweightを調整 (元の値の30%に)
     ageDistributionWeights: [
         // 0歳児の月齢表現のため、0歳は特別扱い
-        { ageGroup: "0y_months", weight: 720 }, // 0歳人口: 720千人 (0-4歳人口 3709千人の約1/5と仮定)
-        { ageRange: "1-4y", weight: 2989 },   // 0-4歳: 3709千人 -> 3709 - 720 = 2989
-        { ageRange: "5-9y", weight: 4039 },   // 5-9歳: 4039千人
-        { ageRange: "10-14y", weight: 4477 }, // 10-14歳: 4477千人
-        { ageRange: "15-19y", weight: 5128 }, // 15-19歳: 5128千人
-        { ageRange: "20-24y", weight: 5891 }, // 20-24歳: 5891千人
-        { ageRange: "25-29y", weight: 6207 }, // 25-29歳: 6207千人
-        { ageRange: "30-34y", weight: 6295 }, // 30-34歳: 6295千人
+        { ageGroup: "0y_months", weight: 216 }, // 元: 720
+        { ageRange: "1-4y", weight: 897 },   // 元: 2989
+        { ageRange: "5-9y", weight: 1212 },   // 元: 4039
+        { ageRange: "10-14y", weight: 1343 }, // 元: 4477
+        { ageRange: "15-19y", weight: 1538 }, // 元: 5128
+        { ageRange: "20-24y", weight: 5891 },
+        { ageRange: "25-29y", weight: 6207 },
+        { ageRange: "30-34y", weight: 6295 },
         { ageRange: "35-39y", weight: 6570 }, // 35-39歳: 6570千人
         { ageRange: "40-44y", weight: 7196 }, // 40-44歳: 7196千人
         { ageRange: "45-49y", weight: 8179 }, // 45-49歳: 8179千人

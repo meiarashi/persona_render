@@ -520,6 +520,18 @@ def generate_pdf(data):
     details = data.get('details', {})
     image_url = data.get('image_url')
 
+    # --- 定数定義 ---
+    name_line_height = 6  # ペルソナ名の行の高さ (mm)
+    section_title_height = 7 # セクションタイトルのセルの高さ (mm)
+    header_map = {
+        "personality": "性格（価値観・人生観）",
+        "reason": "通院理由",
+        "behavior": "症状通院頻度・行動パターン",
+        "reviews": "口コミの重視ポイント",
+        "values": "医療機関への価値観・行動傾向",
+        "demands": "医療機関に求めるもの"
+    }
+
     # --- 日本語表示用マッピングとヘルパー関数 ---
     GENDER_MAP = {
         "male": "男性", "female": "女性", "other": "その他",
@@ -599,36 +611,69 @@ def generate_pdf(data):
     right_column_x = left_column_content_x + left_column_width + column_gap
     
     content_start_y = pdf.get_y() # 全体のコンテンツ開始Y座標（一番上の要素に合わせる）
+    header_end_y = content_start_y # header_end_y を定義 (アイコンなどの開始Y座標の基準)
 
-    # --- 左カラムの描画 ---
-    current_y_left = content_start_y
+    # --- 左カラムの描画開始 ---
+    pdf.set_xy(left_column_content_x, header_end_y + 5) # ヘッダーの下に少しスペース
+
+    # --- ペルソナアイコンと名前 ---
+    icon_size = 30 # アイコンのサイズ (mm)
+    icon_y_position = pdf.get_y()
+
+    if image_url:
+        try:
+            print(f"Fetching image from URL: {image_url}")
+            image_data = urlopen(image_url).read()
+            img_file_obj = io.BytesIO(image_data)
+            # 画像の元のサイズを取得（FPDFでは直接不可、Pillowなどが必要だが、ここでは固定サイズで配置）
+            # アスペクト比を保つ処理は省略し、指定サイズで描画
+            pdf.image(img_file_obj, x=left_column_content_x, y=icon_y_position, w=icon_size, h=icon_size)
+        except Exception as e:
+            print(f"Error loading image: {e}")
+            # アイコン失敗時は代替テキストや枠線などを表示することも可能
+            pdf.rect(left_column_content_x, icon_y_position, icon_size, icon_size, style='D')
+            pdf.set_xy(left_column_content_x + 1, icon_y_position + icon_size / 2 - 2)
+            pdf.multi_cell(icon_size - 2 , 4, "No Img", 0, 'C')
+
+    # 名前の描画開始位置をアイコンの右隣に設定
+    name_x_position = left_column_content_x + icon_size + 3 # アイコンの右に少しスペース
+    pdf.set_xy(name_x_position, icon_y_position + (icon_size / 2) - (name_line_height / 2) - 2) # 上下中央揃えっぽく調整
+    
+    pdf.set_font("ipa", 'B', 14) # 名前は少し大きく太字に
+    # 名前の最大幅を左カラムの残り幅に制限
+    name_max_width = left_column_width - (icon_size + 3) # アイコンとスペース分を引く
+    pdf.multi_cell(name_max_width, name_line_height, profile.get('name', '-'), 0, 'L')
+    
+    # アイコンと名前の下に基本情報を配置するためのY座標を設定
+    # アイコンの高さ、または名前の高さのうち、大きい方を基準にする
+    current_y_after_icon_name = icon_y_position + icon_size + 5 # アイコンの下端 + 余白
+
+    # --- 基本情報セクション ---
+    pdf.set_xy(left_column_content_x, current_y_after_icon_name)
+    pdf.set_font("ipa", 'BU', 11) # セクションタイトル (太字・下線)
+    pdf.cell(left_column_width, section_title_height, "基本情報", 0, 1, 'L')
+    current_y_after_icon_name = pdf.get_y() # 「基本情報」タイトルの後にY座標を更新
+    pdf.set_font("ipa", '', 10) # 内容のフォントに戻す
 
     # 1. 診療科 (左カラム)
-    pdf.set_xy(left_column_content_x, current_y_left)
+    pdf.set_xy(left_column_content_x, current_y_after_icon_name) # 更新されたY座標を使用
     pdf.set_font("ipa", '', 10)
     department_val = profile.get('department', '-')
     department_display = DEPARTMENT_MAP.get(department_val.lower(), department_val) # Lowercase for map key
     pdf.multi_cell(left_column_width, 7, f"診療科: {department_display}", 0, 'L')
-    current_y_left = pdf.get_y()
+    current_y_after_icon_name = pdf.get_y()
 
     # 2. 作成目的 (左カラム)
-    pdf.set_xy(left_column_content_x, current_y_left)
+    pdf.set_xy(left_column_content_x, current_y_after_icon_name)
     purpose_val = profile.get('purpose', '-')
     purpose_display = PURPOSE_MAP.get(purpose_val.lower(), purpose_val) # Lowercase for map key
     pdf.multi_cell(left_column_width, 7, f"作成目的: {purpose_display}", 0, 'L')
-    current_y_left = pdf.get_y()
+    current_y_after_icon_name = pdf.get_y()
     pdf.ln(3) # 少しスペース
-    current_y_left = pdf.get_y()
+    current_y_after_icon_name = pdf.get_y()
 
     # 3. 基本情報セクション (左カラム)
-    pdf.set_xy(left_column_content_x, current_y_left) 
-    pdf.set_font("ipa", 'B', 11)
-    pdf.set_fill_color(240, 240, 240)
-    pdf.cell(left_column_width, 6, "基本情報", 0, 1, 'L', fill=True)
-    current_y_left = pdf.get_y()
-    pdf.ln(1)
-    current_y_left = pdf.get_y()
-    
+    pdf.set_xy(left_column_content_x, current_y_after_icon_name) 
     pdf.set_font("ipa", '', 9)
     info_items = [
         ("性別", GENDER_MAP.get(profile.get('gender', '-'), profile.get('gender', '-'))),
@@ -648,24 +693,24 @@ def generate_pdf(data):
     value_width = left_column_width - key_width
 
     for key, value_display in info_items:
-        pdf.set_xy(left_column_content_x, current_y_left)
-        pdf.set_font("ipa", 'B', 9)
+        pdf.set_xy(left_column_content_x, current_y_after_icon_name)
+        pdf.set_font("ipa", '', 9)
         pdf.cell(key_width, item_height, f"{key}:", 0, 0, 'L')
         pdf.set_font("ipa", '', 9)
-        pdf.set_xy(left_column_content_x + key_width, current_y_left)
+        pdf.set_xy(left_column_content_x + key_width, current_y_after_icon_name)
         pdf.multi_cell(value_width, item_height, str(value_display), 0, 'L')
-        current_y_left = pdf.get_y() 
+        current_y_after_icon_name = pdf.get_y() 
 
-    current_y_left += 3 
+    current_y_after_icon_name += 3 
     
     # 4. その他の特徴セクション (左カラム)
-    pdf.set_xy(left_column_content_x, current_y_left)
-    pdf.set_font("ipa", 'B', 11)
+    pdf.set_xy(left_column_content_x, current_y_after_icon_name)
+    pdf.set_font("ipa", '', 11)
     pdf.set_fill_color(240, 240, 240) 
     pdf.cell(left_column_width, 6, "その他の特徴", 0, 1, 'L', fill=True)
-    current_y_left = pdf.get_y() 
+    current_y_after_icon_name = pdf.get_y() 
     pdf.ln(1)
-    current_y_left = pdf.get_y() 
+    current_y_after_icon_name = pdf.get_y() 
     
     additional_items = [
         ("座右の銘", profile.get('motto', '-')),
@@ -682,97 +727,121 @@ def generate_pdf(data):
     additional_value_width = left_column_width - additional_key_width
 
     for key, value in additional_items:
-        pdf.set_xy(left_column_content_x, current_y_left)
-        pdf.set_font("ipa", 'B', 9)
+        pdf.set_xy(left_column_content_x, current_y_after_icon_name)
+        pdf.set_font("ipa", '', 9)
         pdf.cell(additional_key_width, item_height, f"{key}:", 0, 0, 'L')
         pdf.set_font("ipa", '', 9)
-        pdf.set_xy(left_column_content_x + additional_key_width, current_y_left)
+        pdf.set_xy(left_column_content_x + additional_key_width, current_y_after_icon_name)
         pdf.multi_cell(additional_value_width, item_height, str(value), 0, 'L')
-        current_y_left = pdf.get_y()
+        current_y_after_icon_name = pdf.get_y()
 
     if profile.get('additional_field_name') and profile.get('additional_field_value'):
         additional_fields = zip(profile.get('additional_field_name'), profile.get('additional_field_value'))
-        current_y_left +=1 
+        current_y_after_icon_name +=1 
         for field_name, field_value in additional_fields:
             if field_name or field_value: 
-                pdf.set_xy(left_column_content_x, current_y_left)
-                pdf.set_font("ipa", 'B', 9)
+                pdf.set_xy(left_column_content_x, current_y_after_icon_name)
+                pdf.set_font("ipa", '', 9)
                 pdf.cell(additional_key_width, item_height, f"{field_name if field_name else ''}:", 0, 0, 'L')
                 pdf.set_font("ipa", '', 9)
-                pdf.set_xy(left_column_content_x + additional_key_width, current_y_left)
+                pdf.set_xy(left_column_content_x + additional_key_width, current_y_after_icon_name)
                 pdf.multi_cell(additional_value_width, item_height, str(field_value) if field_value else '-', 0, 'L')
-                current_y_left = pdf.get_y()
+                current_y_after_icon_name = pdf.get_y()
     
-    max_left_y = current_y_left # 左カラムの最終Y座標
+    max_left_y = current_y_after_icon_name # 左カラムの最終Y座標
 
-    # --- 右カラムの描画 ---
-    current_y_right = content_start_y # 右カラムも同じ高さから開始
-
-    # 1. ペルソナアイコン (右カラム上部)
-    icon_size = 30
-    # アイコンを右カラムのX座標に配置 (右カラム内で左寄せ)
-    icon_x_position = right_column_x 
-    if image_url:
-        try:
-            with urlopen(image_url) as img_file:
-                img_data = io.BytesIO(img_file.read())
-            pdf.image(img_data, x=icon_x_position, y=current_y_right, w=icon_size, h=icon_size)
-            current_y_right += icon_size 
-        except Exception as e:
-            print(f"Error loading image for PDF from {image_url}: {e}")
-            pdf.set_xy(icon_x_position, current_y_right)
-            pdf.cell(icon_size, icon_size, "[画像]", 1, 0, 'C') # 枠線とテキストで示す
-            current_y_right += icon_size
-    else: # 画像URLがない場合
-        pdf.set_xy(icon_x_position, current_y_right)
-        pdf.cell(icon_size, icon_size, "[NoImg]", 1, 0, 'C')
-        current_y_right += icon_size
+    # --- 右カラムの描画開始 ---
+    # 右カラムの開始Y座標を、左カラムのアイコンの開始高さに合わせる
+    right_column_current_y = icon_y_position 
     
-    pdf.ln(2) # アイコンと名前の間のスペース
-    current_y_right = pdf.get_y() if pdf.get_y() > current_y_right else current_y_right # Y座標更新
-
-    # 2. ペルソナ名 (右カラム、アイコンの下)
-    pdf.set_xy(right_column_x, current_y_right)
-    pdf.set_font("ipa", 'B', 16)
-    # 名前は右カラムの幅で表示
-    pdf.multi_cell(right_column_width, 10, profile.get('name', 'ペルソナ名なし'), 0, 'L')
-    current_y_right = pdf.get_y()
-    pdf.ln(5)
-    current_y_right = pdf.get_y()
-    
-    # 3. 詳細情報セクション (右カラム、名前の下)
-    header_map = {
-        "personality": "性格（価値観・人生観）",
-        "reason": "通院理由",
-        "behavior": "症状通院頻度・行動パターン",
-        "reviews": "口コミの重視ポイント",
-        "values": "医療機関への価値観・行動傾向",
-        "demands": "医療機関に求めるもの"
-    }
-
-    for key, japanese_header in header_map.items():
-        value = details.get(key) 
-        if value: 
-            pdf.set_xy(right_column_x, current_y_right)
-            pdf.set_font("ipa", 'B', 11)
-            pdf.set_fill_color(240, 240, 240) 
-            pdf.cell(right_column_width, 6, japanese_header, 0, 1, 'L', fill=True)
-            current_y_right = pdf.get_y() 
-            pdf.ln(1)
-            current_y_right = pdf.get_y() 
+    for detail_key, japanese_header_text in header_map.items():
+        value = details.get(detail_key)
+        if value and str(value).strip(): # 値が存在し、空でない場合のみ描画
+            pdf.set_xy(right_column_x, right_column_current_y)
             
-            pdf.set_xy(right_column_x, current_y_right)
-            pdf.set_font("ipa", '', 9)
+            # セクションヘッダー
+            pdf.set_font("ipa", 'BU', 11) # 太字・下線付き、サイズ11
+            pdf.set_fill_color(240, 240, 240) # 薄いグレーの背景
+            pdf.cell(right_column_width, 6, str(japanese_header_text), 0, 1, 'L', fill=True) # ln=1 で改行
+            # pdf.get_y() はこのセルの後に自動更新される
+
+            # コンテンツ
+            pdf.set_x(right_column_x) # multi_cell のためにX座標を右カラムの開始位置にリセット
+            pdf.set_font("ipa", '', 9) # 通常フォント、サイズ9
+            pdf.multi_cell(right_column_width, 5, str(value), 0, 'L') # 行の高さ5mm
+            right_column_current_y = pdf.get_y() # multi_cell 後のY座標を更新
             
-            paragraphs = str(value).split('\\n') # detailsの値がAI応答の改行文字 \\n を含む場合を想定
-            for para_idx, paragraph_text in enumerate(paragraphs):
-                if paragraph_text.strip() == "" and para_idx < len(paragraphs) -1 : # 最後の空行は無視、途中の空行はスペースに
-                    current_y_right += 1 
-                    continue
-                pdf.set_xy(right_column_x, current_y_right) # 各段落の開始位置を再設定
-                pdf.multi_cell(right_column_width, 4, paragraph_text.strip(), 0, 'L')
-                current_y_right = pdf.get_y() + 0.5 
-            current_y_right += 2 
+            pdf.ln(3) # セクション間のスペース
+            right_column_current_y = pdf.get_y() # スペース後のY座標を更新
+    
+    # 詳細情報を描画する関数 # ← この古い関数定義と呼び出しは不要なので削除対象
+    # def draw_detail_section(header_text, content_text, y):
+    #     # 背景色付けのための長方形
+    #     header_rect = pdf.rect(right_column_x, y, right_column_width, 0.35)
+    #     header_rect.fill = True
+    #     header_rect.fill_color = RGBColor(240, 240, 240) # RGBColor は fpdf にはない
+    #     header_rect.line = False
+        
+    #     # ヘッダー
+    #     header_box = pdf.textbox(right_column_x, y, right_column_width, 0.35) # textbox は fpdf にはない
+    #     header_box.text = header_text
+    #     header_box.font.bold = True
+    #     header_box.font.size = Pt(14) # Pt は fpdf に直接はない
+        
+    #     # Z順序の設定
+    #     header_rect.zorder = 1  # 背景を下に # zorder は fpdf にはない
+    #     header_box.zorder = 2   # テキストを上に
+        
+    #     # テキストの長さに基づいて高さを調整
+    #     paragraphs = str(content_text).split('\\n')
+    #     text_length = sum(len(p) for p in paragraphs)
+    #     paragraph_count = len([p for p in paragraphs if p.strip()])
+        
+    #     # 長いテキストほど大きなボックスを用意
+    #     content_height = max(
+    #         Pt(0.8),  # 最小高さ
+    #         Pt(0.2 + min(3.0, 0.1 * paragraph_count + text_length / 500))  # テキスト量に応じた高さ
+    #     )
+        
+    #     # 内容のテキストボックス
+    #     content_box = pdf.textbox(
+    #         right_column_x, 
+    #         y + Pt(0.4), 
+    #         right_column_width, 
+    #         content_height
+    #     )
+    #     content_box.text = content_text
+    #     content_box.font.size = Pt(11)
+    #     content_box.font.name = 'メイリオ'
+        
+    #     # テキストを段落ごとに分割して追加
+    #     first_para = True
+    #     for paragraph in paragraphs:
+    #         if paragraph.strip() == "":
+    #             continue  # 空の段落はスキップ
+            
+    #         if first_para:
+    #             # 最初の段落は既に作成されているものを利用
+    #             content_para = content_box.paragraphs[0]
+    #             first_para = False
+    #         else:
+    #             # 2つ目以降は新しい段落を追加
+    #             content_para = content_box.add_paragraph()
+            
+    #         content_para.text = paragraph.strip()
+    #         content_para.font.size = Pt(11)
+    #         content_para.space_after = Pt(4)  # 段落間の余白
+    #         content_para.font.name = 'メイリオ'
+        
+    #     # テキストボックスと余白を含めた合計高さを返す
+    #     return Pt(0.4) + content_height + Pt(0.25)
+    
+    # 詳細情報の描画 # ← この古い呼び出しも削除対象
+    # for key, japanese_header in header_map.items():
+    #     value = details.get(key)
+    #     if value:
+    #         section_height = draw_detail_section(japanese_header, value, right_column_start_y)
+    #         right_column_start_y += section_height
 
     # Generate PDF in memory
     pdf_output = pdf.output() # Get output as bytes directly
