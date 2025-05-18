@@ -17,7 +17,7 @@ from pptx.enum.text import PP_ALIGN # For text alignment
 from pptx.dml.color import RGBColor
 
 # --- Flask App Setup ---
-app = Flask(__name__, static_url_path='', static_folder='.')
+app = Flask(__name__, static_url_path='/', static_folder='.')
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///settings.db' # Removed DB config
 # app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Removed DB config
 # db = SQLAlchemy(app) # Removed SQLAlchemy initialization
@@ -1110,7 +1110,15 @@ def download_ppt():
         traceback.print_exc()
         return jsonify({"error": "Failed to generate PPT"}), 500
 
-# --- Run App --- (Removed)
-# if __name__ == '__main__':
-#     # initialize_database() # Removed DB initialization call
-#     app.run(debug=True, port=5000) 
+# 静的ファイル用の明示的なルート
+@app.route('/images/<path:filename>')
+def serve_image(filename):
+    return send_from_directory('images', filename)
+
+# Render環境用の静的ファイルパス
+@app.route('/static/images/<path:filename>')
+def serve_static_image(filename):
+    return send_from_directory('images', filename)
+
+if __name__ == "__main__":
+    app.run(debug=True, host='0.0.0.0') 
