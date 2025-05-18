@@ -447,7 +447,7 @@ function randomizeDetailSettingsFields() {
     setRandomValueIfEmpty("name", name);
 
     // Age
-    const ageString = getRandomItem(personaRandomValues.ages);
+    const ageString = getRandomAge(); // Use new weighted random age function
     setRandomValueIfEmpty("age", ageString);
     const ageInYears = parseAgeToYears(ageString); // Get numerical age
 

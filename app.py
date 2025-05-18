@@ -18,6 +18,7 @@ from pptx.enum.text import PP_ALIGN # For text alignment
 from pptx.dml.color import RGBColor
 from pptx.enum.text import MSO_AUTO_SIZE
 from pptx.enum.text import MSO_VERTICAL_ANCHOR
+from pptx.util import Cm # Changed from pptx.dml.shape
 
 # --- Flask App Setup ---
 app = Flask(__name__, static_url_path='/', static_folder='.')
@@ -842,217 +843,254 @@ def download_pdf():
         return jsonify({"error": "Failed to generate PDF"}), 500
 
 # Helper function to generate PPT (basic implementation)
-def generate_ppt(data):
-    # --- Helper function to add text to a shape with styling ---
-    def add_text_to_shape(shape, text, font_size=Pt(10), font_name='メイリオ', is_bold=False, align=PP_ALIGN.LEFT, color_rgb=None, vert_align=None): # Added vert_align
-        text_frame = shape.text_frame
-        text_frame.clear()  # Clear existing text
-        text_frame.word_wrap = True # Ensure word wrap is enabled
-        # text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE # Disable auto_size for more control, or use SHAPE_TO_FIT_TEXT
-        text_frame.auto_size = MSO_AUTO_SIZE.SHAPE_TO_FIT_TEXT # Prefer this for content blocks
+def add_text_to_shape(shape, text, font_size=Pt(9), is_bold=False, alignment=PP_ALIGN.LEFT, font_name='Meiryo UI'): # Default font_size変更
+    text_frame = shape.text_frame
+    text_frame.clear() # Clear existing text and formatting
+    text_frame.word_wrap = True
+    # text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE # Disabling auto_size for more control.
+    text_frame.auto_size = MSO_AUTO_SIZE.SHAPE_TO_FIT_TEXT # Prefer this for content blocks
 
-        p = text_frame.paragraphs[0]
-        run = p.add_run()
-        run.text = str(text) # Ensure text is string
+    p = text_frame.paragraphs[0] if text_frame.paragraphs else text_frame.add_paragraph()
+    p.clear() # Clear existing runs in the paragraph
 
-        font = run.font
-        font.name = font_name
-        font.size = font_size
-        font.bold = is_bold
-        if color_rgb:
-            font.color.rgb = RGBColor(*color_rgb)
-        
-        p.alignment = align
-        if vert_align:
-             text_frame.vertical_anchor = vert_align
+    run = p.add_run()
+    run.text = text
+    font = run.font
+    font.name = font_name
+    font.size = font_size
+    font.bold = is_bold
+    font.color.rgb = RGBColor(0, 0, 0) # Assuming black text
+    p.alignment = alignment
+    # If you need vertical alignment for the entire text_frame:
+    # shape.vertical_anchor = MSO_VERTICAL_ANCHOR.MIDDLE # Or TOP, BOTTOM, etc.
 
+    # Estimate height if needed, though SHAPE_TO_FIT_TEXT should handle it.
+    # For precise height calculation, one might need to render and measure, which is complex.
+    # A rough estimate based on font size and lines:
+    num_lines = len(text.split('\\n'))
+    estimated_height = num_lines * font_size.pt * 1.5 # Approximate line height factor
+    return Cm(estimated_height / 28.3465 / 2.54) # Convert points to cm (very rough)
+
+
+def generate_ppt(persona_data, image_path, department_text, purpose_text):
     prs = Presentation()
-    profile = data.get('profile', {})
-    details = data.get('details', {})
-    image_url = data.get('image_url')
-
-    # --- Slide Layout & Dimensions ---
+    prs.slide_width = Inches(11.69)  # A4 Landscape width
+    prs.slide_height = Inches(8.27) # A4 Landscape height
     slide_layout = prs.slide_layouts[5]  # Blank layout
     slide = prs.slides.add_slide(slide_layout)
-    slide_width = prs.slide_width
-    slide_height = prs.slide_height
-    margin = Inches(0.25) 
-    content_width = slide_width - (2 * margin)
-    content_height = slide_height - (2 * margin)
 
-    # --- カラム定義 (左35%, 右60%, 間5%) ---
-    left_column_x = margin
-    left_column_width = content_width * 0.35
+    # Margins (approximated from PDF's 8mm)
+    left_margin_ppt = Cm(0.8)
+    right_margin_ppt = Cm(0.8)
+    top_margin_ppt = Cm(0.8)
+    bottom_margin_ppt = Cm(0.8)
+    content_width = prs.slide_width - left_margin_ppt - right_margin_ppt
+    content_height = prs.slide_height - top_margin_ppt - bottom_margin_ppt
     
-    gap_between_columns = content_width * 0.05
-    right_column_x = left_column_x + left_column_width + gap_between_columns
-    right_column_width = content_width * 0.60 # Adjusted back, was 0.58, check if it overflows
+    item_spacing_ppt = Cm(0.15) # Spacing between items
 
-    # --- 左カラムのY座標トラッカー ---
-    current_y_left = margin
-    # --- 右カラムのY座標トラッカー (左カラムのアイコン上端に合わせる) ---
-    current_y_right = margin 
+    # Title
+    title_shape = slide.shapes.add_textbox(left=Cm(0.5), top=Cm(0.2), width=prs.slide_width - Cm(1.0), height=Cm(1.0))
+    text_frame = title_shape.text_frame
+    p = text_frame.add_paragraph()
+    p.text = "生成されたペルソナ"
+    p.alignment = PP_ALIGN.CENTER
+    p.font.bold = True
+    p.font.size = Pt(14) # Title フォントサイズ変更 Pt(16) -> Pt(14)
+    p.font.name = 'Meiryo UI'
 
-    # 1. ペルソナアイコン (左カラム)
-    icon_size = Inches(1.2)  # Increased size slightly
-    icon_placeholder_text = "画像なし"
-    
-    # アイコンの追加 (Y座標は current_y_left を使用)
-    if image_url:
+    # Icon
+    icon_left = left_margin_ppt
+    icon_top = top_margin_ppt + Cm(1.0) # Below title
+    icon_size = Cm(3.0)
+    if image_path and os.path.exists(image_path):
         try:
-            image_data = urlopen(image_url).read()
-            img_file_obj = io.BytesIO(image_data)
-            pic = slide.shapes.add_picture(img_file_obj, left_column_x, current_y_left, width=icon_size, height=icon_size)
+            slide.shapes.add_picture(image_path, icon_left, icon_top, height=icon_size) # Assuming square, set height
         except Exception as e:
-            print(f"Error loading image for PPT: {e}")
-            tb_icon_placeholder = slide.shapes.add_textbox(left_column_x, current_y_left, icon_size, icon_size)
-            add_text_to_shape(tb_icon_placeholder, icon_placeholder_text, Pt(9), align=PP_ALIGN.CENTER, vert_align=MSO_VERTICAL_ANCHOR.MIDDLE)
+            print(f"Error adding image to PPT: {e}")
+            # Add a placeholder if image fails
+            icon_placeholder = slide.shapes.add_textbox(icon_left, icon_top, icon_size, icon_size)
+            add_text_to_shape(icon_placeholder, "画像エラー", font_size=Pt(8))
     else:
-        tb_icon_placeholder = slide.shapes.add_textbox(left_column_x, current_y_left, icon_size, icon_size)
-        add_text_to_shape(tb_icon_placeholder, icon_placeholder_text, Pt(9), align=PP_ALIGN.CENTER, vert_align=MSO_VERTICAL_ANCHOR.MIDDLE)
+        icon_placeholder = slide.shapes.add_textbox(icon_left, icon_top, icon_size, icon_size)
+        add_text_to_shape(icon_placeholder, "画像なし", font_size=Pt(8))
 
-    # 名前の配置 (アイコンの右隣、垂直中央揃えっぽく)
-    name_x = left_column_x + icon_size + Inches(0.1)
-    name_width = left_column_width - icon_size - Inches(0.1)
-    name_height = icon_size # アイコンと同じ高さにして、テキストを垂直中央に
-    name_tb = slide.shapes.add_textbox(name_x, current_y_left, name_width, name_height)
-    add_text_to_shape(name_tb, profile.get('name', '-'), Pt(18), is_bold=True, font_name='メイリオ', align=PP_ALIGN.LEFT, vert_align=MSO_VERTICAL_ANCHOR.MIDDLE)
+
+    # Persona Name (right of icon)
+    name_left = icon_left + icon_size + Cm(0.3)
+    name_top = icon_top 
+    name_width = content_width * 0.35 - icon_size - Cm(0.3) # Available width in the 35% column part
+    name_height = icon_size # Align height with icon
     
-    current_y_left += icon_size + Inches(0.25) # アイコン/名前ブロック後のスペース
+    name_text_box = slide.shapes.add_textbox(name_left, name_top, name_width, name_height)
+    # Use the helper, ensuring vertical centering if possible by adjusting paragraph alignment or text_frame properties
+    # For simplicity, direct formatting for critical elements like name:
+    tf_name = name_text_box.text_frame
+    tf_name.word_wrap = True
+    tf_name.vertical_anchor = MSO_VERTICAL_ANCHOR.MIDDLE 
+    p_name = tf_name.paragraphs[0] if tf_name.paragraphs else tf_name.add_paragraph()
+    p_name.clear()
+    run_name = p_name.add_run()
+    run_name.text = persona_data.get('name', '')
+    font_name_style = run_name.font
+    font_name_style.name = 'Meiryo UI'
+    font_name_style.size = Pt(12) # Name フォントサイズ変更 Pt(14) -> Pt(12)
+    font_name_style.bold = True
+    p_name.alignment = PP_ALIGN.LEFT
 
-    # 2. 診療科と作成目的 (左カラム)
-    item_height_small = Inches(0.3) # 少し高さを増やす
-    department_val = profile.get('department', '-')
-    department_display = DEPARTMENT_MAP.get(str(department_val).lower(), department_val)
-    dep_tb = slide.shapes.add_textbox(left_column_x, current_y_left, left_column_width, item_height_small)
-    add_text_to_shape(dep_tb, f"診療科: {department_display}", Pt(10), font_name='メイリオ', vert_align=MSO_VERTICAL_ANCHOR.MIDDLE)
-    current_y_left += item_height_small
 
-    purpose_val = profile.get('purpose', '-')
-    purpose_display = PURPOSE_MAP.get(str(purpose_val).lower(), purpose_val)
-    pur_tb = slide.shapes.add_textbox(left_column_x, current_y_left, left_column_width, item_height_small)
-    add_text_to_shape(pur_tb, f"作成目的: {purpose_display}", Pt(10), font_name='メイリオ', vert_align=MSO_VERTICAL_ANCHOR.MIDDLE)
-    current_y_left += item_height_small + Inches(0.2) # 基本情報セクション前のスペース
-
-    # 3. 基本情報セクション (左カラム)
-    title_height = Inches(0.35)
-    basic_title_tb = slide.shapes.add_textbox(left_column_x, current_y_left, left_column_width, title_height)
-    add_text_to_shape(basic_title_tb, "基本情報", Pt(12), is_bold=True, font_name='メイリオ', vert_align=MSO_VERTICAL_ANCHOR.MIDDLE)
-    # TODO: Underline for title (add a line shape below if needed)
-    current_y_left += title_height
-
-    info_items = [
-        ("性別", GENDER_MAP.get(str(profile.get('gender', '-')).lower(), profile.get('gender', '-'))),
-        ("年齢", format_age_for_pdf_ppt(profile.get('age', '-'))),
-        ("都道府県", profile.get('prefecture', '-')),
-        ("市区町村", profile.get('municipality', '-')),
-        ("職業", profile.get('occupation', '-')),
-        ("年収", INCOME_MAP.get(profile.get('income', '-'), profile.get('income', '-'))),
-        ("家族構成", profile.get('family', '-')),
-        ("趣味", profile.get('hobby', '-')),
-        ("ライフイベント", profile.get('life_events', '-')),
-        ("患者タイプ", profile.get('patient_type', '-'))
-    ]
-    info_item_key_width = left_column_width * 0.3
-    info_item_value_x = left_column_x + info_item_key_width
-    info_item_value_width = left_column_width * 0.7
-
-    for key, value in info_items:
-        # Key textbox
-        key_tb_info = slide.shapes.add_textbox(left_column_x, current_y_left, info_item_key_width, item_height_small)
-        add_text_to_shape(key_tb_info, f"{key}:", Pt(9), font_name='メイリオ', vert_align=MSO_VERTICAL_ANCHOR.MIDDLE)
-        # Value textbox
-        val_tb_info = slide.shapes.add_textbox(info_item_value_x, current_y_left, info_item_value_width, item_height_small)
-        add_text_to_shape(val_tb_info, str(value), Pt(9), font_name='メイリオ', vert_align=MSO_VERTICAL_ANCHOR.MIDDLE)
-        current_y_left += item_height_small
-    current_y_left += Inches(0.2) # その他の特徴セクション前のスペース
-
-    # 4. その他の特徴セクション (左カラム)
-    # Background for title
-    other_title_bg_shape = slide.shapes.add_shape(1, left_column_x, current_y_left, left_column_width, title_height) # 1 for rectangle
-    other_title_bg_shape.fill.solid()
-    other_title_bg_shape.fill.fore_color.rgb = RGBColor(240, 240, 240)
-    other_title_bg_shape.line.fill.background() # No border
-
-    other_title_tb = slide.shapes.add_textbox(left_column_x, current_y_left, left_column_width, title_height)
-    add_text_to_shape(other_title_tb, "その他の特徴", Pt(12), is_bold=True, font_name='メイリオ', vert_align=MSO_VERTICAL_ANCHOR.MIDDLE)
-    current_y_left += title_height
-
-    additional_items_data = [
-        ("座右の銘", profile.get('motto', '-')),
-        ("最近の悩み/関心", profile.get('concerns', '-')),
-        ("好きな有名人", profile.get('favorite_person', '-')),
-        ("よく見るメディア", profile.get('media_sns', '-')),
-        ("性格キーワード", profile.get('personality_keywords', '-')),
-        ("健康に関する行動", profile.get('health_actions', '-')),
-        ("休日の過ごし方", profile.get('holiday_activities', '-')),
-        ("キャッチコピー", profile.get('catchphrase', '-'))
-    ]
-    # Use same key/value width as basic info for consistency
-    add_item_key_width = info_item_key_width
-    add_item_value_x = info_item_value_x
-    add_item_value_width = info_item_value_width
-
-    for key, value in additional_items_data:
-        key_tb_add = slide.shapes.add_textbox(left_column_x, current_y_left, add_item_key_width, item_height_small)
-        add_text_to_shape(key_tb_add, f"{key}:", Pt(9), font_name='メイリオ', vert_align=MSO_VERTICAL_ANCHOR.MIDDLE)
-        val_tb_add = slide.shapes.add_textbox(add_item_value_x, current_y_left, add_item_value_width, item_height_small)
-        add_text_to_shape(val_tb_add, str(value), Pt(9), font_name='メイリオ', vert_align=MSO_VERTICAL_ANCHOR.MIDDLE)
-        current_y_left += item_height_small
-
-    # Dynamic additional fields
-    if profile.get('additional_field_name') and profile.get('additional_field_value'):
-        current_y_left += Inches(0.05) 
-        additional_fields = zip(profile.get('additional_field_name'), profile.get('additional_field_value'))
-        for field_name, field_value in additional_fields:
-            if field_name or field_value:
-                key_tb_dyn = slide.shapes.add_textbox(left_column_x, current_y_left, add_item_key_width, item_height_small)
-                add_text_to_shape(key_tb_dyn, f"{field_name if field_name else ''}:", Pt(9), font_name='メイリオ', vert_align=MSO_VERTICAL_ANCHOR.MIDDLE)
-                val_tb_dyn = slide.shapes.add_textbox(add_item_value_x, current_y_left, add_item_value_width, item_height_small)
-                add_text_to_shape(val_tb_dyn, str(field_value) if field_value else '-', Pt(9), font_name='メイリオ', vert_align=MSO_VERTICAL_ANCHOR.MIDDLE)
-                current_y_left += item_height_small
+    # Department and Purpose below icon and name
+    header_info_top = icon_top + icon_size + Cm(0.2)
+    header_info_shape = slide.shapes.add_textbox(icon_left, header_info_top, content_width * 0.33, Cm(1.0)) # Adjusted width
+    text_frame = header_info_shape.text_frame
+    text_frame.clear()
     
-    # 左カラムの最終 Y 座標を記録 (右カラムの高さ制限などに使える)
-    # final_y_left = current_y_left # Linterエラーの可能性のある行 - 今回は直接使っていないのでコメントアウト
+    header_items = [
+        ("診療科", department_text),
+        ("作成目的", purpose_text)
+    ]
+    for i, (label, value) in enumerate(header_items):
+        item_p = text_frame.add_paragraph() if i > 0 else text_frame.paragraphs[0]
+        if i == 0 and not text_frame.paragraphs: item_p = text_frame.add_paragraph() # Ensure paragraph exists
+        
+        run_label = item_p.add_run()
+        run_label.text = f"{label}: "
+        font_label = run_label.font
+        font_label.name = 'Meiryo UI'
+        font_label.size = Pt(9) # Department/Purpose フォントサイズ変更 Pt(10) -> Pt(9)
+        font_label.bold = True
 
-    # --- 右カラム (詳細情報) ---
-    # current_y_right は既に margin (アイコンの開始Y座標) に設定されている
+        run_value = item_p.add_run()
+        run_value.text = value
+        font_value = run_value.font
+        font_value.name = 'Meiryo UI'
+        font_value.size = Pt(9) # Department/Purpose フォントサイズ変更 Pt(10) -> Pt(9)
+        item_p.alignment = PP_ALIGN.LEFT
+        if i < len(header_items) -1: # Add line break except for last item
+             item_p.add_run().text = '\\n'
 
-    for detail_key, japanese_header_text in HEADER_MAP.items():
-        value = details.get(detail_key)
-        if value and str(value).strip():
-            # Section Header (with background)
-            sec_header_bg_shape = slide.shapes.add_shape(1, right_column_x, current_y_right, right_column_width, title_height)
-            sec_header_bg_shape.fill.solid()
-            sec_header_bg_shape.fill.fore_color.rgb = RGBColor(240, 240, 240)
-            sec_header_bg_shape.line.fill.background()
 
-            sec_header_tb = slide.shapes.add_textbox(right_column_x, current_y_right, right_column_width, title_height)
-            add_text_to_shape(sec_header_tb, japanese_header_text, Pt(12), is_bold=True, font_name='メイリオ', vert_align=MSO_VERTICAL_ANCHOR.MIDDLE)
-            current_y_right += title_height
+    y_position_left = header_info_top + Cm(1.0) + Cm(0.3) # Start Y for left column content
+    y_position_right = icon_top # Start Y for right column content (aligned with icon top)
 
-            # Content
-            # テキスト量に基づいて高さを推定するより、ある程度固定の高さを与えて word_wrap に任せる
-            # この高さは、平均的なコンテンツ量とスライド全体のバランスを考慮して調整
-            # 例えば、1セクションあたり平均3-5行程度を想定
-            estimated_lines = len(str(value).split('\\n')) + str(value).count('\\n') # Consider explicit and implicit newlines
-            content_block_height = Inches(0.25 * max(3, estimated_lines)) # 1行あたり0.25インチ、最低3行分
-            content_block_height = min(content_block_height, Inches(2.0)) # 最大でも2インチ程度に抑える
 
-            content_tb = slide.shapes.add_textbox(right_column_x, current_y_right, right_column_width, content_block_height)
-            add_text_to_shape(content_tb, str(value), Pt(9), font_name='メイリオ', align=PP_ALIGN.LEFT, vert_align=MSO_VERTICAL_ANCHOR.TOP) # 内容は上寄せ
-            current_y_right += content_block_height + Inches(0.15) # セクション間のスペース
+    # Left Column (Basic Information)
+    left_column_x = left_margin_ppt
+    left_width = content_width * 0.33
+    
+    current_y_left = y_position_left
+
+    # Section Title: 基本情報
+    shape_title_basic = slide.shapes.add_textbox(left_column_x, current_y_left, left_width, Cm(0.6))
+    add_text_to_shape(shape_title_basic, "基本情報", font_size=Pt(11), is_bold=True, font_name='Meiryo UI') # Section title フォントサイズ変更 Pt(12) -> Pt(11)
+    current_y_left += Cm(0.6) + item_spacing_ppt # Update Y position
+
+    basic_info_keys = ["gender", "age", "prefecture", "municipality", "family", "occupation", "income", "hobby", "life_events", "patient_type"]
+    basic_info_labels = {
+        "gender": "性別", "age": "年齢", "prefecture": "都道府県", "municipality": "市区町村",
+        "family": "家族構成", "occupation": "職業", "income": "年収", "hobby": "趣味",
+        "life_events": "ライフイベント", "patient_type": "患者タイプ"
+    }
+
+    for key in basic_info_keys:
+        value = persona_data.get(key, "-")
+        if key == "gender": value = GENDER_MAP.get(value, value)
+        elif key == "age": value = format_age_for_pdf_ppt(value)
+        elif key == "income": value = INCOME_MAP.get(value, value)
+        
+        item_text = f"{basic_info_labels.get(key, key)}: {value}"
+        item_shape = slide.shapes.add_textbox(left_column_x, current_y_left, left_width, Cm(0.5)) # Estimate height
+        add_text_to_shape(item_shape, item_text, font_size=Pt(9), font_name='Meiryo UI') # Item font size
+        current_y_left += Cm(0.5) + item_spacing_ppt
+
+
+    # Additional Fixed Fields (Left Column)
+    additional_fixed_keys_labels = {
+        "motto": "座右の銘", "concerns": "最近の悩み/関心", "favorite_person": "好きな有名人/尊敬する人物",
+        "media_sns": "よく見るメディア/SNS", "personality_keywords": "性格キーワード",
+        "health_actions": "最近した健康に関する行動", "holiday_activities": "休日の過ごし方",
+        "catchphrase_input": "キャッチコピー" # Note: key from form is 'catchphrase_input' for preview, but likely 'catchphrase' in backend
+    }
+    # Section Title: 追加情報 (Fixed)
+    current_y_left += item_spacing_ppt # Extra space before next section
+    shape_title_add_fixed = slide.shapes.add_textbox(left_column_x, current_y_left, left_width, Cm(0.6))
+    add_text_to_shape(shape_title_add_fixed, "追加情報", font_size=Pt(11), is_bold=True, font_name='Meiryo UI') # Section title フォントサイズ変更 Pt(12) -> Pt(11)
+    current_y_left += Cm(0.6) + item_spacing_ppt
+
+    for key, label in additional_fixed_keys_labels.items():
+        value = persona_data.get(key, persona_data.get(key.replace('_input', ''), "-")) # Check for alternative key
+        item_text = f"{label}: {value}"
+        item_shape = slide.shapes.add_textbox(left_column_x, current_y_left, left_width, Cm(0.5))
+        add_text_to_shape(item_shape, item_text, font_size=Pt(9), font_name='Meiryo UI') # Item font size
+        current_y_left += Cm(0.5) + item_spacing_ppt
+        
+    # Dynamic Additional Fields (Left Column)
+    dynamic_fields = persona_data.get("additional_fields", [])
+    if dynamic_fields:
+        current_y_left += item_spacing_ppt
+        shape_title_add_dyn = slide.shapes.add_textbox(left_column_x, current_y_left, left_width, Cm(0.6))
+        add_text_to_shape(shape_title_add_dyn, "自由記述項目", font_size=Pt(11), is_bold=True, font_name='Meiryo UI') # Section title フォントサイズ変更 Pt(12) -> Pt(11)
+        current_y_left += Cm(0.6) + item_spacing_ppt
+        for field in dynamic_fields:
+            # Ensure field is a dictionary and has 'name' and 'value' keys
+            if isinstance(field, dict) and 'name' in field and 'value' in field:
+                field_name = field.get('name', '不明な項目')
+                field_value = field.get('value', '-')
+                item_text = f"{field_name}: {field_value}"
+                item_shape = slide.shapes.add_textbox(left_column_x, current_y_left, left_width, Cm(0.5))
+                add_text_to_shape(item_shape, item_text, font_size=Pt(9), font_name='Meiryo UI') # Item font size
+                current_y_left += Cm(0.5) + item_spacing_ppt
+
+
+    # Right Column (Detailed Information)
+    right_column_x = left_margin_ppt + content_width * 0.35 + Cm(0.3) # Start after left column + gap
+    right_width = content_width * 0.65 - Cm(0.3) # Remaining width
+    
+    current_y_right = y_position_right
+
+    detail_key_map = {
+        "personality": "性格（価値観・人生観）",
+        "reason": "通院理由",
+        "behavior": "症状通院頻度・行動パターン",
+        "reviews": "口コミの重視ポイント",
+        "values": "医療機関への価値観・行動傾向",
+        "demands": "医療機関に求めるもの"
+    }
+    
+    # Draw "性格（価値観・人生観）" first as it's a primary section
+    if persona_data.get('personality'):
+        section_title = detail_key_map['personality']
+        value = persona_data['personality']
+        
+        title_shape = slide.shapes.add_textbox(right_column_x, current_y_right, right_width, Cm(0.6))
+        add_text_to_shape(title_shape, section_title, font_size=Pt(11), is_bold=True, font_name='Meiryo UI') # Section title フォントサイズ変更 Pt(12) -> Pt(11)
+        current_y_right += Cm(0.6)
+
+        content_shape = slide.shapes.add_textbox(right_column_x, current_y_right, right_width, Cm(2.5)) # Allow more height
+        # For multi-line content, ensure add_text_to_shape and the textbox can handle it.
+        # The SHAPE_TO_FIT_TEXT auto_size in add_text_to_shape should help.
+        add_text_to_shape(content_shape, value, font_size=Pt(9), font_name='Meiryo UI') # Item font size
+        
+        # Estimate height based on content_shape's actual height after text is added (if possible, else fixed increment)
+        # This part is tricky without rendering. Assuming a fixed increment or relying on SHAPE_TO_FIT_TEXT
+        current_y_right += Cm(2.5) + item_spacing_ppt * 2 # Add space after section, Cm(2.5) is placeholder for content height
+        
+
+    # Other detailed sections
+    for key in ["reason", "behavior", "reviews", "values", "demands"]:
+        if key in persona_data and persona_data[key]:
+            section_title = detail_key_map.get(key, key)
+            value = persona_data[key]
             
-            # スライドの高さを超えそうならブレーク (単純なチェック)
-            if current_y_right > slide_height - margin - Inches(0.5): # 少し余裕を持たせる
-                 print(f"Warning: Content for right column might be exceeding slide height. Last section: {japanese_header_text}")
-                 break
+            title_shape = slide.shapes.add_textbox(right_column_x, current_y_right, right_width, Cm(0.6))
+            add_text_to_shape(title_shape, section_title, font_size=Pt(11), is_bold=True, font_name='Meiryo UI') # Section title フォントサイズ変更 Pt(12) -> Pt(11)
+            current_y_right += Cm(0.6)
 
-    # Save presentation to a BytesIO buffer
-    ppt_buffer = io.BytesIO()
-    prs.save(ppt_buffer)
-    ppt_buffer.seek(0)
-    return ppt_buffer
+            content_shape = slide.shapes.add_textbox(right_column_x, current_y_right, right_width, Cm(2.0)) # Allow height
+            add_text_to_shape(content_shape, value, font_size=Pt(9), font_name='Meiryo UI') # Item font size
+            current_y_right += Cm(2.0) + item_spacing_ppt * 2 # Add space, Cm(2.0) is placeholder
+    
+    return prs
 
 @app.route('/api/download/ppt', methods=['POST'])
 def download_ppt():
