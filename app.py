@@ -11,6 +11,7 @@ from anthropic import Anthropic
 from fpdf import FPDF
 import io
 from urllib.parse import quote
+from urllib.request import urlopen # Added for image fetching
 from pptx import Presentation
 from pptx.util import Inches, Pt # Inches for image size, Pt for font size
 from pptx.enum.text import PP_ALIGN # For text alignment
@@ -517,35 +518,59 @@ def generate_pdf(data):
 
     profile = data.get('profile', {})
     details = data.get('details', {})
+    image_url = data.get('image_url')
 
-    # --- ヘッダー部分（タイトルと診療科・目的） ---
-    # 名前とタイトル
-    pdf.set_font_size(14)
-    pdf.cell(0, 8, profile.get('name', 'ペルソナ'), ln=True, align='C')
-    
-    # 診療科と目的を横並びで表示
-    pdf.set_font_size(10)
-    pdf.cell(25, 5, "診療科:", align='R')
-    pdf.cell(60, 5, profile.get('department', '-'), ln=0)
-    pdf.cell(25, 5, "作成目的:", align='R')
-    pdf.cell(50, 5, profile.get('purpose', '-'), ln=1)
-    pdf.ln(2)
-    
-    # 2カラムレイアウトに変更
+    page_width_for_centering = pdf.w - pdf.l_margin - pdf.r_margin
+
+    # --- ヘッダー新レイアウト ---
+    # 1. 診療科と作成目的 (上部左右に配置)
+    pdf.set_font("ipa", '', 10)
+    pdf.cell(page_width_for_centering / 2, 7, f"診療科: {profile.get('department', '-')}", 0, 0, 'L')
+    pdf.cell(page_width_for_centering / 2, 7, f"作成目的: {profile.get('purpose', '-')}", 0, 1, 'R')
+    pdf.ln(3)
+
+    # 2. ペルソナアイコン (中央に配置)
+    icon_size = 30  # アイコンのサイズ (mm)
+    icon_x = (pdf.w - icon_size) / 2
+    if image_url:
+        try:
+            # 画像をURLから読み込む
+            with urlopen(image_url) as img_file:
+                img_data = io.BytesIO(img_file.read())
+            pdf.image(img_data, x=icon_x, y=pdf.get_y(), w=icon_size, h=icon_size)
+            pdf.ln(icon_size + 2) # アイコンの高さ＋少し余白
+        except Exception as e:
+            print(f"Error loading image for PDF from {image_url}: {e}")
+            pdf.ln(icon_size + 2) # エラー時も同じだけ改行してレイアウトを保つ
+    else:
+        pdf.ln(icon_size + 2) # 画像URLがない場合もスペースを空ける
+
+    # 3. ペルソナ名 (アイコンの下、中央揃え)
+    pdf.set_font("ipa", 'B', 16) # 名前は太字で少し大きく
+    pdf.cell(0, 10, profile.get('name', 'ペルソナ名なし'), 0, 1, 'C')
+    pdf.ln(5)
+
+    content_start_y = pdf.get_y() # 左カラムと右カラムの開始Y座標
+
+    # --- ここまでヘッダー ---
+
+    # 2カラムレイアウトに変更 (これは変更なし)
     page_width = pdf.w - pdf.l_margin - pdf.r_margin
-    left_column_width = page_width * 0.35  # 左カラム（基本情報と追加情報）: 35%
-    right_column_width = page_width * 0.65  # 右カラム（詳細情報）: 65%
+    left_column_width = page_width * 0.35
+    right_column_width = page_width * 0.65
+    column_gap = 5 # カラム間のギャップ
     
     # --- 左カラム (基本情報とその他の特徴) ---
     left_margin = pdf.l_margin
-    current_y = pdf.get_y()
     
     # 基本情報セクション
-    pdf.set_xy(left_margin, current_y)
+    pdf.set_xy(left_margin, content_start_y) # Y座標を開始位置に設定
     pdf.set_font("ipa", 'B', 11)
     pdf.set_fill_color(240, 240, 240) # 薄いグレー
-    pdf.cell(left_column_width, 6, "基本情報", ln=1, fill=True)
+    pdf.cell(left_column_width, 6, "基本情報", ln=1, fill=True) # fill=Trueで背景色
     pdf.ln(1)
+    
+    current_y_left = pdf.get_y() # 左カラムの現在Y座標を管理
     
     # 基本情報の項目を表示
     pdf.set_font("ipa", '', 9)
@@ -562,28 +587,32 @@ def generate_pdf(data):
         ("患者タイプ", profile.get('patient_type', '-'))
     ]
     
-    # 項目の描画
+    item_height = 4 # 各項目の高さ
+    key_width = 25 # 項目のキー部分の幅
+    value_width = left_column_width - key_width
+
     for key, value in info_items:
-        pdf.set_x(left_margin)
+        pdf.set_xy(left_margin, current_y_left)
         pdf.set_font("ipa", 'B', 9)
-        pdf.cell(25, 4, f"{key}:", 0)
+        pdf.cell(key_width, item_height, f"{key}:", 0, 0)
         pdf.set_font("ipa", '', 9)
         
         # 値が長い場合は折り返し
-        if len(str(value)) > 15:
-            text_width = left_column_width - 25
-            pdf.set_x(left_margin + 25)
-            pdf.multi_cell(text_width, 4, str(value) if value else '-', 0)
-        else:
-            pdf.cell(left_column_width - 25, 4, str(value) if value else '-', ln=1)
+        pdf.set_xy(left_margin + key_width, current_y_left)
+        pdf.multi_cell(value_width, item_height, str(value) if value else '-', 0, 'L')
+        current_y_left = pdf.get_y() # multi_cell後のY座標を取得
+        # multi_cellは自動で改行するので、ln() は不要だが、次の要素のためにY座標を更新
+
+    current_y_left += 3 # セクション間の余白
     
     # その他の特徴セクション
-    current_y = pdf.get_y() + 5
-    pdf.set_xy(left_margin, current_y)
+    pdf.set_xy(left_margin, current_y_left)
     pdf.set_font("ipa", 'B', 11)
     pdf.set_fill_color(240, 240, 240) # 薄いグレー
     pdf.cell(left_column_width, 6, "その他の特徴", ln=1, fill=True)
+    current_y_left = pdf.get_y() # Y座標を更新
     pdf.ln(1)
+    current_y_left = pdf.get_y() # Y座標を更新
     
     # 追加情報の項目
     additional_items = [
@@ -597,36 +626,37 @@ def generate_pdf(data):
         ("キャッチコピー", profile.get('catchphrase', '-'))
     ]
     
-    # 追加項目の描画
+    additional_key_width = 30
+    additional_value_width = left_column_width - additional_key_width
+
     for key, value in additional_items:
-        pdf.set_x(left_margin)
+        pdf.set_xy(left_margin, current_y_left)
         pdf.set_font("ipa", 'B', 9)
-        pdf.cell(30, 4, f"{key}:", 0)
+        pdf.cell(additional_key_width, item_height, f"{key}:", 0, 0)
         pdf.set_font("ipa", '', 9)
         
-        # 長いテキストは折り返して表示
-        text_width = left_column_width - 30
-        pdf.set_x(left_margin + 30)
-        pdf.multi_cell(text_width, 4, str(value) if value else '-', 0)
-    
+        pdf.set_xy(left_margin + additional_key_width, current_y_left)
+        pdf.multi_cell(additional_value_width, item_height, str(value) if value else '-', 0, 'L')
+        current_y_left = pdf.get_y()
+
     # 動的に追加された項目があれば表示
     if profile.get('additional_field_name') and profile.get('additional_field_value'):
         additional_fields = zip(profile.get('additional_field_name'), profile.get('additional_field_value'))
+        current_y_left +=1 # 少し余白
         for field_name, field_value in additional_fields:
-            if field_name or field_value:
-                pdf.set_x(left_margin)
+            if field_name or field_value: # どちらかがあれば表示
+                pdf.set_xy(left_margin, current_y_left)
                 pdf.set_font("ipa", 'B', 9)
-                pdf.cell(30, 4, f"{field_name}:", 0)
+                pdf.cell(additional_key_width, item_height, f"{field_name if field_name else ''}:", 0, 0)
                 pdf.set_font("ipa", '', 9)
                 
-                # テキスト表示
-                pdf.set_x(left_margin + 30)
-                pdf.multi_cell(text_width, 4, str(field_value) if field_value else '-', 0)
+                pdf.set_xy(left_margin + additional_key_width, current_y_left)
+                pdf.multi_cell(additional_value_width, item_height, str(field_value) if field_value else '-', 0, 'L')
+                current_y_left = pdf.get_y()
     
     # --- 右カラム (詳細情報) ---
-    right_margin = left_margin + left_column_width + 5  # 5mmの余白を追加
+    right_column_x = left_margin + left_column_width + column_gap
     
-    # Map internal keys to Japanese headers
     header_map = {
         "personality": "性格（価値観・人生観）",
         "reason": "通院理由",
@@ -636,40 +666,32 @@ def generate_pdf(data):
         "demands": "医療機関に求めるもの"
     }
 
-    # 右カラムの開始位置を設定
-    right_column_y = current_y - 200  # ページの上部から開始（ヘッダー下）
+    current_y_right = content_start_y # 右カラムの開始Y座標をヘッダー直後に設定
 
-    # 詳細情報の描画
     for key, japanese_header in header_map.items():
-        value = details.get(key) # Get value using the internal key
-        if value: # Only add if value exists
-            # ヘッダー
-            pdf.set_xy(right_margin, right_column_y)
+        value = details.get(key) 
+        if value: 
+            pdf.set_xy(right_column_x, current_y_right)
             pdf.set_font("ipa", 'B', 11)
-            pdf.set_fill_color(240, 240, 240) # 薄いグレー
-            pdf.cell(right_column_width, 6, japanese_header, ln=1, fill=True)
-            right_column_y += 6
+            pdf.set_fill_color(240, 240, 240) 
+            pdf.cell(right_column_width, 6, japanese_header, 0, 1, 'L', fill=True) # ln=1 から 0, 1, 'L' に変更
+            current_y_right = pdf.get_y() 
+            pdf.ln(1) # ヘッダーと内容の間の小さなスペース
+            current_y_right = pdf.get_y() 
             
-            # 内容 - MultiCellを使用して折り返し表示
-            pdf.set_xy(right_margin, right_column_y)
+            pdf.set_xy(right_column_x, current_y_right)
             pdf.set_font("ipa", '', 9)
             
-            # 日本語テキストを適切に処理
-            # 改行で分割し、各段落を独立して処理
-            paragraphs = str(value).split('\n')
-            for paragraph in paragraphs:
-                if paragraph.strip() == "":
-                    # 空の段落は小さい余白として処理
-                    right_column_y += 1
+            paragraphs = str(value).split('\\n')
+            for paragraph_text in paragraphs:
+                if paragraph_text.strip() == "":
+                    current_y_right += 1 # 空行は小さなスペース
                     continue
-                    
-                # 段落を描画
-                pdf.set_xy(right_margin, right_column_y)
-                pdf.multi_cell(right_column_width, 4, paragraph)
-                right_column_y = pdf.get_y() + 1  # 段落間の余白
+                pdf.set_xy(right_column_x, current_y_right)
+                pdf.multi_cell(right_column_width, 4, paragraph_text, 0, 'L')
+                current_y_right = pdf.get_y() + 0.5 # multi_cellは自動改行するので、その後のY座標を取得し、段落間余白を少し追加
             
-            # 次のセクションまでの余白
-            right_column_y += 3
+            current_y_right += 2 # 次のセクションまでの余白を調整
 
     # Generate PDF in memory
     pdf_output = pdf.output() # Get output as bytes directly
