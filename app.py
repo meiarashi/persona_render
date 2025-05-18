@@ -531,13 +531,12 @@ def generate_pdf(data):
     pdf.cell(50, 5, profile.get('purpose', '-'), ln=1)
     pdf.ln(2)
     
-    # 横長レイアウトを3カラムに分割
+    # 2カラムレイアウトに変更
     page_width = pdf.w - pdf.l_margin - pdf.r_margin
-    left_column_width = page_width * 0.25  # 左カラム（基本情報）: 25%
-    middle_column_width = page_width * 0.25  # 中央カラム（追加情報）: 25%
-    right_column_width = page_width * 0.5   # 右カラム（詳細情報）: 50%
+    left_column_width = page_width * 0.35  # 左カラム（基本情報と追加情報）: 35%
+    right_column_width = page_width * 0.65  # 右カラム（詳細情報）: 65%
     
-    # --- 左カラム (基本情報) ---
+    # --- 左カラム (基本情報とその他の特徴) ---
     left_margin = pdf.l_margin
     current_y = pdf.get_y()
     
@@ -578,12 +577,12 @@ def generate_pdf(data):
         else:
             pdf.cell(left_column_width - 25, 4, str(value) if value else '-', ln=1)
     
-    # --- 中央カラム (追加情報) ---
-    middle_margin = left_margin + left_column_width
-    pdf.set_xy(middle_margin, current_y)
+    # その他の特徴セクション
+    current_y = pdf.get_y() + 5
+    pdf.set_xy(left_margin, current_y)
     pdf.set_font("ipa", 'B', 11)
     pdf.set_fill_color(240, 240, 240) # 薄いグレー
-    pdf.cell(middle_column_width, 6, "その他の特徴", ln=1, fill=True)
+    pdf.cell(left_column_width, 6, "その他の特徴", ln=1, fill=True)
     pdf.ln(1)
     
     # 追加情報の項目
@@ -599,36 +598,33 @@ def generate_pdf(data):
     ]
     
     # 追加項目の描画
-    additional_y = pdf.get_y()
     for key, value in additional_items:
-        pdf.set_xy(middle_margin, additional_y)
-        pdf.set_font("ipa", 'B', 8)
+        pdf.set_x(left_margin)
+        pdf.set_font("ipa", 'B', 9)
         pdf.cell(30, 4, f"{key}:", 0)
-        pdf.set_font("ipa", '', 8)
+        pdf.set_font("ipa", '', 9)
         
         # 長いテキストは折り返して表示
-        text_width = middle_column_width - 30
-        pdf.set_xy(middle_margin + 30, additional_y)
+        text_width = left_column_width - 30
+        pdf.set_x(left_margin + 30)
         pdf.multi_cell(text_width, 4, str(value) if value else '-', 0)
-        additional_y = pdf.get_y() + 1
     
     # 動的に追加された項目があれば表示
     if profile.get('additional_field_name') and profile.get('additional_field_value'):
         additional_fields = zip(profile.get('additional_field_name'), profile.get('additional_field_value'))
         for field_name, field_value in additional_fields:
             if field_name or field_value:
-                pdf.set_xy(middle_margin, additional_y)
-                pdf.set_font("ipa", 'B', 8)
+                pdf.set_x(left_margin)
+                pdf.set_font("ipa", 'B', 9)
                 pdf.cell(30, 4, f"{field_name}:", 0)
-                pdf.set_font("ipa", '', 8)
+                pdf.set_font("ipa", '', 9)
                 
                 # テキスト表示
-                pdf.set_xy(middle_margin + 30, additional_y)
+                pdf.set_x(left_margin + 30)
                 pdf.multi_cell(text_width, 4, str(field_value) if field_value else '-', 0)
-                additional_y = pdf.get_y() + 1
     
     # --- 右カラム (詳細情報) ---
-    right_margin = middle_margin + middle_column_width
+    right_margin = left_margin + left_column_width + 5  # 5mmの余白を追加
     
     # Map internal keys to Japanese headers
     header_map = {
@@ -641,8 +637,7 @@ def generate_pdf(data):
     }
 
     # 右カラムの開始位置を設定
-    pdf.set_xy(right_margin, current_y)
-    right_column_y = current_y
+    right_column_y = current_y - 200  # ページの上部から開始（ヘッダー下）
 
     # 詳細情報の描画
     for key, japanese_header in header_map.items():
@@ -650,7 +645,7 @@ def generate_pdf(data):
         if value: # Only add if value exists
             # ヘッダー
             pdf.set_xy(right_margin, right_column_y)
-            pdf.set_font("ipa", 'B', 10)
+            pdf.set_font("ipa", 'B', 11)
             pdf.set_fill_color(240, 240, 240) # 薄いグレー
             pdf.cell(right_column_width, 6, japanese_header, ln=1, fill=True)
             right_column_y += 6
@@ -674,7 +669,7 @@ def generate_pdf(data):
                 right_column_y = pdf.get_y() + 1  # 段落間の余白
             
             # 次のセクションまでの余白
-            right_column_y += 2
+            right_column_y += 3
 
     # Generate PDF in memory
     pdf_output = pdf.output() # Get output as bytes directly
