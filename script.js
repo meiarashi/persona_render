@@ -1094,6 +1094,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         currentStep = stepNumberToShow;
 
+        // ステップ1の「次の質問へ進む」ボタンの状態を制御
+        if (currentStep === 1) {
+            const step1NextBtn = formSteps[0].querySelector('.next-step-btn');
+            if (step1NextBtn) {
+                const selectedDept = multiStepForm.querySelector('input[name="department"]:checked');
+                step1NextBtn.disabled = !selectedDept; // 未選択ならtrue (非活性)
+            }
+        }
+
         if (currentStep === 3 && !hasRandomizedDetailsEver) {
             if (typeof randomizeDetailSettingsFields === 'function') {
                 console.log("[DEBUG] showStep: Calling randomizeDetailSettingsFields for Step 3. hasRandomizedDetailsEver:", hasRandomizedDetailsEver);
@@ -1274,6 +1283,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (originalRadio.parentNode) originalRadio.parentNode.replaceChild(newRadio, originalRadio);
         newRadio.addEventListener('change', () => {
             updateSelectedLabel(multiStepForm.querySelectorAll('input[name="department"]'), 'department');
+            // 診療科が選択されたらステップ1の「次の質問へ進む」ボタンを活性化
+            if (currentStep === 1) {
+                const step1NextBtn = formSteps[0].querySelector('.next-step-btn');
+                if (step1NextBtn) {
+                    step1NextBtn.disabled = false;
+                }
+            }
         });
     });
     const currentPurposeRadios = multiStepForm.querySelectorAll('input[name="purpose"]');
@@ -1338,13 +1354,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     nextButtons.forEach(button => {
         button.addEventListener('click', () => {
-            if (currentStep === 1) {
-                const selectedDept = multiStepForm.querySelector('input[name="department"]:checked');
-                if (!selectedDept) {
-                    alert('診療科を選択してください。');
-                    return;
-                }
-            }
+            // ステップ1の診療科未選択アラートを削除
+            // if (currentStep === 1) { 
+            //     const selectedDept = multiStepForm.querySelector('input[name="department"]:checked');
+            //     if (!selectedDept) {
+            //         alert('診療科を選択してください。');
+            //         return;
+            //     }
+            // }
 
             // ステップ3で「自動」が選択されている場合の特別処理
             if (currentStep === 3) {
@@ -1942,10 +1959,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     const restartBtn = document.getElementById('restart-btn');
     if (restartBtn) {
         restartBtn.addEventListener('click', () => {
-            // リセット確認
-            if (confirm('最初からやり直しますか？入力した内容はすべてリセットされます。')) {
+            // リセット確認を削除し、常にリセット処理を実行
+            // if (confirm('最初からやり直しますか？入力した内容はすべてリセットされます。')) { <--- この行をコメントアウトまたは削除
                 // フォームをリセット
                 document.getElementById('multi-step-form').reset();
+
+                // 診療科のラジオボタンの選択を解除
+                const departmentRadios = document.querySelectorAll('input[name="department"]');
+                departmentRadios.forEach(radio => {
+                    radio.checked = false;
+                });
+                // 診療科の視覚的な選択状態をリセット
+                updateSelectedLabel(departmentRadios, 'department');
+
+                // ステップ1の「次の質問へ進む」ボタンを非活性化
+                const step1NextBtn = formSteps[0].querySelector('.next-step-btn');
+                if (step1NextBtn) {
+                    step1NextBtn.disabled = true;
+                }
+
                 // ステップ1に戻る
                 showStep(1);
                 // 現在のペルソナ結果をクリア
@@ -1956,9 +1988,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const patientTypeRadio = document.querySelector('input[name="setting_type"][value="patient_type"]');
                 if (patientTypeRadio) {
                     patientTypeRadio.checked = true;
+                    // setting_type の変更イベントを発火させて関連UIを更新
+                    // updateSelectedLabelも内部で呼ばれることを期待するが、明示的にdepartmentも更新済み
                     patientTypeRadio.dispatchEvent(new Event('change', { bubbles: true }));
+                } else {
+                    // もしpatientTypeRadioが見つからない場合でも、他の設定タイプの選択状態もクリアしておく
+                    updateSelectedLabel(document.querySelectorAll('input[name="setting_type"]'), 'setting_type');
                 }
-            }
+
+                // 患者タイプの選択もリセット (もしあれば)
+                const patientTypeRadios = document.querySelectorAll('input[name="patient_type"]');
+                if (patientTypeRadios.length > 0) {
+                    patientTypeRadios.forEach(radio => {
+                        radio.checked = false;
+                    });
+                    updateSelectedLabel(patientTypeRadios, 'patient_type');
+                     // 患者タイプの説明欄も非表示に
+                    const patientTypeDescription = document.getElementById('patient-type-description');
+                    if(patientTypeDescription) patientTypeDescription.style.display = 'none';
+                }
+            // } <--- この行をコメントアウトまたは削除
         });
     }
 
