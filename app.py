@@ -24,58 +24,84 @@ app = Flask(__name__, static_url_path='/', static_folder='.')
 # db = SQLAlchemy(app) # Removed SQLAlchemy initialization
 CORS(app)
 
-# --- Database Model Definition --- (Removed)
-# class Setting(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     key = db.Column(db.String(80), unique=True, nullable=False)
-#     value = db.Column(db.String(500), nullable=True)
-#
-#     def __repr__(self):
-#         return f'<Setting {self.key}: {self.value}>'
+# --- Global Maps and Helper Functions for PDF/PPT Generation ---
+GENDER_MAP = {
+    "male": "男性", "female": "女性", "other": "その他",
+}
+INCOME_MAP = {
+    "<100": "100万円未満", "100-200": "100-200万円", "200-300": "200-300万円",
+    "300-400": "300-400万円", "400-500": "400-500万円", "500-600": "500-600万円",
+    "600-700": "600-700万円", "700-800": "700-800万円", "800-900": "800-900万円",
+    "900-1000": "900-1000万円", "1000-1100": "1000-1100万円", "1100-1200": "1100-1200万円",
+    "1200-1300": "1200-1300万円", "1300-1400": "1300-1400万円", "1400-1500": "1400-1500万円",
+    "1500-1600": "1500-1600万円", "1600-1700": "1600-1700万円", "1700-1800": "1700-1800万円",
+    "1800-1900": "1800-1900万円", "1900-2000": "1900-2000万円", "2000-2100": "2000-2100万円",
+    "2100-2200": "2100-2200万円", "2200-2300": "2200-2300万円", "2300-2400": "2300-2400万円",
+    "2400-2500": "2400-2500万円", "2500-2600": "2500-2600万円", "2600-2700": "2600-2700万円",
+    "2700-2800": "2700-2800万円", "2800-2900": "2800-2900万円", "2900-3000": "2900-3000万円",
+    "3000-3100": "3000-3100万円", "3100-3200": "3100-3200万円", "3200-3300": "3200-3300万円",
+    "3300-3400": "3300-3400万円", "3400-3500": "3400-3500万円", "3500-3600": "3500-3600万円",
+    "3600-3700": "3600-3700万円", "3700-3800": "3700-3800万円", "3800-3900": "3800-3900万円",
+    "3900-4000": "3900-4000万円", "4000-4100": "4000-4100万円", "4100-4200": "4100-4200万円",
+    "4200-4300": "4200-4300万円", "4300-4400": "4300-4400万円", "4400-4500": "4400-4500万円",
+    "4500-4600": "4500-4600万円", "4600-4700": "4600-4700万円", "4700-4800": "4700-4800万円",
+    # Add more income mappings if necessary based on index.html
+}
+DEPARTMENT_MAP = {
+    "internal_medicine": "内科", "surgery": "外科", "pediatrics": "小児科",
+    "orthopedics": "整形外科", "dermatology": "皮膚科", "ophthalmology": "眼科",
+    "cardiology": "循環器内科", "psychiatry": "精神科", "dentistry": "歯科", # dentistry は 一般歯科 の可能性もあるが一旦このまま
+    "pediatric_dentistry": "小児歯科", "otorhinolaryngology": "耳鼻咽喉科", # ent のエイリアスとして
+    "ent": "耳鼻咽喉科", # index.html でのキー
+    "gynecology": "婦人科",
+    "urology": "泌尿器科",
+    "neurosurgery": "脳神経外科",
+    "general_dentistry": "一般歯科",
+    "orthodontics": "矯正歯科",
+    "cosmetic_dentistry": "審美歯科",
+    "oral_surgery": "口腔外科",
+    "anesthesiology": "麻酔科",
+    "radiology": "放射線科",
+    "rehabilitation": "リハビリテーション科",
+    "allergy": "アレルギー科",
+    "gastroenterology": "消化器内科", # index.html では 消化器科
+    "respiratory_medicine": "呼吸器内科",
+    "diabetes_medicine": "糖尿病内科",
+    "nephrology": "腎臓内科",
+    "neurology": "神経内科",
+    "hematology": "血液内科",
+    "plastic_surgery": "形成外科",
+    "beauty_surgery": "美容外科",
+    # ここまで index.html から抽出・マージした診療科
+}
+PURPOSE_MAP = {
+    "increase_patients": "患者数を増やす",
+    "increase_frequency": "来院頻度を増やす",
+    "increase_spend": "客単価を増やす",
+    # Add more mappings as needed
+}
+HEADER_MAP = { # For right column details in PDF/PPT
+    "personality": "性格（価値観・人生観）",
+    "reason": "通院理由",
+    "behavior": "症状通院頻度・行動パターン",
+    "reviews": "口コミの重視ポイント",
+    "values": "医療機関への価値観・行動傾向",
+    "demands": "医療機関に求めるもの"
+}
 
-# --- Helper Functions --- (Removed)
-# def get_setting(key, default=None):
-#     """Gets a setting value from the database."""
-#     setting = Setting.query.filter_by(key=key).first()
-#     return setting.value if setting else default
-#
-# def set_setting(key, value):
-#     """Sets or updates a setting value in the database."""
-#     setting = Setting.query.filter_by(key=key).first()
-#     if setting:
-#         setting.value = value
-#     else:
-#         setting = Setting(key=key, value=value)
-#         db.session.add(setting)
-#     db.session.commit()
-
-# --- Function to initialize DB and load initial settings --- (Removed)
-# def initialize_database():
-#     with app.app_context():
-#         db.create_all() # Create table if it doesn't exist
-#
-#         # Load initial DEFAULTS for non-sensitive settings if not already in DB
-#         if not get_setting("selected_text_model"):
-#              set_setting("selected_text_model", "gpt-4.1")
-#         if not get_setting("selected_image_model"):
-#              set_setting("selected_image_model", "dall-e-3")
-#         # Load initial char limits if not already in DB
-#         default_limits = {
-#             "personality": "100", "reason": "100", "behavior": "100",
-#             "reviews": "100", "values": "100", "demands": "100"
-#         }
-#         for key, default_value in default_limits.items():
-#             db_key = f"limit_{key}"
-#             if not get_setting(db_key):
-#                  set_setting(db_key, default_value)
-#
-#         # Add default output settings
-#         if get_setting("output_pdf_enabled") is None: # Check if None explicitly
-#              set_setting("output_pdf_enabled", "true") # Store as string 'true'/'false'
-#         if get_setting("output_ppt_enabled") is None:
-#              set_setting("output_ppt_enabled", "true")
-#         if get_setting("output_gslide_enabled") is None:
-#              set_setting("output_gslide_enabled", "false") # Default GSlide to disabled
+def format_age_for_pdf_ppt(age_value): # Renamed to avoid conflict if there's another format_age_for_pdf
+    if not age_value: return '-'
+    age_value_str = str(age_value) # Ensure it's a string
+    if 'm' in age_value_str and 'y' in age_value_str:
+        parts = age_value_str.split('y')
+        years = parts[0]
+        months = parts[1].replace('m', '')
+        return f"{years}歳{months}ヶ月"
+    elif 'y' in age_value_str:
+        return f"{age_value_str.replace('y', '')}歳"
+    elif 'm' in age_value_str:
+            return f"0歳{age_value_str.replace('m','')}ヶ月"
+    return age_value_str
 
 # --- AI Client Initialization Helper --- 
 def get_ai_client(model_name, api_key):
@@ -523,84 +549,11 @@ def generate_pdf(data):
     # --- 定数定義 ---
     name_line_height = 6  # ペルソナ名の行の高さ (mm)
     section_title_height = 7 # セクションタイトルのセルの高さ (mm)
-    header_map = {
-        "personality": "性格（価値観・人生観）",
-        "reason": "通院理由",
-        "behavior": "症状通院頻度・行動パターン",
-        "reviews": "口コミの重視ポイント",
-        "values": "医療機関への価値観・行動傾向",
-        "demands": "医療機関に求めるもの"
-    }
+    # header_map はモジュールレベルに移動済み
 
     # --- 日本語表示用マッピングとヘルパー関数 ---
-    GENDER_MAP = {
-        "male": "男性", "female": "女性", "other": "その他",
-    }
-    INCOME_MAP = {
-        "<100": "100万円未満", "100-200": "100-200万円", "200-300": "200-300万円",
-        "300-400": "300-400万円", "400-500": "400-500万円", "500-600": "500-600万円",
-        "600-700": "600-700万円", "700-800": "700-800万円", "800-900": "800-900万円",
-        "900-1000": "900-1000万円", "1000-1100": "1000-1100万円", "1100-1200": "1100-1200万円",
-        "1200-1300": "1200-1300万円", "1300-1400": "1300-1400万円", "1400-1500": "1400-1500万円",
-        "1500-1600": "1500-1600万円", "1600-1700": "1600-1700万円", "1700-1800": "1700-1800万円",
-        "1800-1900": "1800-1900万円", "1900-2000": "1900-2000万円", "2000-2100": "2000-2100万円",
-        "2100-2200": "2100-2200万円", "2200-2300": "2200-2300万円", "2300-2400": "2300-2400万円",
-        "2400-2500": "2400-2500万円", "2500-2600": "2500-2600万円", "2600-2700": "2600-2700万円",
-        "2700-2800": "2700-2800万円", "2800-2900": "2800-2900万円", "2900-3000": "2900-3000万円",
-        "3000-3100": "3000-3100万円", "3100-3200": "3100-3200万円", "3200-3300": "3200-3300万円",
-        "3300-3400": "3300-3400万円", "3400-3500": "3400-3500万円", "3500-3600": "3500-3600万円",
-        "3600-3700": "3600-3700万円", "3700-3800": "3700-3800万円", "3800-3900": "3800-3900万円",
-        "3900-4000": "3900-4000万円", "4000-4100": "4000-4100万円", "4100-4200": "4100-4200万円",
-        "4200-4300": "4200-4300万円", "4300-4400": "4300-4400万円", "4400-4500": "4400-4500万円",
-        "4500-4600": "4500-4600万円", "4600-4700": "4600-4700万円", "4700-4800": "4700-4800万円",
-        # Add more income mappings if necessary based on index.html
-    }
-    DEPARTMENT_MAP = {
-        "internal_medicine": "内科", "surgery": "外科", "pediatrics": "小児科",
-        "orthopedics": "整形外科", "dermatology": "皮膚科", "ophthalmology": "眼科",
-        "cardiology": "循環器内科", "psychiatry": "精神科", "dentistry": "歯科", # dentistry は 一般歯科 の可能性もあるが一旦このまま
-        "pediatric_dentistry": "小児歯科", "otorhinolaryngology": "耳鼻咽喉科", # ent のエイリアスとして
-        "ent": "耳鼻咽喉科", # index.html でのキー
-        "gynecology": "婦人科",
-        "urology": "泌尿器科",
-        "neurosurgery": "脳神経外科",
-        "general_dentistry": "一般歯科",
-        "orthodontics": "矯正歯科",
-        "cosmetic_dentistry": "審美歯科",
-        "oral_surgery": "口腔外科",
-        "anesthesiology": "麻酔科",
-        "radiology": "放射線科",
-        "rehabilitation": "リハビリテーション科",
-        "allergy": "アレルギー科",
-        "gastroenterology": "消化器内科", # index.html では 消化器科
-        "respiratory_medicine": "呼吸器内科",
-        "diabetes_medicine": "糖尿病内科",
-        "nephrology": "腎臓内科",
-        "neurology": "神経内科",
-        "hematology": "血液内科",
-        "plastic_surgery": "形成外科",
-        "beauty_surgery": "美容外科",
-        # ここまで index.html から抽出・マージした診療科
-    }
-    PURPOSE_MAP = {
-        "increase_patients": "患者数を増やす",
-        "increase_frequency": "来院頻度を増やす",
-        "increase_spend": "客単価を増やす",
-        # Add more mappings as needed
-    }
-    def format_age_for_pdf(age_value):
-        if not age_value: return '-'
-        age_value_str = str(age_value) # Ensure it's a string
-        if 'm' in age_value_str and 'y' in age_value_str:
-            parts = age_value_str.split('y')
-            years = parts[0]
-            months = parts[1].replace('m', '')
-            return f"{years}歳{months}ヶ月"
-        elif 'y' in age_value_str:
-            return f"{age_value_str.replace('y', '')}歳"
-        elif 'm' in age_value_str:
-             return f"0歳{age_value_str.replace('m','')}ヶ月"
-        return age_value_str
+    # GENDER_MAP, INCOME_MAP, DEPARTMENT_MAP, PURPOSE_MAP, format_age_for_pdf_ppt はモジュールレベルに移動済み
+    # format_age_for_pdf は format_age_for_pdf_ppt にリネームして使用
 
     # --- ページとカラムの基本設定 ---
     left_column_content_x = pdf.l_margin
@@ -677,7 +630,7 @@ def generate_pdf(data):
     pdf.set_font("ipa", '', 9)
     info_items = [
         ("性別", GENDER_MAP.get(profile.get('gender', '-'), profile.get('gender', '-'))),
-        ("年齢", format_age_for_pdf(profile.get('age', '-'))),
+        ("年齢", format_age_for_pdf_ppt(profile.get('age', '-'))),
         ("都道府県", profile.get('prefecture', '-')),
         ("市区町村", profile.get('municipality', '-')),
         ("職業", profile.get('occupation', '-')),
@@ -754,7 +707,7 @@ def generate_pdf(data):
     # 右カラムの開始Y座標を、左カラムのアイコンの開始高さに合わせる
     right_column_current_y = icon_y_position 
     
-    for detail_key, japanese_header_text in header_map.items():
+    for detail_key, japanese_header_text in HEADER_MAP.items(): # モジュールレベルのHEADER_MAPを使用
         value = details.get(detail_key)
         if value and str(value).strip(): # 値が存在し、空でない場合のみ描画
             pdf.set_xy(right_column_x, right_column_current_y)
@@ -891,187 +844,135 @@ def generate_ppt(data):
     prs = Presentation()
     profile = data.get('profile', {})
     details = data.get('details', {})
+    image_url = data.get('image_url')
 
-    # --- スライドの基本設定 ---
-    # ワイドスクリーン(16:9)のきれいなレイアウトを使用
-    slide_layout = prs.slide_layouts[5]  # 白紙のレイアウト
+    # --- Slide Layout & Dimensions ---
+    slide_layout = prs.slide_layouts[5]  # Blank layout
     slide = prs.slides.add_slide(slide_layout)
-    
-    # スライドの寸法を取得（インチ単位）
-    slide_width = prs.slide_width.inches
-    slide_height = prs.slide_height.inches
-    
-    # 余白の設定
-    margin = Inches(0.3)
-    
-    # --- ベーステーマカラーの定義 ---
-    # PowerPointのRGB値は整数で指定 (0-255)
-    theme_color_bg = RGBColor(240, 240, 240)  # 薄いグレー背景
-    theme_color_accent = RGBColor(0, 112, 192)  # 青色アクセント
+    slide_width = prs.slide_width
+    slide_height = prs.slide_height
+    margin = Inches(0.25) # General margin
 
-    # --- ヘッダー部分（タイトルと診療科・目的） ---
-    # 名前とタイトル
-    title_shape = slide.shapes.add_textbox(margin, margin, Inches(slide_width - 0.6), Inches(0.6))
-    title_frame = title_shape.text_frame
-    title_frame.text = profile.get('name', 'ペルソナ')
-    title_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
-    title_frame.paragraphs[0].font.size = Pt(28)
-    title_frame.paragraphs[0].font.bold = True
-    # 日本語フォントを明示的に設定
-    try:
-        title_frame.paragraphs[0].font.name = 'メイリオ'  # 日本語フォントを指定
-    except:
-        # フォントがなければデフォルトを使用
-        pass
+    # --- Column Definitions (35% Left, 65% Right) ---
+    left_column_width = slide_width * 0.35
+    right_column_width = slide_width * 0.60 # Slightly less to allow for a clear gap
+    column_gap = slide_width * 0.05
 
-    # 診療科と目的を横並びで表示
-    header_shape = slide.shapes.add_textbox(margin, Inches(0.9), Inches(slide_width - 0.6), Inches(0.4))
-    header_frame = header_shape.text_frame
-    header_para = header_frame.add_paragraph()
-    header_para.text = f"診療科: {profile.get('department', '-')}    作成目的: {profile.get('purpose', '-')}"
-    header_para.font.size = Pt(14)
-    header_para.alignment = PP_ALIGN.CENTER
-    try:
-        header_para.font.name = 'メイリオ'
-    except:
-        pass
+    left_column_x = margin
+    right_column_x = left_column_x + left_column_width + column_gap
+
+    # --- Theme Colors (Optional, for consistency) ---
+    theme_color_bg_section = RGBColor(240, 240, 240) # Light gray for section backgrounds
+
+    # --- Helper function to add text to a shape (textbox) ---
+    def add_text_to_shape(shape, text, font_size=Pt(10), is_bold=False, font_name='メイリオ', align=PP_ALIGN.LEFT, color=RGBColor(0,0,0)):
+        tf = shape.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        if len(tf.paragraphs) > 1: # Clear existing paragraphs if any beyond the first
+            for i in range(len(tf.paragraphs)-1, 0, -1):
+                del tf.paragraphs[i]
+
+        p.text = str(text) if text else "-"
+        p.font.size = font_size
+        p.font.bold = is_bold
+        p.font.name = font_name
+        p.font.color.rgb = color
+        p.alignment = align
+        # For additional paragraphs, one would use tf.add_paragraph()
+
+    # --- Current Y positions for each column ---
+    current_left_y = margin
+    current_right_y = margin # Right column will start at the same Y as icon
+
+    # --- Left Column ---
+
+    # 1. Persona Icon & Name
+    icon_size = Inches(1.0)  # Approx 25mm, adjust as needed
+    icon_placeholder_text = "画像なし"
     
-    # 2段組レイアウトの寸法計算
-    column_height = slide_height - 1.7  # ヘッダー部分を引く
-    left_column_width = slide_width * 0.4  # 左側40%
-    right_column_width = slide_width * 0.55  # 右側55%
+    if image_url:
+        try:
+            image_data = urlopen(image_url).read()
+            img_file_obj = io.BytesIO(image_data)
+            pic = slide.shapes.add_picture(img_file_obj, left_column_x, current_left_y, width=icon_size, height=icon_size)
+        except Exception as e:
+            print(f"Error loading image for PPT: {e}")
+            tb = slide.shapes.add_textbox(left_column_x, current_left_y, icon_size, icon_size)
+            add_text_to_shape(tb, icon_placeholder_text, Pt(8), align=PP_ALIGN.CENTER)
+    else:
+        tb = slide.shapes.add_textbox(left_column_x, current_left_y, icon_size, icon_size)
+        add_text_to_shape(tb, icon_placeholder_text, Pt(8), align=PP_ALIGN.CENTER)
+
+    name_x = left_column_x + icon_size + Inches(0.1)
+    name_width = left_column_width - icon_size - Inches(0.1)
+    name_height = icon_size # Attempt to vertically center name next to icon
+    name_tb = slide.shapes.add_textbox(name_x, current_left_y, name_width, name_height)
+    # Vertically center text in textbox (Note: python-pptx has limited direct vertical centering for text within a shape)
+    # We can adjust the top position of the text_frame or rely on the textbox height.
+    # For simplicity, we ensure the textbox itself is appropriately sized and positioned.
+    add_text_to_shape(name_tb, profile.get('name', '-'), Pt(16), is_bold=True, font_name='メイリオ', align=PP_ALIGN.LEFT)
     
-    # --- 左カラム (基本情報) ---
-    left_column_y = Inches(1.3)
-    
-    # 基本情報のヘッダー背景
-    basic_header_bg = slide.shapes.add_shape(
-        1,  # 長方形
-        margin, 
-        left_column_y, 
-        Inches(left_column_width), 
-        Inches(0.3)
-    )
-    basic_header_bg.fill.solid()
-    basic_header_bg.fill.fore_color.rgb = theme_color_bg
-    basic_header_bg.line.fill.background()  # 枠線を消す
-    
-    # 「基本情報」ヘッダー
-    basic_header = slide.shapes.add_textbox(margin, left_column_y, Inches(left_column_width), Inches(0.3))
-    basic_header_frame = basic_header.text_frame
-    basic_para = basic_header_frame.add_paragraph()
-    basic_para.text = "基本情報"
-    basic_para.font.size = Pt(16)
-    basic_para.font.bold = True
-    try:
-        basic_para.font.name = 'メイリオ'
-    except:
-        pass
-    
-    # Z順序の設定
-    basic_header_bg.zorder = 1  # 背景を下に
-    basic_header.zorder = 2     # テキストを上に
-    
-    # 基本情報の項目を2列に表示するための設定
-    left_column_y += Inches(0.4)
-    info_col_width = left_column_width / 2
-    
-    # 左列の情報項目
-    info_items_left = [
-        ("性別", profile.get('gender', '-')),
-        ("年齢", profile.get('age', '-')),
+    current_left_y += icon_size + Inches(0.2) # Space after icon/name block
+    right_column_y_start = margin # Right column starts aligned with top of icon
+
+    # 2. Department and Purpose
+    item_height_small = Inches(0.25)
+    department_val = profile.get('department', '-')
+    department_display = DEPARTMENT_MAP.get(str(department_val).lower(), department_val)
+    dep_tb = slide.shapes.add_textbox(left_column_x, current_left_y, left_column_width, item_height_small)
+    add_text_to_shape(dep_tb, f"診療科: {department_display}", Pt(10), font_name='メイリオ')
+    current_left_y += item_height_small
+
+    purpose_val = profile.get('purpose', '-')
+    purpose_display = PURPOSE_MAP.get(str(purpose_val).lower(), purpose_val)
+    pur_tb = slide.shapes.add_textbox(left_column_x, current_left_y, left_column_width, item_height_small)
+    add_text_to_shape(pur_tb, f"作成目的: {purpose_display}", Pt(10), font_name='メイリオ')
+    current_left_y += item_height_small + Inches(0.2) # Extra space before Basic Info
+
+    # 3. Basic Information Section
+    title_height = Inches(0.3)
+    basic_title_tb = slide.shapes.add_textbox(left_column_x, current_left_y, left_column_width, title_height)
+    add_text_to_shape(basic_title_tb, "基本情報", Pt(12), is_bold=True, font_name='メイリオ')
+    # Underline for title (achieved by adding a line shape or border if supported easily, otherwise skip)
+    current_left_y += title_height
+
+    info_items = [
+        ("性別", GENDER_MAP.get(str(profile.get('gender', '-')).lower(), profile.get('gender', '-'))),
+        ("年齢", format_age_for_pdf_ppt(profile.get('age', '-'))),
         ("都道府県", profile.get('prefecture', '-')),
         ("市区町村", profile.get('municipality', '-')),
-        ("職業", profile.get('occupation', '-'))
-    ]
-    
-    # 右列の情報項目
-    info_items_right = [
-        ("年収", profile.get('income', '-')),
+        ("職業", profile.get('occupation', '-')),
+        ("年収", INCOME_MAP.get(profile.get('income', '-'), profile.get('income', '-'))),
         ("家族構成", profile.get('family', '-')),
         ("趣味", profile.get('hobby', '-')),
         ("ライフイベント", profile.get('life_events', '-')),
         ("患者タイプ", profile.get('patient_type', '-'))
     ]
-    
-    # 基本情報を描画する関数
-    def draw_info_item(key, value, x, y):
-        # キー
-        key_box = slide.shapes.add_textbox(x, y, Inches(info_col_width * 0.4), Inches(0.25))
-        key_frame = key_box.text_frame
-        key_para = key_frame.add_paragraph()
-        key_para.text = f"{key}:"
-        key_para.font.bold = True
-        key_para.font.size = Pt(11)
-        try:
-            key_para.font.name = 'メイリオ'
-        except:
-            pass
-        
-        # 値
-        value_str = str(value) if value else '-'
-        # 英語表記を修正
-        if value_str == "Unknown Persona":
-            value_str = "ペルソナ"
-        
-        val_box = slide.shapes.add_textbox(x + Inches(info_col_width * 0.4), y, Inches(info_col_width * 0.6), Inches(0.25))
-        val_frame = val_box.text_frame
-        val_para = val_frame.add_paragraph()
-        val_para.text = value_str
-        val_para.font.size = Pt(11)
-        try:
-            val_para.font.name = 'メイリオ'
-        except:
-            pass
-        
-        return Inches(0.25)  # 項目の高さを返す
-    
-    # 左列の描画
-    current_y = left_column_y
-    for key, value in info_items_left:
-        # 基本情報の項目をPowerPointに描画
-        item_height = draw_info_item(key, value, margin, current_y)
-        current_y += item_height
-    
-    # 右列の描画
-    current_y = left_column_y
-    for key, value in info_items_right:
-        item_height = draw_info_item(key, value, margin + Inches(info_col_width), current_y)
-        current_y += item_height
-    
-    # --- その他の特徴 ---
-    additional_header_y = current_y + Inches(0.3)
-    
-    # その他の特徴の背景
-    additional_header_bg = slide.shapes.add_shape(
-        1,  # 長方形
-        margin, 
-        additional_header_y, 
-        Inches(left_column_width), 
-        Inches(0.3)
-    )
-    additional_header_bg.fill.solid()
-    additional_header_bg.fill.fore_color.rgb = theme_color_bg
-    additional_header_bg.line.fill.background()  # 枠線を消す
-    
-    # その他の特徴のヘッダー
-    additional_header = slide.shapes.add_textbox(margin, additional_header_y, Inches(left_column_width), Inches(0.3))
-    additional_header_frame = additional_header.text_frame
-    additional_para = additional_header_frame.add_paragraph()
-    additional_para.text = "その他の特徴"
-    additional_para.font.size = Pt(16)
-    additional_para.font.bold = True
-    try:
-        additional_para.font.name = 'メイリオ'
-    except:
-        pass
-    
-    # Z順序の設定
-    additional_header_bg.zorder = 1  # 背景を下に
-    additional_header.zorder = 2     # テキストを上に
+    key_width_info = left_column_width * 0.3
+    value_width_info = left_column_width * 0.7
 
-    # 追加情報の項目
-    additional_items = [
+    for key, value in info_items:
+        # Key textbox
+        key_tb_info = slide.shapes.add_textbox(left_column_x, current_left_y, key_width_info, item_height_small)
+        add_text_to_shape(key_tb_info, f"{key}:", Pt(9), font_name='メイリオ')
+        # Value textbox
+        val_tb_info = slide.shapes.add_textbox(left_column_x + key_width_info, current_left_y, value_width_info, item_height_small)
+        add_text_to_shape(val_tb_info, str(value), Pt(9), font_name='メイリオ')
+        current_left_y += item_height_small
+    current_left_y += Inches(0.2) # Space after Basic Info items
+
+    # 4. Other Characteristics Section
+    other_title_bg = slide.shapes.add_shape(1, left_column_x, current_left_y, left_column_width, title_height) # 1 for rectangle
+    other_title_bg.fill.solid()
+    other_title_bg.fill.fore_color.rgb = theme_color_bg_section
+    other_title_bg.line.fill.background() # No border
+
+    other_title_tb = slide.shapes.add_textbox(left_column_x, current_left_y, left_column_width, title_height)
+    add_text_to_shape(other_title_tb, "その他の特徴", Pt(12), is_bold=True, font_name='メイリオ')
+    current_left_y += title_height
+
+    additional_items_data = [
         ("座右の銘", profile.get('motto', '-')),
         ("最近の悩み/関心", profile.get('concerns', '-')),
         ("好きな有名人", profile.get('favorite_person', '-')),
@@ -1081,145 +982,53 @@ def generate_ppt(data):
         ("休日の過ごし方", profile.get('holiday_activities', '-')),
         ("キャッチコピー", profile.get('catchphrase', '-'))
     ]
-    
-    # 追加項目を描画する関数
-    def draw_additional_item(key, value, y):
-        # キー
-        key_box = slide.shapes.add_textbox(margin, y, Inches(left_column_width * 0.35), Inches(0.25))
-        key_frame = key_box.text_frame
-        key_para = key_frame.add_paragraph()
-        key_para.text = f"{key}:"
-        key_para.font.bold = True
-        key_para.font.size = Pt(10)
-        try:
-            key_para.font.name = 'メイリオ'
-        except:
-            pass
-        
-        # 値（ワードラップを有効にして長いテキストも対応）
-        val_box = slide.shapes.add_textbox(margin + Inches(left_column_width * 0.35), y, Inches(left_column_width * 0.65), Inches(0.25))
-        val_frame = val_box.text_frame
-        val_frame.word_wrap = True
-        val_para = val_frame.add_paragraph()
-        val_para.text = str(value) if value else '-'
-        val_para.font.size = Pt(10)
-        try:
-            val_para.font.name = 'メイリオ'
-        except:
-            pass
-        
-        return Inches(0.25)  # 項目の高さを返す
-    
-    # 追加項目の描画
-    current_y = additional_header_y + Inches(0.35)
-    for key, value in additional_items:
-        item_height = draw_additional_item(key, value, current_y)
-        current_y += item_height
-    
-    # 動的に追加された項目があれば表示
+    key_width_add = left_column_width * 0.4 # Adjust key width for this section
+
+    for key, value in additional_items_data:
+        key_tb_add = slide.shapes.add_textbox(left_column_x, current_left_y, key_width_add, item_height_small)
+        add_text_to_shape(key_tb_add, f"{key}:", Pt(9), font_name='メイリオ')
+        val_tb_add = slide.shapes.add_textbox(left_column_x + key_width_add, current_left_y, left_column_width - key_width_add, item_height_small)
+        add_text_to_shape(val_tb_add, str(value), Pt(9), font_name='メイリオ')
+        current_left_y += item_height_small
+
+    # Dynamic additional fields
     if profile.get('additional_field_name') and profile.get('additional_field_value'):
+        current_left_y += Inches(0.05) # Small space before dynamic fields
         additional_fields = zip(profile.get('additional_field_name'), profile.get('additional_field_value'))
         for field_name, field_value in additional_fields:
             if field_name or field_value:
-                item_height = draw_additional_item(field_name, field_value, current_y)
-                current_y += item_height
-    
-    # --- 右カラム (詳細情報) ---
-    right_column_x = margin + Inches(left_column_width + 0.2)
-    right_column_y = Inches(1.3)
-    
-    # ヘッダーマップ（英語キーを日本語に変換）
-    header_map = {
-        "personality": "性格（価値観・人生観）",
-        "reason": "通院理由",
-        "behavior": "症状通院頻度・行動パターン",
-        "reviews": "口コミの重視ポイント",
-        "values": "医療機関への価値観・行動傾向",
-        "demands": "医療機関に求めるもの"
-    }
+                key_tb_dyn = slide.shapes.add_textbox(left_column_x, current_left_y, key_width_add, item_height_small) # Use same key_width_add
+                add_text_to_shape(key_tb_dyn, f"{field_name if field_name else ''}:", Pt(9), font_name='メイリオ')
+                val_tb_dyn = slide.shapes.add_textbox(left_column_x + key_width_add, current_left_y, left_column_width - key_width_add, item_height_small)
+                add_text_to_shape(val_tb_dyn, str(field_value) if field_value else '-', Pt(9), font_name='メイリオ')
+                current_left_y += item_height_small
 
-    # 詳細情報を描画する関数
-    def draw_detail_section(header_text, content_text, y):
-        # 背景色付けのための長方形
-        header_rect = slide.shapes.add_shape(
-            1, # 長方形
-            right_column_x, 
-            y, 
-            Inches(right_column_width), 
-            Inches(0.35)
-        )
-        header_rect.fill.solid()
-        header_rect.fill.fore_color.rgb = theme_color_bg
-        header_rect.line.fill.background()  # 枠線を消す
-        
-        # ヘッダー
-        header_box = slide.shapes.add_textbox(right_column_x, y, Inches(right_column_width), Inches(0.35))
-        header_frame = header_box.text_frame
-        header_para = header_frame.add_paragraph()
-        header_para.text = header_text
-        header_para.font.bold = True
-        header_para.font.size = Pt(14)
-        try:
-            header_para.font.name = 'メイリオ'
-        except:
-            pass
-        
-        # Z順序の設定
-        header_rect.zorder = 1  # 背景を下に
-        header_box.zorder = 2   # テキストを上に
-        
-        # テキストの長さに基づいて高さを調整
-        paragraphs = str(content_text).split('\n')
-        text_length = sum(len(p) for p in paragraphs)
-        paragraph_count = len([p for p in paragraphs if p.strip()])
-        
-        # 長いテキストほど大きなボックスを用意
-        content_height = max(
-            Inches(0.8),  # 最小高さ
-            Inches(0.2 + min(3.0, 0.1 * paragraph_count + text_length / 500))  # テキスト量に応じた高さ
-        )
-        
-        # 内容のテキストボックス
-        content_box = slide.shapes.add_textbox(
-            right_column_x, 
-            y + Inches(0.4), 
-            Inches(right_column_width), 
-            content_height
-        )
-        content_frame = content_box.text_frame
-        content_frame.word_wrap = True
-        
-        # テキストを段落ごとに分割して追加
-        first_para = True
-        for paragraph in paragraphs:
-            if paragraph.strip() == "":
-                continue  # 空の段落はスキップ
-            
-            if first_para:
-                # 最初の段落は既に作成されているものを利用
-                content_para = content_frame.paragraphs[0]
-                first_para = False
-            else:
-                # 2つ目以降は新しい段落を追加
-                content_para = content_frame.add_paragraph()
-            
-            content_para.text = paragraph.strip()
-            content_para.font.size = Pt(11)
-            content_para.space_after = Pt(4)  # 段落間の余白
-            try:
-                content_para.font.name = 'メイリオ'
-            except:
-                pass
-        
-        # テキストボックスと余白を含めた合計高さを返す
-        return Inches(0.4) + content_height + Inches(0.25)
-    
-    # 詳細情報の描画
-    for key, japanese_header in header_map.items():
-        value = details.get(key)
-        if value:
-            section_height = draw_detail_section(japanese_header, value, right_column_y)
-            right_column_y += section_height
+    # --- Right Column (Detailed Information) ---
+    current_right_y = right_column_y_start # Align with top of icon
+
+    for detail_key, japanese_header_text in HEADER_MAP.items():
+        value = details.get(detail_key)
+        if value and str(value).strip():
+            # Section Header (with background)
+            sec_header_bg = slide.shapes.add_shape(1, right_column_x, current_right_y, right_column_width, title_height)
+            sec_header_bg.fill.solid()
+            sec_header_bg.fill.fore_color.rgb = theme_color_bg_section
+            sec_header_bg.line.fill.background()
+
+            sec_header_tb = slide.shapes.add_textbox(right_column_x, current_right_y, right_column_width, title_height)
+            add_text_to_shape(sec_header_tb, japanese_header_text, Pt(12), is_bold=True, font_name='メイリオ')
+            current_right_y += title_height
+
+            # Content
+            # Estimate content height: this is tricky. For now, use a fixed moderate height or calculate based on text length.
+            # A simple heuristic:
+            num_lines = str(value).count('\\n') + 1
+            content_est_height = Inches(0.20 * num_lines + 0.2) # Base + per line
+            content_height = max(Inches(0.5), min(content_est_height, Inches(2.5))) # Min/Max height
+
+            content_tb = slide.shapes.add_textbox(right_column_x, current_right_y, right_column_width, content_height)
+            add_text_to_shape(content_tb, str(value), Pt(9), font_name='メイリオ')
+            current_right_y += content_height + Inches(0.15) # Space after content block
 
     # Save presentation to a BytesIO buffer
     ppt_buffer = io.BytesIO()
