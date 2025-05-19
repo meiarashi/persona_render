@@ -106,15 +106,16 @@ header nav a:hover {
 /* Form Step Header (Icon, Progress Bar, Question) */
 .step-header {
     display: flex;
-    align-items: flex-start; 
+    align-items: flex-start;
     margin-bottom: 20px;
     position: relative;
+    min-height: 64px;
 }
 
 .step-header .icon {
-    width: 45px;
-    height: 45px;
-    background-color: #adb5bd;
+    width: 85px;
+    height: 85px;
+    background-color: transparent;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
@@ -123,6 +124,14 @@ header nav a:hover {
     color: white;
     font-size: 1em;
     flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: -23px;
+}
+
+.step-header .icon img {
+    display: block;
+    margin: 0;
+    padding: 0;
 }
 
 /* Container for Progress bar and Question Text */
@@ -1564,6 +1573,82 @@ footer {
 .setting-type-options label:not(.selected):hover {
     border-color: #28a745;
     background-color: #f8fff9;
+}
+
+/* Owl bounce animation for loading screen */
+.bounce {
+  display: inline-block;
+  animation: bounce 1s ease-in-out infinite;
+}
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-10px) scale(1.02);
+  }
+  50% {
+    transform: translateY(0) scale(0.98);
+  }
+  75% {
+    transform: translateY(-5px) scale(1.01);
+  }
+}
+
+/* Owl loading animation for loading screen */
+.loading-container {
+  text-align: center;
+  position: relative;
+}
+.owl-loading {
+  width: 150px;
+  height: 150px;
+  position: relative;
+  display: inline-block;
+  animation: float 2s ease-in-out infinite;
+}
+.loading-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 180px;
+  height: 180px;
+  border: 3px solid #e1e1e1;
+  border-top: 3px solid #005b99;
+  border-radius: 50%;
+  animation: spin 1.5s linear infinite;
+  box-sizing: border-box;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0);}
+  50% { transform: translateY(-10px);}
+}
+@keyframes spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg);}
+  100% { transform: translate(-50%, -50%) rotate(360deg);}
+}
+.loading-text {
+  margin-top: 20px;
+  font-size: 18px;
+  color: #005b99;
+  font-weight: bold;
+}
+.dots {
+  display: inline-block;
+  width: 40px;
+  text-align: left;
+}
+.dots::after {
+  content: '';
+  animation: dots 1.5s infinite;
+}
+@keyframes dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+  100% { content: ''; }
 }
 
 

@@ -26,7 +26,7 @@
                 <!-- Step 1: Department Selection -->
                 <div class="form-step active" data-step="1">
                     <div class="step-header">
-                        <span class="icon">icon</span>
+                        <span class="icon"><img src="images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
                         <div>
                             <div class="progress-bar">
                                 <span>1/4問目</span>
@@ -76,7 +76,7 @@
                 <!-- Step 2: Purpose Selection (Initially hidden) -->
                 <div class="form-step" data-step="2">
                     <div class="step-header">
-                        <span class="icon">icon</span>
+                        <span class="icon"><img src="images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
                         <div>
                             <div class="progress-bar">
                                 <span>2/4問目</span>
@@ -101,7 +101,7 @@
                 <!-- Step 3: Detail Settings (Initially hidden) -->
                 <div class="form-step" data-step="3">
                     <div class="step-header">
-                        <span class="icon">icon</span>
+                        <span class="icon"><img src="images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
                         <div>
                             <div class="progress-bar">
                                 <span>3/4問目</span>
@@ -518,7 +518,7 @@
                 <!-- Step 4: Additional Questions (Initially hidden) -->
                 <div class="form-step" data-step="4">
                     <div class="step-header">
-                        <span class="icon">icon</span>
+                        <span class="icon"><img src="images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
                         <div>
                             <div class="progress-bar">
                                 <span>最後の質問</span>
@@ -552,7 +552,7 @@
                 <!-- Step 5: Confirmation Screen (NEW) -->
                 <div class="form-step" data-step="5">
                     <div class="step-header">
-                        <span class="icon">icon</span>
+                        <span class="icon"><img src="images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
                         <div>
                             <div class="progress-bar">
                                 <span>確認画面</span>
@@ -596,10 +596,24 @@
 
                 <!-- Step 6: Loading (Previously Step 5) -->
                 <div class="form-step loading-step" data-step="6">
-                     <div class="loading-icon">icon</div>
-                     <h3>AIによるペルソナ生成中...</h3>
-                     <p>30秒程度お待ち下さい。</p>
-                </div>
+                     <div class="loading-container">
+                       <div class="loading-circle"></div>
+                       <svg class="owl-loading" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                         <path fill="#005b99" d="M100,40c-33.1,0-60,26.9-60,60c0,33.1,26.9,60,60,60c33.1,0,60-26.9,60-60C160,66.9,133.1,40,100,40z M100,150
+        c-27.6,0-50-22.4-50-50s22.4-50,50-50s50,22.4,50,50S127.6,150,100,150z"/>
+                         <path fill="#005b99" d="M65,90c0-8.3,6.7-15,15-15s15,6.7,15,15c0,8.3-6.7,15-15,15S65,98.3,65,90z M75,90c0,2.8,2.2,5,5,5
+        s5-2.2,5-5s-2.2-5-5-5S75,87.2,75,90z"/>
+                         <path fill="#005b99" d="M105,90c0-8.3,6.7-15,15-15s15,6.7,15,15c0,8.3-6.7,15-15,15S105,98.3,105,90z M115,90c0,2.8,2.2,5,5,5
+        s5-2.2,5-5s-2.2-5-5-5S115,87.2,115,90z"/>
+                         <path fill="#005b99" d="M100,115c-5.5,0-10,4.5-10,10v5h20v-5C110,119.5,105.5,115,100,115z"/>
+                         <path fill="#005b99" d="M60,60l-20-20c0,0,0,15,10,25L60,60z"/>
+                         <path fill="#005b99" d="M140,60l20-20c0,0,0,15-10,25L140,60z"/>
+                         <path fill="#005b99" d="M100,50c0,0-10-10-10-20h20C110,40,100,50,100,50z"/>
+                         <path fill="#005b99" d="M100,140c0,0,20,10,30,30H70C80,150,100,140,100,140z"/>
+                       </svg>
+                       <div class="loading-text">ペルソナ生成中<span class="dots"></span></div>
+                     </div>
+                 </div>
 
                  <!-- Step 7: Result Display (Previously Step 6) -->
                  <div class="form-step result-step" data-step="7">
