@@ -1132,32 +1132,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             // ローディングステップまたは結果ステップでは、専用の表示制御が既に行われているため、
             // または return; で関数が終了しているため、ここでは何もしない
         } else {
-            formSteps.forEach((stepElem) => {
-                const stepIdx = parseInt(stepElem.dataset.step);
-                const confirmBtn = stepElem.querySelector('.confirm-and-proceed-btn');
-                const nextBtn = stepElem.querySelector('.next-step-btn');
-                const prevBtn = stepElem.querySelector('.prev-step-btn');
+        formSteps.forEach((stepElem) => {
+            const stepIdx = parseInt(stepElem.dataset.step);
+            const confirmBtn = stepElem.querySelector('.confirm-and-proceed-btn');
+            const nextBtn = stepElem.querySelector('.next-step-btn');
+            const prevBtn = stepElem.querySelector('.prev-step-btn');
 
-                if (stepIdx === currentStep) {
-                    if (confirmBtn) confirmBtn.style.display = (currentStep >= 1 && currentStep <= numInputSteps) ? 'inline-block' : 'none';
-                    if (nextBtn) nextBtn.style.display = (currentStep < numInputSteps) ? 'inline-block' : 'none';
-                    if (prevBtn) prevBtn.style.display = (currentStep > 1 && currentStep <= TOTAL_FORM_STEPS) ? 'inline-block' : 'none';
-                    } else {
-                    if (confirmBtn) confirmBtn.style.display = 'none';
-                    if (nextBtn) nextBtn.style.display = 'none';
-                    if (prevBtn) prevBtn.style.display = 'none';
-                }
-            });
-
-            if (currentStep === numInputSteps) {
-                const lastInputStepElement = formSteps[numInputSteps - 1];
-                if (lastInputStepElement) {
-                    const nextBtnOnLast = lastInputStepElement.querySelector('.next-step-btn');
-                    if (nextBtnOnLast) nextBtnOnLast.style.display = 'none';
-                    const confirmBtnOnLast = lastInputStepElement.querySelector('.confirm-and-proceed-btn');
-                    if (confirmBtnOnLast) confirmBtnOnLast.style.display = 'inline-block';
-                }
+            if (stepIdx === currentStep) {
+                if (confirmBtn) confirmBtn.style.display = (currentStep >= 1 && currentStep <= numInputSteps) ? 'inline-block' : 'none';
+                if (nextBtn) nextBtn.style.display = (currentStep < numInputSteps) ? 'inline-block' : 'none';
+                if (prevBtn) prevBtn.style.display = (currentStep > 1 && currentStep <= TOTAL_FORM_STEPS) ? 'inline-block' : 'none';
+                } else {
+                if (confirmBtn) confirmBtn.style.display = 'none';
+                if (nextBtn) nextBtn.style.display = 'none';
+                if (prevBtn) prevBtn.style.display = 'none';
             }
+        });
+
+        if (currentStep === numInputSteps) {
+            const lastInputStepElement = formSteps[numInputSteps - 1];
+            if (lastInputStepElement) {
+                const nextBtnOnLast = lastInputStepElement.querySelector('.next-step-btn');
+                if (nextBtnOnLast) nextBtnOnLast.style.display = 'none';
+                const confirmBtnOnLast = lastInputStepElement.querySelector('.confirm-and-proceed-btn');
+                if (confirmBtnOnLast) confirmBtnOnLast.style.display = 'inline-block';
+            }
+        }
         } // この閉じ括弧は、if (currentStep === TOTAL_FORM_STEPS + 1 || ...) の else ブロックのものです。
     }
     console.log('Debug: typeof showStep before assignment:', typeof showStep); // ADD THIS
@@ -1426,7 +1426,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // 通常のステップ遷移 (ステップ4までは confirm-and-proceed-btn が表示されないのでこれでOK)
             // TOTAL_FORM_STEPS -1 は ステップ4 (追加項目入力)
-            if (currentStep < TOTAL_FORM_STEPS - 1) { 
+            if (currentStep < TOTAL_FORM_STEPS - 1) {
                 if (typeof window.showStep === 'function') window.showStep(currentStep + 1);
                 else console.error('showStep is not a function when trying to go to next step');
              }
@@ -1534,7 +1534,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             } finally {
                 // Hide loading screen
                 if (loadingStep) { // <--- 存在確認を追加
-                    loadingStep.classList.remove('active');
+                loadingStep.classList.remove('active');
                 }
             }
         });
@@ -1631,7 +1631,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (contentDisposition) {
                     const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
                     if (filenameMatch && filenameMatch.length > 1) filename = filenameMatch[1];
-                }
+                    }
                 triggerDownload(blob, filename);
             } catch (error) {
                 console.error('PDF Download Error:', error);
@@ -1808,7 +1808,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- Download Functionality --- 
+    // --- Download Functionality ---
     // The event listeners for download-pdf-result and download-ppt-result that were
     // defined outside populateResults (around line 1895 and 2018) might now be redundant 
     // if we are creating and attaching listeners to buttons with these IDs *inside* populateResults.

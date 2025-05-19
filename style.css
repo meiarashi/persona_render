@@ -215,8 +215,8 @@ header nav a:hover {
 }
 
 .department-icon {
-    width: 96px; /* 87pxをさらに1.1倍に拡大（87px × 1.1 ≈ 96px） */
-    height: 96px; /* 87pxをさらに1.1倍に拡大（87px × 1.1 ≈ 96px） */
+    width: 64px; /* ボタン内で最大限大きく、はみ出さないサイズに調整 */
+    height: 64px;
     margin-bottom: 0px;
     background-size: contain;
     background-position: center;
@@ -227,36 +227,41 @@ header nav a:hover {
 .purpose-options label,
 .setting-type-options label {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center; /* Center text horizontally */
-    background-color: #f8f9fa;
-    padding: 8px 10px; /* 10px 12pxから8px 10pxに縮小 */
-    border-radius: 4px;
+    justify-content: center;
+    padding: 15px;
     border: 1px solid #dee2e6;
-    font-weight: bold; /* Make text bold */
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 0.9em; /* 1emから0.9emに縮小 */
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease; /* Add color transition */
-    text-align: center; /* Ensure text align center for consistency */
+    transition: all 0.3s ease;
+    background-color: #ffffff;
+    text-align: center;
 }
 
-/* Style for the selected label */
-.purpose-options label.selected,
-.setting-type-options label.selected {
-    background-color: rgba(40, 167, 69, 0.15); /* Lighter, semi-transparent green background */
-    border-color: rgba(40, 167, 69, 0.6); /* Slightly darker green border */
+.purpose-options label .department-icon {
+    width: 96px;
+    height: 96px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    margin-bottom: 10px;
 }
 
-/* Apply hover effect only to non-selected labels */
-.purpose-options label:not(.selected):hover,
-.setting-type-options label:not(.selected):hover {
-    background-color: #e9ecef; /* Add hover effect */
-    border-color: #adb5bd;
+.purpose-options label.selected {
+    border-color: #28a745;
+    background-color: #f8fff9;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.purpose-options label:not(.selected):hover {
+    border-color: #28a745;
+    background-color: #f8fff9;
 }
 
 .purpose-options input[type="radio"],
 .setting-type-options input[type="radio"] {
-    display: none; /* Hide the actual radio button */
+    display: none;
 }
 
 /* General Form Input Styles */
@@ -1548,6 +1553,17 @@ footer {
 #final-generate-btn-top {
     display: inline-block !important; /* 強制的に表示 */
     visibility: visible !important; /* 強制的に表示 */
+}
+
+.setting-type-options label.selected {
+    border-color: #28a745;
+    background-color: #f8fff9;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.setting-type-options label:not(.selected):hover {
+    border-color: #28a745;
+    background-color: #f8fff9;
 }
 
 
