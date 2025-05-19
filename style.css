@@ -1606,6 +1606,7 @@ footer {
   position: relative;
   display: inline-block;
   animation: float 2s ease-in-out infinite;
+  margin-top: 20px;
 }
 .loading-circle {
   position: absolute;
@@ -1629,7 +1630,7 @@ footer {
   100% { transform: translate(-50%, -50%) rotate(360deg);}
 }
 .loading-text {
-  margin-top: 20px;
+  margin-top: 40px;
   font-size: 18px;
   color: #005b99;
   font-weight: bold;
