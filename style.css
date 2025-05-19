@@ -1614,8 +1614,8 @@ footer {
   transform: translate(-50%, -50%);
   width: 180px;
   height: 180px;
-  border: 3px solid #e1e1e1;
-  border-top: 3px solid #005b99;
+  border: 6px solid #e1e1e1;
+  border-top: 6px solid #005b99;
   border-radius: 50%;
   animation: spin 1.5s linear infinite;
   box-sizing: border-box;
@@ -1633,6 +1633,8 @@ footer {
   font-size: 18px;
   color: #005b99;
   font-weight: bold;
+  text-align: center;
+  width: 100%;
 }
 .dots {
   display: inline-block;
