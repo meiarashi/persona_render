@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Body, status
 from typing import Dict
 
-from app import crud
-from app import models
+from .. import crud
+from .. import models
 
 router = APIRouter()
 

@@ -51,9 +51,17 @@ if not frontend_dir.exists() or not frontend_dir.is_dir():
 if frontend_dir.exists() and frontend_dir.is_dir():
     print(f"Serving static files from: {frontend_dir}")
     
-    # Serve admin_script.js and admin_style.css from /static route, pointing to the frontend_dir directly
-    # So, if admin_script.js is at frontend_dir/admin_script.js, it's accessible via /static/admin_script.js
-    app.mount("/static", StaticFiles(directory=frontend_dir), name="static_assets")
+    # フロントエンドディレクトリ構造に合わせて静的ファイル提供を設定
+    # '/static/user/'で frontend/user のファイルにアクセス
+    # '/static/admin/'で frontend/admin のファイルにアクセス
+    app.mount("/static/user", StaticFiles(directory=frontend_dir / "user"), name="user_static_assets")
+    app.mount("/static/admin", StaticFiles(directory=frontend_dir / "admin"), name="admin_static_assets")
+    
+    # Serve image files from /images route, pointing to the project root's images directory
+    images_dir = project_root_dir / "images"
+    if images_dir.exists() and images_dir.is_dir():
+        app.mount("/images", StaticFiles(directory=images_dir), name="image_assets")
+        print(f"Serving image files from: {images_dir}")
 
     @app.get("/admin", include_in_schema=False)
     async def serve_admin_html():
@@ -77,8 +85,8 @@ if frontend_dir.exists() and frontend_dir.is_dir():
             return FileResponse(fallback_html_path)
         raise HTTPException(status_code=404, detail=f"index.html not found in {frontend_dir}/user or {project_root_dir}/frontend/user")
 
-    print(f"Admin UI (admin.html) should be available at the root path ('/').")
-    print(f"Static files (e.g., admin_script.js) are served from '/static'. E.g., /static/admin_script.js")
+    print(f"User UI (index.html) is available at the root path ('/').")
+    print(f"Admin UI (admin.html) is available at path ('/admin').")
 
 else:
     print(f"Frontend directory not found at expected location: {frontend_dir} (or alternatives tried). Ensure your 'frontend' directory containing admin.html, admin_script.js, etc., is correctly placed relative to the backend app or define FRONTEND_DIR_PATH environment variable.")
