@@ -9,6 +9,7 @@ import traceback
 import io
 from urllib.parse import quote
 from urllib.request import urlopen
+import base64
 
 # For PDF/PPT generation
 from fpdf import FPDF
@@ -37,6 +38,8 @@ except ImportError:
 
 # Import the router from the routers module
 from .routers import admin_settings # Assuming admin_settings.py is in a 'routers' subdirectory
+from . import crud # Added for reading settings
+from .models import AdminSettings # Added for type hint
 
 # Create a FastAPI app instance
 app = FastAPI(
@@ -365,10 +368,24 @@ async def get_output_settings_for_user():
 @app.post("/api/generate")
 async def generate_persona(request: Request):
     try:
+        # Read admin settings first to get configured model names
+        try:
+            app_settings: AdminSettings = crud.read_settings()
+            # Use model from settings, fallback to environment or default if not in settings
+            configured_text_model = app_settings.models.text_api_model if app_settings.models else None
+            configured_image_model = app_settings.models.image_api_model if app_settings.models else None
+        except Exception as read_settings_e:
+            print(f"Error reading admin settings in generate_persona: {read_settings_e}. Falling back to env vars / defaults.")
+            traceback.print_exc()
+            configured_text_model = None
+            configured_image_model = None
+
         data = await request.json()
         
-        # 環境変数から設定を取得 - SELECTED_TEXT_MODEL を使用
-        model_name = os.environ.get("SELECTED_TEXT_MODEL", os.environ.get("AI_MODEL", "gpt-3.5-turbo"))
+        # Determine model_name for text generation
+        model_name = configured_text_model or os.environ.get("SELECTED_TEXT_MODEL", os.environ.get("AI_MODEL", "gpt-3.5-turbo"))
+        print(f"Using text model: {model_name}")
+
         api_key = None
         
         # Set appropriate API key based on model type
@@ -409,8 +426,8 @@ async def generate_persona(request: Request):
             )
         
         # Generate response from AI
+        response_text = ""
         try:
-            response_text = ""
             if model_name.startswith("gpt"):
                 response = client.chat.completions.create(
                     model=model_name,
@@ -432,20 +449,115 @@ async def generate_persona(request: Request):
             
             # Parse AI response
             sections = parse_ai_response(response_text)
+
+            # --- Image Generation logic will be here --- #
+            generated_image_base64 = None
             
-            # フロントエンドが期待する形式で返す
+            # Determine the image model to use
+            # Priority: 1. From admin_settings.json, 2. SELECTED_IMAGE_MODEL env var, 3. Default
+            image_model_to_use = configured_image_model or os.environ.get("SELECTED_IMAGE_MODEL", "gemini-1.5-flash-latest")
+            print(f"Using image model: {image_model_to_use}")
+
+            # Attempt image generation only if an API key for Google is available 
+            # and an image model (presumably Gemini) is selected.
+            # The api_key here is determined by the TEXT model. We need GOOGLE_API_KEY for Gemini Image.
+            google_api_key_for_image = os.environ.get("GOOGLE_API_KEY")
+
+            if google_api_key_for_image and image_model_to_use and image_model_to_use.startswith("gemini") and sections:
+                try:
+                    # ... (prompt assembly logic remains the same) ...
+                    img_prompt_parts = []
+                    if data.get('name'):
+                        img_prompt_parts.append(f"{data.get('name')}")
+                    if data.get('age'):
+                        age_str = str(data.get('age'))
+                        if 'y' in age_str:
+                            age_val = age_str.split('y')[0]
+                            try: # Convert to int for age description
+                                age_int = int(age_val)
+                                if age_int < 20:
+                                    img_prompt_parts.append("10代")
+                                elif age_int < 30:
+                                    img_prompt_parts.append("20代")
+                                elif age_int < 40:
+                                    img_prompt_parts.append("30代")
+                                elif age_int < 50:
+                                    img_prompt_parts.append("40代")
+                                elif age_int < 60:
+                                    img_prompt_parts.append("50代")
+                                elif age_int < 70:
+                                    img_prompt_parts.append("60代")
+                                else:
+                                    img_prompt_parts.append("70代以上")
+                            except ValueError:
+                                img_prompt_parts.append(f"{age_val}歳")
+                        else: 
+                           img_prompt_parts.append(f"{age_str}")
+                            
+                    if data.get('gender'):
+                        gender_map = {"male": "男性", "female": "女性", "other": "人物"}
+                        img_prompt_parts.append(gender_map.get(data.get('gender'), "人物"))
+                    if data.get('occupation'):
+                        img_prompt_parts.append(data.get('occupation'))
+                    
+                    if sections.get("personality"):
+                        personality_keywords = " ".join(sections.get("personality").split()[:5])
+                        if personality_keywords:
+                             img_prompt_parts.append(f"性格は{personality_keywords}")
+                    
+                    img_prompt_parts.append("リアルな写真風")
+                    img_prompt_parts.append("明るい雰囲気")
+                    img_prompt_parts.append("自然な表情")
+                    img_prompt_parts.append("上半身のポートレート")
+
+                    image_generation_prompt = ", ".join(filter(None, img_prompt_parts))
+                    image_generation_prompt += "、背景はシンプルで現代的な屋内。"
+
+                    if image_generation_prompt:
+                        print(f"Attempting image generation with model: {image_model_to_use} and prompt: {image_generation_prompt}")
+                        
+                        # Ensure genai is configured with the GOOGLE_API_KEY
+                        if not genai.config.api_key or genai.config.api_key != google_api_key_for_image:
+                             genai.configure(api_key=google_api_key_for_image)
+
+                        img_model_client = genai.GenerativeModel(image_model_to_use)
+                        
+                        image_response = img_model_client.generate_content(
+                            contents=[image_generation_prompt],
+                            generation_config=genai.types.GenerationConfig(
+                                response_modalities=['TEXT', 'IMAGE'] 
+                            )
+                        )
+                        
+                        if image_response.candidates and image_response.candidates[0].content and image_response.candidates[0].content.parts:
+                            for part in image_response.candidates[0].content.parts:
+                                if part.text is not None:
+                                    print(f"Gemini Image Gen (Text Part): {part.text}") # Log the text part
+                                if part.inline_data and part.inline_data.data:
+                                    img_binary_data = part.inline_data.data
+                                    mime_type = part.inline_data.mime_type
+                                    generated_image_base64 = f"data:{mime_type};base64,{base64.b64encode(img_binary_data).decode('utf-8')}"
+                                    print(f"Image generated successfully. Mime-type: {mime_type}")
+                                    break 
+                        if not generated_image_base64:
+                            print("Image data not found in Gemini response.")
+                except Exception as img_e:
+                    print(f"Error during Gemini image generation: {img_e}")
+                    traceback.print_exc()
+            
             return {
                 "profile": data,
-                "details": sections
+                "details": sections,
+                "generated_image_base64": generated_image_base64
             }
             
-        except Exception as e:
+        except Exception as e: # Catch for AI text generation errors
             return JSONResponse(
                 status_code=500,
                 content={"error": f"AI生成エラー: {str(e)}"}
             )
     
-    except Exception as e:
+    except Exception as e: # Catch for general request processing errors
         return JSONResponse(
             status_code=500,
             content={"error": f"サーバーエラー: {str(e)}"}
