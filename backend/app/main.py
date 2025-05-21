@@ -55,18 +55,27 @@ if frontend_dir.exists() and frontend_dir.is_dir():
     # So, if admin_script.js is at frontend_dir/admin_script.js, it's accessible via /static/admin_script.js
     app.mount("/static", StaticFiles(directory=frontend_dir), name="static_assets")
 
-    @app.get("/", include_in_schema=False)
+    @app.get("/admin", include_in_schema=False)
     async def serve_admin_html():
         from fastapi.responses import FileResponse
-        admin_html_path = frontend_dir / "admin.html"
+        admin_html_path = frontend_dir / "admin/admin.html"
         if admin_html_path.exists():
             return FileResponse(admin_html_path)
-        # If admin.html is not in frontend_dir, try project_root_dir as a fallback for very flat structures
-        # This is less common for organized projects.
-        fallback_html_path = project_root_dir / "admin.html"
+        fallback_html_path = project_root_dir / "frontend/admin/admin.html"
         if fallback_html_path.exists():
             return FileResponse(fallback_html_path)
-        raise HTTPException(status_code=404, detail=f"admin.html not found in {frontend_dir} or {project_root_dir}")
+        raise HTTPException(status_code=404, detail=f"admin.html not found in {frontend_dir}/admin or {project_root_dir}/frontend/admin")
+
+    @app.get("/", include_in_schema=False)
+    async def serve_user_html():
+        from fastapi.responses import FileResponse
+        user_html_path = frontend_dir / "user/index.html"
+        if user_html_path.exists():
+            return FileResponse(user_html_path)
+        fallback_html_path = project_root_dir / "frontend/user/index.html"
+        if fallback_html_path.exists():
+            return FileResponse(fallback_html_path)
+        raise HTTPException(status_code=404, detail=f"index.html not found in {frontend_dir}/user or {project_root_dir}/frontend/user")
 
     print(f"Admin UI (admin.html) should be available at the root path ('/').")
     print(f"Static files (e.g., admin_script.js) are served from '/static'. E.g., /static/admin_script.js")
