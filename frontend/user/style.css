@@ -496,11 +496,6 @@ button:hover {
     border: 3px solid #28a745; /* 選択時に太めの緑の境界線 */
 }
 
-/* 選択された状態かつホバー時のスタイル - 選択状態を優先 */
-.patient-type-item.selected:hover .patient-type-icon {
-    border: 3px solid #28a745; /* 選択時の緑枠線を維持 */
-}
-
 /* 選択された患者タイプアイテム全体のスタイル */
 .patient-type-item.selected {
     background-color: transparent; /* 背景を透明に */
@@ -748,15 +743,6 @@ button:hover {
 
 .persona-preview img#preview-persona-image {
     width: 150px; 
-    height: 150px;
-    object-fit: cover;
-    border-radius: 50%;
-    border: 3px solid #fff; 
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
-    display: block; 
-    margin-left: auto;
-    margin-right: auto;
-    position: relative; /* 位置指定できるように */
 }
 
 /* 画像上にオーバーレイテキストを配置 */
@@ -1008,7 +994,7 @@ footer {
     .setting-type-options { /* Apply to setting-type-options as well */
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Apply responsive grid */
         width: auto; /* Reset width for smaller screens */
-        /* margin: 20px auto; /* Keep centering */
+        /* margin: 20px auto; */ /* Keep centering */
     }
 
     /* Adjust next/prev button width and layout on smaller screens */
@@ -1248,6 +1234,12 @@ footer {
 }
 
 /* 編集可能フィールドのスタイル - 枠線を常時表示 */
+
+.form-step[data-step="5"] .prev-step-btn {
+    margin-top: 5px;
+    background-color: #6c757d;
+}
+
 .editable-field {
     padding: 5px; /* 上下左右のパディングを5pxに統一 */
     border-radius: 4px; /* ボーダー半径を4pxに */
@@ -1653,6 +1645,4 @@ footer {
   50% { content: '..'; }
   75% { content: '...'; }
   100% { content: ''; }
-}
-
-
+} 

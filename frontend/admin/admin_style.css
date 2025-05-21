@@ -96,18 +96,7 @@ form div {
 }
 
 /* Specific label styling for checkboxes */
-#output-settings-form div label,
-#output-settings-form input[type="checkbox"] {
-    display: inline-block;
-    margin-right: 10px;
-    font-weight: normal;
-    margin-bottom: 0;
-}
-
-#output-settings-form input[type="checkbox"] {
-     width: auto;
-     margin-bottom: 0;
-}
+/* Output settings related styles are removed as the section is removed */
 
 button {
     padding: 10px 20px;
@@ -133,19 +122,9 @@ button[type="submit"]:hover {
     background-color: #218838;
 }
 
-button.remove-api-key {
-    background-color: #dc3545; /* Red for delete actions */
-    font-size: 0.9em;
-    padding: 5px 10px;
-    margin-left: 10px;
-}
-button.remove-api-key:hover {
-     background-color: #c82333;
-}
-
 /* Data List / Gallery Placeholders */
 .data-list p,
-.image-gallery p {
+.image-gallery p { /* .image-gallery p might be unused now */
     color: #777;
     font-style: italic;
 }
@@ -159,51 +138,9 @@ footer {
     font-size: 0.9em;
 }
 
-/* Adjust API Key Input Layout and Icon Styling */
-.api-key-group .input-wrapper {
-    display: flex;
-    align-items: center; /* Vertically align input and icon */
-}
+/* API Key related styling (toggle, input group) removed as API key inputs are removed */
 
-.api-key-group input[type="password"],
-.api-key-group input[type="text"] { /* Also target text type when shown */
-    flex-grow: 1; /* Input takes available space */
-    /* Ensure inputs don't lose their styling */
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-sizing: border-box; 
-}
-
-.toggle-api-key-visibility {
-    display: inline-block; /* Allow width/height */
-    width: 20px;  /* Adjust width (e.g., slightly smaller) */
-    height: 20px; /* Adjust height (e.g., slightly smaller) */
-    margin-left: 8px;
-    background-size: contain; /* Scale image within the element */
-    background-repeat: no-repeat;
-    background-position: center; /* Center the image */
-    cursor: pointer;
-    user-select: none;
-    flex-shrink: 0; /* Prevent icon from shrinking */
-    /* Add box-sizing for consistency, though likely no effect */
-    box-sizing: border-box; 
-    margin-top: -16px; /* Fine-tuning negative top margin */
-}
-
-/* Style for the 'visible' state (default) */
-.icon-eye-visible {
-    /* IMPORTANT: Replace with the actual path to your visible eye icon */
-    background-image: url('images/eye-visible.png'); 
-}
-
-/* Style for the 'hidden' state */
-.icon-eye-hidden {
-     /* IMPORTANT: Replace with the actual path to your hidden eye icon */
-    background-image: url('images/eye-hidden.png'); 
-}
-
-/* API Management Section Styling */
+/* API Management Section Styling - Fieldset and Legend kept for Model Selection */
 #api-management fieldset {
     border: none; /* Remove fieldset border */
     padding: 0; /* Remove default padding */

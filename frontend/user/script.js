@@ -2240,7 +2240,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 if (iconDiv) {
                     // 各タイプのアイコンを設定
-                    iconDiv.style.backgroundImage = `url('/static/images/${typeName}.png')`;
+                    iconDiv.style.backgroundImage = `url('../../images/${typeName}.png')`;
                     iconDiv.style.backgroundSize = 'contain';
                     iconDiv.style.backgroundPosition = 'center';
                     iconDiv.style.backgroundRepeat = 'no-repeat';
@@ -2298,13 +2298,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                         // 新しいimg要素を作成
                         const img = document.createElement('img');
                         // 環境に応じた画像パスを構築（Render用の静的ディレクトリに対応）
-                        img.src = `/static/images/${typeName}.png`;
+                        img.src = `../../images/${typeName}.png`;
                         img.alt = typeName;
                         img.loading = 'eager'; // 即時読み込み
                         // 画像がない場合にエラーハンドリング
                         img.onerror = function() {
                             // 代替パスを試す
-                            this.src = `/images/${typeName}.png`;
+                            this.src = `../../images/${typeName}.png`;
                             // それでもだめなら絶対パスを試す
                             this.onerror = function() {
                                 this.src = `./images/${typeName}.png`;
