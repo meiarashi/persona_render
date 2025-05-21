@@ -148,7 +148,7 @@ def get_ai_client(model_name, api_key):
         try:
              genai.configure(api_key=api_key) # Configure library
              # Return the configured model object directly for gemini
-             return genai.GenerativeModel('gemini-1.5-pro-latest') 
+             return genai.GenerativeModel(model_name)
         except Exception as e:
              raise ValueError(f"Google Client Error: {e}")
     else:
@@ -354,19 +354,21 @@ async def get_output_settings_for_user():
     ユーザー向けの出力設定を取得するエンドポイント。
     フロントエンドがこのエンドポイントを呼び出して、有効な出力形式を確認します。
     """
-    return {
-        "enablePdf": True,
-        "enablePpt": True,
-        "enableCsvExport": False
+    # 環境変数から設定を取得するか、デフォルト値を使用
+    settings = {
+        "enablePdf": os.environ.get("OUTPUT_PDF_ENABLED", "true").lower() == "true",
+        "enablePpt": os.environ.get("OUTPUT_PPT_ENABLED", "true").lower() == "true",
+        "enableCsvExport": os.environ.get("OUTPUT_CSV_ENABLED", "false").lower() == "true"
     }
+    return settings
 
 @app.post("/api/generate")
 async def generate_persona(request: Request):
     try:
         data = await request.json()
         
-        # Get model and API key from environment variables
-        model_name = os.environ.get("AI_MODEL", "gpt-3.5-turbo")
+        # 環境変数から設定を取得 - SELECTED_TEXT_MODEL を使用
+        model_name = os.environ.get("SELECTED_TEXT_MODEL", os.environ.get("AI_MODEL", "gpt-3.5-turbo"))
         api_key = None
         
         # Set appropriate API key based on model type
@@ -380,13 +382,18 @@ async def generate_persona(request: Request):
         # For testing purposes, if no API key is set, return dummy data
         if not api_key:
             print("No API key found. Returning dummy data for testing.")
-            return {
+            dummy_details = {
                 "personality": "真面目で責任感が強く、家族を大切にする。健康意識が高く、予防医療に関心がある。",
                 "reason": "定期的な健康診断と、軽度の高血圧の管理のため。",
                 "behavior": "3ヶ月に一度の定期検診に欠かさず通院。処方された降圧剤を規則正しく服用している。",
                 "reviews": "医師の説明がわかりやすいこと、待ち時間が短いこと、スタッフの対応が丁寧であることを重視する。",
                 "values": "信頼できる医師との長期的な関係を望む。予防医療に前向きで、医師のアドバイスを真摯に受け止める。",
                 "demands": "わかりやすい説明と、必要に応じて専門医への適切な紹介。予防医療のアドバイスも欲しい。"
+            }
+            # フロントエンドが期待する形式で返す
+            return {
+                "profile": data,
+                "details": dummy_details
             }
             
         # Build prompt
@@ -426,8 +433,11 @@ async def generate_persona(request: Request):
             # Parse AI response
             sections = parse_ai_response(response_text)
             
-            # Return parsed response
-            return sections
+            # フロントエンドが期待する形式で返す
+            return {
+                "profile": data,
+                "details": sections
+            }
             
         except Exception as e:
             return JSONResponse(
