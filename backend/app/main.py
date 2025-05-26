@@ -9,6 +9,7 @@ import traceback
 import io
 from urllib.parse import quote
 from urllib.request import urlopen
+import base64
 
 # For PDF/PPT generation
 from fpdf import FPDF
@@ -36,7 +37,9 @@ except ImportError:
     Anthropic = None
 
 # Import the router from the routers module
-from .routers import admin_settings # Assuming admin_settings.py is in a 'routers' subdirectory
+from .routers import admin_settings
+from . import crud
+from . import models
 
 # Create a FastAPI app instance
 app = FastAPI(
@@ -367,22 +370,79 @@ async def generate_persona(request: Request):
     try:
         data = await request.json()
         
-        # 環境変数から設定を取得 - SELECTED_TEXT_MODEL を使用
-        model_name = os.environ.get("SELECTED_TEXT_MODEL", os.environ.get("AI_MODEL", "gpt-3.5-turbo"))
-        api_key = None
+        # --- 設定をcrudから読み込む ---
+        app_settings = crud.read_settings() # AdminSettings インスタンスが返る
         
-        # Set appropriate API key based on model type
-        if model_name.startswith("gpt"):
-            api_key = os.environ.get("OPENAI_API_KEY")
-        elif model_name.startswith("claude"):
-            api_key = os.environ.get("ANTHROPIC_API_KEY")
-        elif model_name.startswith("gemini"):
-            api_key = os.environ.get("GOOGLE_API_KEY")
+        selected_text_model = app_settings.models.text_api_model if app_settings.models else "gpt-3.5-turbo" # デフォルト値
+        selected_image_model = app_settings.models.image_api_model if app_settings.models else "none" # デフォルト値
+
+        # --- APIキーの取得 ---
+        openai_api_key = os.environ.get("OPENAI_API_KEY")
+        anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
+        google_api_key = os.environ.get("GOOGLE_API_KEY")
+
+        # テキスト生成用APIキーの選択
+        text_api_key_to_use = None
+        if selected_text_model.startswith("gpt"):
+            text_api_key_to_use = openai_api_key
+        elif selected_text_model.startswith("claude"):
+            text_api_key_to_use = anthropic_api_key
+        elif selected_text_model.startswith("gemini"):
+            text_api_key_to_use = google_api_key
         
-        # For testing purposes, if no API key is set, return dummy data
-        if not api_key:
-            print("No API key found. Returning dummy data for testing.")
-            dummy_details = {
+        # テスト用ダミーデータ (テキスト生成) - APIキーがない場合
+        if not text_api_key_to_use and not (selected_text_model.startswith("gemini") and google_api_key): # Geminiはキーがなくてもgenai.configureされるため別途判定
+             if selected_text_model != "dummy": # "dummy" モデル選択時以外でキーがない場合
+                print(f"Warning: API key for {selected_text_model} not found. Text generation might fail or use defaults.")
+                # ここでエラーを返すか、ダミーデータを返すかは設計次第
+                # 今回はget_ai_clientやAPI呼び出しでエラーになることを許容
+
+
+        # プロンプト構築
+        prompt_text = build_prompt(data)
+        
+        # AIクライアント初期化 (テキスト生成用)
+        text_generation_client = None
+        if text_api_key_to_use or (selected_text_model.startswith("gemini") and google_api_key):
+            try:
+                text_generation_client = get_ai_client(selected_text_model, text_api_key_to_use)
+            except Exception as e:
+                print(f"AI Client initialization error for text model {selected_text_model}: {str(e)}")
+                # クライアント初期化失敗時は、ダミーデータでフォールバックするかエラーを返す
+                # ここでは後のAPI呼び出しでエラーになるのに任せる
+        
+        generated_text_str = None
+        # テキスト生成実行
+        if text_generation_client:
+            try:
+                if selected_text_model.startswith("gpt"):
+                    completion = text_generation_client.chat.completions.create(
+                        model=selected_text_model,
+                        messages=[{"role": "user", "content": prompt_text}],
+                        temperature=0.7,
+                        max_tokens=2000
+                    )
+                    generated_text_str = completion.choices[0].message.content
+                elif selected_text_model.startswith("claude"):
+                    response = text_generation_client.messages.create(
+                        model=selected_text_model,
+                        max_tokens=2000,
+                        messages=[{"role": "user", "content": prompt_text}]
+                    )
+                    generated_text_str = response.content[0].text if response.content else None
+                elif selected_text_model.startswith("gemini"):
+                    # Ensure genai is configured if it hasn't been by get_ai_client
+                    if google_api_key and not genai._is_configured: 
+                        genai.configure(api_key=google_api_key)
+                    response = text_generation_client.generate_content(prompt_text) # text_generation_client は genai.GenerativeModel インスタンス
+                    generated_text_str = response.text
+            except Exception as e:
+                print(f"Error during text generation with {selected_text_model}: {e}")
+                traceback.print_exc()
+        
+        if generated_text_str is None: # AI生成失敗またはスキップ時のフォールバック
+            print("Text generation failed or was skipped. Using dummy details.")
+            generated_details = {
                 "personality": "真面目で責任感が強く、家族を大切にする。健康意識が高く、予防医療に関心がある。",
                 "reason": "定期的な健康診断と、軽度の高血圧の管理のため。",
                 "behavior": "3ヶ月に一度の定期検診に欠かさず通院。処方された降圧剤を規則正しく服用している。",
@@ -390,62 +450,93 @@ async def generate_persona(request: Request):
                 "values": "信頼できる医師との長期的な関係を望む。予防医療に前向きで、医師のアドバイスを真摯に受け止める。",
                 "demands": "わかりやすい説明と、必要に応じて専門医への適切な紹介。予防医療のアドバイスも欲しい。"
             }
-            # フロントエンドが期待する形式で返す
-            return {
-                "profile": data,
-                "details": dummy_details
-            }
-            
-        # Build prompt
-        prompt_text = build_prompt(data)
+        else:
+            generated_details = parse_ai_response(generated_text_str)
+
+        # --- 画像生成 ---
+        image_url = "https://placehold.jp/150x150.png" # デフォルトプレースホルダー
+
+        img_prompt_parts = [
+            f"Create a profile picture for a persona named {data.get('name', 'person')}",
+            f"who is {data.get('age', 'age unknown')}, {data.get('gender', 'gender unknown')}.",
+            "Style: realistic photo."
+        ]
+        if data.get('occupation'):
+            img_prompt_parts.append(f"Occupation: {data.get('occupation')}.")
+        img_prompt = " ".join(img_prompt_parts)
+
+        if selected_image_model == "dall-e-3":
+            if openai_api_key:
+                try:
+                    image_client = OpenAI(api_key=openai_api_key)
+                    print(f"Attempting DALL-E 3 image generation with prompt: {img_prompt}")
+                    image_response = image_client.images.generate(
+                        model="dall-e-3",
+                        prompt=img_prompt,
+                        size="1024x1024", 
+                        quality="standard", 
+                        n=1,
+                    )
+                    image_url = image_response.data[0].url
+                    print(f"DALL-E 3 Image generated successfully: {image_url}")
+                except Exception as img_e:
+                    print(f"DALL-E 3 Image generation failed: {img_e}")
+                    traceback.print_exc()
+                    image_url = "https://placehold.jp/300x200/EEE/777?text=DALL-E+Error"
+            else:
+                print("OpenAI API key not found for DALL-E 3. Skipping image generation.")
+                image_url = "https://placehold.jp/300x200/CCC/555?text=No+OpenAI+Key"
+
+        elif selected_image_model == "gemini-2.0-flash-preview-image-generation":
+            if google_api_key:
+                try:
+                    if not genai._is_configured: # get_ai_client を通らない場合のため
+                         genai.configure(api_key=google_api_key)
+                    
+                    print(f"Attempting Gemini image generation with prompt: {img_prompt}")
+                    # Gemini画像生成専用モデルを初期化
+                    gemini_image_gen_model = genai.GenerativeModel('gemini-2.0-flash-preview-image-generation')
+                    
+                    # 画像生成API呼び出し (コンテンツとしてプロンプトを渡す)
+                    # Gemini APIのドキュメントに従い、画像のみを期待する場合はpartsではなく直接contentsで良いはず
+                    # また、レスポンスから画像データを取得する方法も確認が必要
+                    response = gemini_image_gen_model.generate_content(contents=img_prompt)
+                    
+                    if response.parts:
+                        image_data = response.parts[0].inline_data.data # bytes
+                        base64_image = base64.b64encode(image_data).decode('utf-8')
+                        image_url = f"data:image/png;base64,{base64_image}" # Data URI
+                        print("Gemini Image generated successfully as Base64 Data URI.")
+                    elif response.text: # テキストが返ってきた場合はエラーか、予期せぬ応答
+                        print(f"Gemini image generation returned text instead of image: {response.text}")
+                        image_url = "https://placehold.jp/300x200/EEE/777?text=Gemini+Img+Format+Error"
+                    else: # 画像もテキストもない場合
+                        print("Gemini image generation failed: No image data or text in response.")
+                        image_url = "https://placehold.jp/300x200/EEE/777?text=Gemini+Img+Gen+Error"
+
+                except Exception as img_e:
+                    print(f"Gemini Image generation failed: {img_e}")
+                    traceback.print_exc()
+                    image_url = "https://placehold.jp/300x200/EEE/777?text=Gemini+Error"
+            else:
+                print("Google API key not found for Gemini. Skipping image generation.")
+                image_url = "https://placehold.jp/300x200/CCC/555?text=No+Google+Key"
         
-        # Initialize AI client
-        try:
-            client = get_ai_client(model_name, api_key)
-        except Exception as e:
-            return JSONResponse(
-                status_code=400,
-                content={"error": f"AI Client初期化エラー: {str(e)}"}
-            )
+        elif selected_image_model == "none":
+            print("Image generation set to 'none'.")
+            image_url = "https://placehold.jp/150x150.png?text=No+Image" # No Image
         
-        # Generate response from AI
-        try:
-            response_text = ""
-            if model_name.startswith("gpt"):
-                response = client.chat.completions.create(
-                    model=model_name,
-                    messages=[{"role": "user", "content": prompt_text}],
-                    temperature=0.7,
-                    max_tokens=2000
-                )
-                response_text = response.choices[0].message.content
-            elif model_name.startswith("claude"):
-                response = client.messages.create(
-                    model=model_name,
-                    max_tokens=2000,
-                    messages=[{"role": "user", "content": prompt_text}]
-                )
-                response_text = response.content[0].text
-            elif model_name.startswith("gemini"):
-                response = client.generate_content(prompt_text)
-                response_text = response.text
-            
-            # Parse AI response
-            sections = parse_ai_response(response_text)
-            
-            # フロントエンドが期待する形式で返す
-            return {
-                "profile": data,
-                "details": sections
-            }
-            
-        except Exception as e:
-            return JSONResponse(
-                status_code=500,
-                content={"error": f"AI生成エラー: {str(e)}"}
-            )
-    
+        # レスポンスデータ作成
+        response_data = {
+            "profile": data, # フロントから送られてきた入力データをそのまま返す
+            "details": generated_details,
+            "image_url": image_url # DALL-EならURL、GeminiならBase64 Data URI
+        }
+        return response_data
+
     except Exception as e:
+        print(f"Error in generate_persona: {e}")
+        traceback.print_exc()
         return JSONResponse(
             status_code=500,
             content={"error": f"サーバーエラー: {str(e)}"}
