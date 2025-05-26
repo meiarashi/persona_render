@@ -109,9 +109,9 @@ def migrate_image_model_settings():
     try:
         settings = crud.read_settings()
         if settings and settings.models and \
-           settings.models.image_api_model == "gemini-2.0-flash-exp-image-generation":
+           settings.models.image_api_model == "gemini-2.0-flash-preview-image-generation":  # 古い名前をチェック
             print("Migrating image_api_model name in settings...")
-            settings.models.image_api_model = "gemini-2.0-flash-exp-image-generation"
+            settings.models.image_api_model = "gemini-2.0-flash-exp-image-generation"  # 新しい名前に設定
             crud.write_settings(settings)
             print("Settings migrated: Updated Gemini image model name to gemini-2.0-flash-exp-image-generation")
     except Exception as e:
@@ -431,11 +431,20 @@ async def generate_persona(request: Request):
                     )
                     generated_text_str = response.content[0].text if response.content else None
                 elif selected_text_model.startswith("gemini"):
-                    # Ensure genai is configured if it hasn't been by get_ai_client
-                    if google_api_key and not google_genai_sdk._is_configured: 
-                        google_genai_sdk.configure(api_key=google_api_key)
-                    response = text_generation_client.generate_content(prompt_text) # text_generation_client は genai.GenerativeModel インスタンス
-                    generated_text_str = response.text
+                    # 新しいSDKの場合
+                    if hasattr(text_generation_client, 'models'):
+                        print(f"[DEBUG] Using new SDK for text generation with model: {selected_text_model}")
+                        response = text_generation_client.models.generate_content(
+                            model=selected_text_model,
+                            contents=prompt_text
+                        )
+                        if response.candidates and response.candidates[0].content.parts:
+                            generated_text_str = response.candidates[0].content.parts[0].text
+                    # 古いSDKの場合
+                    else:
+                        print(f"[DEBUG] Using old SDK for text generation with model: {selected_text_model}")
+                        response = text_generation_client.generate_content(prompt_text)
+                        generated_text_str = response.text
             except Exception as e:
                 print(f"Error during text generation with {selected_text_model}: {e}")
                 traceback.print_exc()
@@ -490,62 +499,71 @@ async def generate_persona(request: Request):
         elif selected_image_model == "gemini-2.0-flash-exp-image-generation":
             if google_api_key:
                 try:
-                    if not google_genai_sdk._is_configured: # get_ai_client を通らない場合のため
-                         google_genai_sdk.configure(api_key=google_api_key)
-                    
                     print(f"[INFO] Attempting Gemini image generation with prompt: {img_prompt}")
-                    # Gemini画像生成専用モデルを初期化 (正しいモデル名かドキュメントで再確認)
-                    gemini_image_gen_model = google_genai_sdk.GenerativeModel(selected_image_model) # モデル名をそのまま使用
                     
-                    print(f"[DEBUG] Gemini Model '{selected_image_model}' initialized.")
-                    
-                    # 画像生成API呼び出し
-                    response = gemini_image_gen_model.generate_content(contents=img_prompt)
-                    
-                    print(f"[DEBUG] Gemini Raw Response Object: {type(response)}")
-                    
-                    # レスポンスの検査 (より詳細に)
-                    if hasattr(response, 'candidates') and response.candidates:
-                        candidate = response.candidates[0]
-                        if candidate.content and candidate.content.parts:
-                            # 通常、画像データは parts リスト内の最初の要素 (Partオブジェクト) の inline_data (Blobオブジェクト) の data (bytes) に格納されます。
-                            # Part の mime_type も確認すると良いでしょう (例: "image/png")
-                            image_part = candidate.content.parts[0]
-                            if hasattr(image_part, 'inline_data') and image_part.inline_data and hasattr(image_part.inline_data, 'data'):
-                                print(f"[DEBUG] Gemini image part found. Mime type: {image_part.inline_data.mime_type}, Data length: {len(image_part.inline_data.data)}")
-                                image_data = image_part.inline_data.data # bytes
-                                base64_image = base64.b64encode(image_data).decode('utf-8')
-                                image_url = f"data:{image_part.inline_data.mime_type};base64,{base64_image}" # Data URI
-                                print("[INFO] Gemini Image generated successfully as Base64 Data URI.")
+                    # 新しいSDKが利用可能かチェック
+                    if google_genai_sdk and google_genai_types:
+                        # 新しいSDKでクライアントを作成
+                        client = google_genai_sdk.Client(api_key=google_api_key)
+                        
+                        print(f"[DEBUG] Using new SDK for image generation with model: {selected_image_model}")
+                        
+                        # 画像生成API呼び出し
+                        response = client.models.generate_content(
+                            model=selected_image_model,
+                            contents=img_prompt,
+                            config=google_genai_types.GenerateContentConfig(
+                                response_modalities=['TEXT', 'IMAGE']
+                            )
+                        )
+                        
+                        print(f"[DEBUG] Gemini Raw Response Object: {type(response)}")
+                        
+                        # レスポンスの検査 (より詳細に)
+                        if hasattr(response, 'candidates') and response.candidates:
+                            candidate = response.candidates[0]
+                            if candidate.content and candidate.content.parts:
+                                # 画像データを探す
+                                image_found = False
+                                for part in candidate.content.parts:
+                                    if hasattr(part, 'inline_data') and part.inline_data:
+                                        if hasattr(part.inline_data, 'data'):
+                                            print(f"[DEBUG] Gemini image part found. Mime type: {getattr(part.inline_data, 'mime_type', 'image/png')}")
+                                            image_data = part.inline_data.data # bytes
+                                            mime_type = getattr(part.inline_data, 'mime_type', 'image/png')
+                                            base64_image = base64.b64encode(image_data).decode('utf-8')
+                                            image_url = f"data:{mime_type};base64,{base64_image}"
+                                            print("[INFO] Gemini Image generated successfully as Base64 Data URI.")
+                                            image_found = True
+                                            break
+                                
+                                if not image_found:
+                                    print("[ERROR] No image data found in response parts")
+                                    image_url = "https://placehold.jp/300x200/EEE/777?text=No+Image+Data"
                             else:
-                                print("[ERROR] Gemini response candidate part found, but no valid inline_data.data.")
-                                image_url = "https://placehold.jp/300x200/EEE/777?text=Gemini+Img+NoInlineData"
-                        else:
-                            print("[ERROR] Gemini response candidate found, but no content or parts.")
-                            if hasattr(candidate, 'finish_reason') and candidate.finish_reason != google_genai_types.FinishReason.STOP:
-                                print(f"[ERROR] Gemini Finish Reason: {candidate.finish_reason}")
+                                print("[ERROR] Gemini response candidate found, but no content or parts.")
+                                if hasattr(candidate, 'finish_reason'):
+                                    print(f"[ERROR] Gemini Finish Reason: {candidate.finish_reason}")
                                 if hasattr(candidate, 'safety_ratings'):
                                     print(f"[ERROR] Gemini Safety Ratings: {candidate.safety_ratings}")
-                            image_url = "https://placehold.jp/300x200/EEE/777?text=Gemini+Img+NoContentParts"
-                    elif hasattr(response, 'text') and response.text: # テキストが返ってきた場合
-                        print(f"[ERROR] Gemini image generation returned text instead of image: {response.text}")
-                        image_url = f"https://placehold.jp/300x200/EEE/777?text=Gemini+Img+TxtResp"
-                    else: # 予期せぬレスポンス形式
-                        print("[ERROR] Gemini image generation failed: Unexpected response structure.")
-                        try:
-                            # 開発中のデバッグ用に、シリアライズ可能な範囲でレスポンス全体を出力試行
-                            serializable_response = str(response) # 最低限str()で試す
-                            print(f"[DEBUG] Full Gemini Response (str): {serializable_response[:1000]}") # 長すぎる場合があるので一部
-                        except Exception as e_resp_log:
-                            print(f"[ERROR] Could not serialize or log full Gemini response: {e_resp_log}")
-                        image_url = "https://placehold.jp/300x200/EEE/777?text=Gemini+Img+UnexpResp"
+                                image_url = "https://placehold.jp/300x200/EEE/777?text=No+Content"
+                        elif hasattr(response, 'text') and response.text:
+                            print(f"[ERROR] Gemini image generation returned text instead of image: {response.text}")
+                            image_url = "https://placehold.jp/300x200/EEE/777?text=Text+Response"
+                        else:
+                            print("[ERROR] No candidates in Gemini response")
+                            image_url = "https://placehold.jp/300x200/EEE/777?text=No+Candidates"
+                            
+                    else:
+                        print("[ERROR] New Gemini SDK not available for image generation")
+                        image_url = "https://placehold.jp/300x200/EEE/777?text=No+SDK"
 
                 except Exception as img_e:
                     print(f"[ERROR] Gemini Image generation failed: {img_e}")
                     traceback.print_exc()
                     # エラーメッセージに詳細を含める
                     error_message = str(img_e).replace("\\n", " ") # 改行をスペースに
-                    image_url = f"https://placehold.jp/300x200/EEE/777?text=Gemini+Err+{quote(error_message)[:50]}"
+                    image_url = f"https://placehold.jp/300x200/EEE/777?text=Gemini+Error"
             else:
                 print("Google API key not found for Gemini. Skipping image generation.")
                 image_url = "https://placehold.jp/300x200/CCC/555?text=No+Google+Key"
@@ -835,7 +853,15 @@ def generate_pdf(data):
     if image_url:
         try:
             print(f"Fetching image from URL: {image_url}")
-            image_data = urlopen(image_url).read()
+            # Data URLの場合の処理
+            if image_url.startswith('data:'):
+                # data:image/png;base64,... の形式から画像データを抽出
+                header, encoded = image_url.split(',', 1)
+                image_data = base64.b64decode(encoded)
+            else:
+                # 通常のURLの場合
+                image_data = urlopen(image_url).read()
+            
             img_file_obj = io.BytesIO(image_data)
             # アスペクト比を保つ処理は省略し、指定サイズで描画
             pdf.image(img_file_obj, x=left_column_content_x, y=icon_y_position, w=icon_size, h=icon_size)
@@ -1208,4 +1234,4 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
     pptx_buffer = io.BytesIO()
     prs.save(pptx_buffer)
     pptx_buffer.seek(0)
-    return pptx_buffer 
+    return pptx_buffer
