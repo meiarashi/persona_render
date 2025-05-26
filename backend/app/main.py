@@ -12,6 +12,7 @@ from urllib.request import urlopen
 import base64
 
 # For PDF/PPT generation
+from PIL import Image
 from fpdf import FPDF
 from pptx import Presentation
 from pptx.util import Inches, Pt, Cm
@@ -862,9 +863,39 @@ def generate_pdf(data):
                 # 通常のURLの場合
                 image_data = urlopen(image_url).read()
             
+            # PIL Imageで画像を開く
             img_file_obj = io.BytesIO(image_data)
-            # アスペクト比を保つ処理は省略し、指定サイズで描画
-            pdf.image(img_file_obj, x=left_column_content_x, y=icon_y_position, w=icon_size, h=icon_size)
+            pil_image = Image.open(img_file_obj)
+            
+            # アスペクト比を保ちながら正方形にリサイズ（中央クロップ）
+            original_width, original_height = pil_image.size
+            
+            # 正方形にクロップ
+            min_dimension = min(original_width, original_height)
+            left = (original_width - min_dimension) // 2
+            top = (original_height - min_dimension) // 2
+            right = left + min_dimension
+            bottom = top + min_dimension
+            
+            # クロップして正方形にする
+            cropped_image = pil_image.crop((left, top, right, bottom))
+            
+            # リサイズして最終サイズに調整
+            final_size = int(icon_size * 10)  # mmをpixelに変換（おおよそ）
+            resized_image = cropped_image.resize((final_size, final_size), Image.Resampling.LANCZOS)
+            
+            # RGB形式に変換（PDFで確実に表示されるように）
+            if resized_image.mode != 'RGB':
+                resized_image = resized_image.convert('RGB')
+            
+            # バイトストリームに保存
+            processed_img_obj = io.BytesIO()
+            resized_image.save(processed_img_obj, format='JPEG', quality=85)
+            processed_img_obj.seek(0)
+            
+            # PDFに画像を追加
+            pdf.image(processed_img_obj, x=left_column_content_x, y=icon_y_position, w=icon_size, h=icon_size)
+            
         except Exception as e:
             print(f"Error loading image: {e}")
             # アイコン失敗時は代替テキストや枠線などを表示
