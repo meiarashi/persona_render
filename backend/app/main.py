@@ -25,11 +25,20 @@ try:
     from openai import OpenAI
 except ImportError:
     OpenAI = None
-    
+
+# New Gemini SDK (preferred)
 try:
-    import google.generativeai as genai
+    from google import genai as google_genai_sdk # Alias to avoid conflict
+    from google.genai import types as google_genai_types
 except ImportError:
-    genai = None
+    google_genai_sdk = None
+    google_genai_types = None
+
+# Old Gemini SDK (fallback)
+try:
+    import google.generativeai as old_gemini_sdk
+except ImportError:
+    old_gemini_sdk = None
     
 try:
     from anthropic import Anthropic
@@ -51,49 +60,25 @@ app = FastAPI(
 # Mount the admin_settings router
 app.include_router(admin_settings.router)
 
-# --- Static files hosting (for admin.html, admin_script.js, admin_style.css) ---
-# Determine the path to the frontend directory relative to this main.py file.
-
-# Path to the directory where this main.py file is located (e.g., .../backend/app/)
+# --- Static files hosting ---
 current_file_dir = Path(__file__).resolve().parent
-# Path to the 'backend' directory (e.g., .../backend/)
 backend_dir = current_file_dir.parent
-# Path to the root of the project (e.g., .../)
 project_root_dir = backend_dir.parent
-# Path to the 'frontend' directory (e.g., .../frontend/)
 frontend_dir = project_root_dir / "frontend"
 
-# Check if a common alternative structure is used (e.g. backend and frontend are siblings)
-# If not, try to find frontend relative to project root or specific locations.
-# This logic might need adjustment based on the *actual* project structure.
-
-# A more robust way to locate frontend if it's not strictly 'sibling to backend':
-# Attempt 1: Frontend as a sibling to the backend directory's parent (common for repo root)
-# Example: repo_root/frontend and repo_root/backend/app/main.py
 if not frontend_dir.exists() or not frontend_dir.is_dir():
-    # Attempt 2: Frontend directory directly in the project root (where backend might also be)
-    # Example: repo_root/frontend and repo_root/backend (main.py inside backend or backend/app)
-    # This assumes backend_dir is .../backend/
-    # If project_root_dir is actually the repo root: project_root_dir / 'frontend'
-    alt_frontend_dir = project_root_dir / "frontend" # Default assumption
+    alt_frontend_dir = project_root_dir / "frontend"
     if (project_root_dir / "backend").exists() and (project_root_dir / "frontend").exists():
         frontend_dir = project_root_dir / "frontend"
-    elif (backend_dir.parent / "frontend").exists(): # if backend is one level down from root
+    elif (backend_dir.parent / "frontend").exists():
          frontend_dir = backend_dir.parent / "frontend"
-    else: # Final fallback if backend_dir is the root
+    else:
         frontend_dir = backend_dir / "frontend"
-
 
 if frontend_dir.exists() and frontend_dir.is_dir():
     print(f"Serving static files from: {frontend_dir}")
-    
-    # フロントエンドディレクトリ構造に合わせて静的ファイル提供を設定
-    # '/static/user/'で frontend/user のファイルにアクセス
-    # '/static/admin/'で frontend/admin のファイルにアクセス
     app.mount("/static/user", StaticFiles(directory=frontend_dir / "user"), name="user_static_assets")
     app.mount("/static/admin", StaticFiles(directory=frontend_dir / "admin"), name="admin_static_assets")
-    
-    # Serve image files from /images route, pointing to the project root's images directory
     images_dir = project_root_dir / "images"
     if images_dir.exists() and images_dir.is_dir():
         app.mount("/images", StaticFiles(directory=images_dir), name="image_assets")
@@ -101,59 +86,74 @@ if frontend_dir.exists() and frontend_dir.is_dir():
 
     @app.get("/admin", include_in_schema=False)
     async def serve_admin_html():
-        from fastapi.responses import FileResponse
         admin_html_path = frontend_dir / "admin/admin.html"
-        if admin_html_path.exists():
-            return FileResponse(admin_html_path)
+        if admin_html_path.exists(): return FileResponse(admin_html_path)
         fallback_html_path = project_root_dir / "frontend/admin/admin.html"
-        if fallback_html_path.exists():
-            return FileResponse(fallback_html_path)
-        raise HTTPException(status_code=404, detail=f"admin.html not found in {frontend_dir}/admin or {project_root_dir}/frontend/admin")
+        if fallback_html_path.exists(): return FileResponse(fallback_html_path)
+        raise HTTPException(status_code=404, detail="admin.html not found")
 
     @app.get("/", include_in_schema=False)
     async def serve_user_html():
-        from fastapi.responses import FileResponse
         user_html_path = frontend_dir / "user/index.html"
-        if user_html_path.exists():
-            return FileResponse(user_html_path)
+        if user_html_path.exists(): return FileResponse(user_html_path)
         fallback_html_path = project_root_dir / "frontend/user/index.html"
-        if fallback_html_path.exists():
-            return FileResponse(fallback_html_path)
-        raise HTTPException(status_code=404, detail=f"index.html not found in {frontend_dir}/user or {project_root_dir}/frontend/user")
-
-    print(f"User UI (index.html) is available at the root path ('/').")
-    print(f"Admin UI (admin.html) is available at path ('/admin').")
-
+        if fallback_html_path.exists(): return FileResponse(fallback_html_path)
+        raise HTTPException(status_code=404, detail="index.html not found")
+    print("User UI and Admin UI routes are set up.")
 else:
-    print(f"Frontend directory not found at expected location: {frontend_dir} (or alternatives tried). Ensure your 'frontend' directory containing admin.html, admin_script.js, etc., is correctly placed relative to the backend app or define FRONTEND_DIR_PATH environment variable.")
-    print("Static file serving for admin UI will be skipped.")
+    print(f"Frontend directory not found at {frontend_dir}. Static file serving skipped.")
+
+# --- Settings Migration ---
+def migrate_image_model_settings():
+    """Migrates old Gemini image model name in settings to the new one."""
+    try:
+        settings = crud.read_settings()
+        if settings and settings.models and \
+           settings.models.image_api_model == "gemini-2.0-flash-exp-image-generation":
+            print("Migrating image_api_model name in settings...")
+            settings.models.image_api_model = "gemini-2.0-flash-exp-image-generation"
+            crud.write_settings(settings)
+            print("Settings migrated: Updated Gemini image model name to gemini-2.0-flash-exp-image-generation")
+    except Exception as e:
+        print(f"Settings migration for image model failed: {e}")
+
+@app.on_event("startup")
+async def startup_event():
+    print("Running startup migration...")
+    migrate_image_model_settings()
 
 # --- AI Client Initialization Helper --- 
 def get_ai_client(model_name, api_key):
     """Initializes and returns the correct AI client based on model name."""
     if model_name.startswith("gpt"):
-        if not api_key:
-            raise ValueError("OpenAI APIキーが設定されていません。")
-        try:
-            return OpenAI(api_key=api_key)
-        except Exception as e:
-            raise ValueError(f"OpenAI Client Error: {e}")
+        if not OpenAI: raise ValueError("OpenAI library not loaded.")
+        if not api_key: raise ValueError("OpenAI APIキーが設定されていません。")
+        try: return OpenAI(api_key=api_key)
+        except Exception as e: raise ValueError(f"OpenAI Client Error: {e}")
     elif model_name.startswith("claude"):
-        if not api_key:
-            raise ValueError("Anthropic APIキーが設定されていません。")
-        try:
-            return Anthropic(api_key=api_key)
-        except Exception as e:
-            raise ValueError(f"Anthropic Client Error: {e}")
+        if not Anthropic: raise ValueError("Anthropic library not loaded.")
+        if not api_key: raise ValueError("Anthropic APIキーが設定されていません。")
+        try: return Anthropic(api_key=api_key)
+        except Exception as e: raise ValueError(f"Anthropic Client Error: {e}")
     elif model_name.startswith("gemini"):
-        if not api_key:
-             raise ValueError("Google APIキーが設定されていません。")
-        try:
-             genai.configure(api_key=api_key) # Configure library
-             # Return the configured model object directly for gemini
-             return genai.GenerativeModel(model_name)
-        except Exception as e:
-             raise ValueError(f"Google Client Error: {e}")
+        if not api_key: raise ValueError("Google APIキーが設定されていません。")
+        # Prefer new SDK
+        if google_genai_sdk:
+            try:
+                print("[DEBUG] Using new google-genai SDK for client initialization.")
+                return google_genai_sdk.Client(api_key=api_key)
+            except Exception as e:
+                print(f"[WARNING] New google-genai SDK client init failed: {e}. Trying old SDK.")
+        # Fallback to old SDK
+        if old_gemini_sdk:
+            try:
+                print("[DEBUG] Using old google.generativeai SDK for client initialization (fallback).")
+                old_gemini_sdk.configure(api_key=api_key)
+                # For the old SDK, GenerativeModel is returned, not a 'Client' instance
+                return old_gemini_sdk.GenerativeModel(model_name) 
+            except Exception as e_old:
+                raise ValueError(f"Google Client Error (old SDK): {e_old}")
+        raise ValueError("Google AI SDK (new or old) not available or failed to initialize.")
     else:
         raise ValueError(f"未対応のモデルです: {model_name}")
 
@@ -432,8 +432,8 @@ async def generate_persona(request: Request):
                     generated_text_str = response.content[0].text if response.content else None
                 elif selected_text_model.startswith("gemini"):
                     # Ensure genai is configured if it hasn't been by get_ai_client
-                    if google_api_key and not genai._is_configured: 
-                        genai.configure(api_key=google_api_key)
+                    if google_api_key and not google_genai_sdk._is_configured: 
+                        google_genai_sdk.configure(api_key=google_api_key)
                     response = text_generation_client.generate_content(prompt_text) # text_generation_client は genai.GenerativeModel インスタンス
                     generated_text_str = response.text
             except Exception as e:
@@ -487,37 +487,65 @@ async def generate_persona(request: Request):
                 print("OpenAI API key not found for DALL-E 3. Skipping image generation.")
                 image_url = "https://placehold.jp/300x200/CCC/555?text=No+OpenAI+Key"
 
-        elif selected_image_model == "gemini-2.0-flash-preview-image-generation":
+        elif selected_image_model == "gemini-2.0-flash-exp-image-generation":
             if google_api_key:
                 try:
-                    if not genai._is_configured: # get_ai_client を通らない場合のため
-                         genai.configure(api_key=google_api_key)
+                    if not google_genai_sdk._is_configured: # get_ai_client を通らない場合のため
+                         google_genai_sdk.configure(api_key=google_api_key)
                     
-                    print(f"Attempting Gemini image generation with prompt: {img_prompt}")
-                    # Gemini画像生成専用モデルを初期化
-                    gemini_image_gen_model = genai.GenerativeModel('gemini-2.0-flash-preview-image-generation')
+                    print(f"[INFO] Attempting Gemini image generation with prompt: {img_prompt}")
+                    # Gemini画像生成専用モデルを初期化 (正しいモデル名かドキュメントで再確認)
+                    gemini_image_gen_model = google_genai_sdk.GenerativeModel(selected_image_model) # モデル名をそのまま使用
                     
-                    # 画像生成API呼び出し (コンテンツとしてプロンプトを渡す)
-                    # Gemini APIのドキュメントに従い、画像のみを期待する場合はpartsではなく直接contentsで良いはず
-                    # また、レスポンスから画像データを取得する方法も確認が必要
+                    print(f"[DEBUG] Gemini Model '{selected_image_model}' initialized.")
+                    
+                    # 画像生成API呼び出し
                     response = gemini_image_gen_model.generate_content(contents=img_prompt)
                     
-                    if response.parts:
-                        image_data = response.parts[0].inline_data.data # bytes
-                        base64_image = base64.b64encode(image_data).decode('utf-8')
-                        image_url = f"data:image/png;base64,{base64_image}" # Data URI
-                        print("Gemini Image generated successfully as Base64 Data URI.")
-                    elif response.text: # テキストが返ってきた場合はエラーか、予期せぬ応答
-                        print(f"Gemini image generation returned text instead of image: {response.text}")
-                        image_url = "https://placehold.jp/300x200/EEE/777?text=Gemini+Img+Format+Error"
-                    else: # 画像もテキストもない場合
-                        print("Gemini image generation failed: No image data or text in response.")
-                        image_url = "https://placehold.jp/300x200/EEE/777?text=Gemini+Img+Gen+Error"
+                    print(f"[DEBUG] Gemini Raw Response Object: {type(response)}")
+                    
+                    # レスポンスの検査 (より詳細に)
+                    if hasattr(response, 'candidates') and response.candidates:
+                        candidate = response.candidates[0]
+                        if candidate.content and candidate.content.parts:
+                            # 通常、画像データは parts リスト内の最初の要素 (Partオブジェクト) の inline_data (Blobオブジェクト) の data (bytes) に格納されます。
+                            # Part の mime_type も確認すると良いでしょう (例: "image/png")
+                            image_part = candidate.content.parts[0]
+                            if hasattr(image_part, 'inline_data') and image_part.inline_data and hasattr(image_part.inline_data, 'data'):
+                                print(f"[DEBUG] Gemini image part found. Mime type: {image_part.inline_data.mime_type}, Data length: {len(image_part.inline_data.data)}")
+                                image_data = image_part.inline_data.data # bytes
+                                base64_image = base64.b64encode(image_data).decode('utf-8')
+                                image_url = f"data:{image_part.inline_data.mime_type};base64,{base64_image}" # Data URI
+                                print("[INFO] Gemini Image generated successfully as Base64 Data URI.")
+                            else:
+                                print("[ERROR] Gemini response candidate part found, but no valid inline_data.data.")
+                                image_url = "https://placehold.jp/300x200/EEE/777?text=Gemini+Img+NoInlineData"
+                        else:
+                            print("[ERROR] Gemini response candidate found, but no content or parts.")
+                            if hasattr(candidate, 'finish_reason') and candidate.finish_reason != google_genai_types.FinishReason.STOP:
+                                print(f"[ERROR] Gemini Finish Reason: {candidate.finish_reason}")
+                                if hasattr(candidate, 'safety_ratings'):
+                                    print(f"[ERROR] Gemini Safety Ratings: {candidate.safety_ratings}")
+                            image_url = "https://placehold.jp/300x200/EEE/777?text=Gemini+Img+NoContentParts"
+                    elif hasattr(response, 'text') and response.text: # テキストが返ってきた場合
+                        print(f"[ERROR] Gemini image generation returned text instead of image: {response.text}")
+                        image_url = f"https://placehold.jp/300x200/EEE/777?text=Gemini+Img+TxtResp"
+                    else: # 予期せぬレスポンス形式
+                        print("[ERROR] Gemini image generation failed: Unexpected response structure.")
+                        try:
+                            # 開発中のデバッグ用に、シリアライズ可能な範囲でレスポンス全体を出力試行
+                            serializable_response = str(response) # 最低限str()で試す
+                            print(f"[DEBUG] Full Gemini Response (str): {serializable_response[:1000]}") # 長すぎる場合があるので一部
+                        except Exception as e_resp_log:
+                            print(f"[ERROR] Could not serialize or log full Gemini response: {e_resp_log}")
+                        image_url = "https://placehold.jp/300x200/EEE/777?text=Gemini+Img+UnexpResp"
 
                 except Exception as img_e:
-                    print(f"Gemini Image generation failed: {img_e}")
+                    print(f"[ERROR] Gemini Image generation failed: {img_e}")
                     traceback.print_exc()
-                    image_url = "https://placehold.jp/300x200/EEE/777?text=Gemini+Error"
+                    # エラーメッセージに詳細を含める
+                    error_message = str(img_e).replace("\\n", " ") # 改行をスペースに
+                    image_url = f"https://placehold.jp/300x200/EEE/777?text=Gemini+Err+{quote(error_message)[:50]}"
             else:
                 print("Google API key not found for Gemini. Skipping image generation.")
                 image_url = "https://placehold.jp/300x200/CCC/555?text=No+Google+Key"

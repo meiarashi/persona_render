@@ -1677,9 +1677,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         document.getElementById('header-purpose').textContent = headerPurposeDisplay;
         
-        // Update image
-        document.getElementById('preview-persona-image').src = result.image_url || 'https://via.placeholder.com/150';
+        // Update image and center it
+        const personaImage = document.getElementById('preview-persona-image');
+        personaImage.src = result.image_url || 'https://via.placeholder.com/150';
+        // Center the image by styling its parent container
+        if (personaImage.parentElement) {
+            personaImage.parentElement.style.textAlign = 'center';
+        }
+
         document.getElementById('preview-name').textContent = profile.name || '-';
+        // Center the name text as well (assuming it's a block or inline-block element in a container that can center text)
+        const nameElement = document.getElementById('preview-name');
+        if (nameElement && nameElement.parentElement) {
+            nameElement.parentElement.style.textAlign = 'center'; 
+        }
 
         // Populate basic info in the preview pane (2-column grid)
         // Department and Purpose are now removed from this specific section in the preview
