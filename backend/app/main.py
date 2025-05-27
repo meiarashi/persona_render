@@ -394,13 +394,22 @@ async def generate_persona(request: Request):
                 # 今回はget_ai_clientやAPI呼び出しでエラーになることを許容
 
 
-        # 文字数制限を取得
-        limit_personality = os.environ.get("LIMIT_PERSONALITY", "100")
-        limit_reason = os.environ.get("LIMIT_REASON", "100")
-        limit_behavior = os.environ.get("LIMIT_BEHAVIOR", "100")
-        limit_reviews = os.environ.get("LIMIT_REVIEWS", "100")
-        limit_values = os.environ.get("LIMIT_VALUES", "100")
-        limit_demands = os.environ.get("LIMIT_DEMANDS", "100")
+        # 文字数制限を取得（管理画面の設定を優先）
+        if app_settings.limits:
+            limit_personality = app_settings.limits.get("personality", "100")
+            limit_reason = app_settings.limits.get("reason", "100")
+            limit_behavior = app_settings.limits.get("behavior", "100")
+            limit_reviews = app_settings.limits.get("reviews", "100")
+            limit_values = app_settings.limits.get("values", "100")
+            limit_demands = app_settings.limits.get("demands", "100")
+        else:
+            # フォールバック：環境変数から取得
+            limit_personality = os.environ.get("LIMIT_PERSONALITY", "100")
+            limit_reason = os.environ.get("LIMIT_REASON", "100")
+            limit_behavior = os.environ.get("LIMIT_BEHAVIOR", "100")
+            limit_reviews = os.environ.get("LIMIT_REVIEWS", "100")
+            limit_values = os.environ.get("LIMIT_VALUES", "100")
+            limit_demands = os.environ.get("LIMIT_DEMANDS", "100")
         
         # RAGデータベースの初期化
         rag_processor.init_rag_database()
