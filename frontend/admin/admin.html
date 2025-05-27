@@ -22,9 +22,39 @@
                 <select id="specialty-select" name="specialty">
                     <option value="">選択してください</option>
                     <!-- TODO: Populate specialties dynamically or manually -->
+                    <!-- 医科系診療科 -->
+                    <option value="ophthalmology">眼科</option>
                     <option value="internal_medicine">内科</option>
+                    <option value="surgery">外科</option>
+                    <option value="pediatrics">小児科</option>
+                    <option value="orthopedics">整形外科</option>
+                    <option value="ent">耳鼻咽喉科</option>
                     <option value="dermatology">皮膚科</option>
+                    <option value="gynecology">婦人科</option>
+                    <option value="urology">泌尿器科</option>
+                    <option value="psychiatry">精神科</option>
+                    <option value="neurosurgery">脳神経外科</option>
+                    <option value="anesthesiology">麻酔科</option>
+                    <option value="radiology">放射線科</option>
+                    <option value="rehabilitation">リハビリテーション科</option>
+                    <option value="allergy">アレルギー科</option>
+                    <!-- 内科系専門科 -->
+                    <option value="cardiology">循環器内科</option>
+                    <option value="gastroenterology">消化器内科</option>
+                    <option value="respiratory_medicine">呼吸器内科</option>
+                    <option value="diabetes_medicine">糖尿病内科</option>
+                    <option value="nephrology">腎臓内科</option>
+                    <option value="neurology">神経内科</option>
+                    <option value="hematology">血液内科</option>
+                    <!-- 外科系専門科 -->
+                    <option value="plastic_surgery">形成外科</option>
+                    <option value="beauty_surgery">美容外科</option>
+                    <!-- 歯科系診療科 -->
                     <option value="general_dentistry">一般歯科</option>
+                    <option value="pediatric_dentistry">小児歯科</option>
+                    <option value="orthodontics">矯正歯科</option>
+                    <option value="cosmetic_dentistry">審美歯科</option>
+                    <option value="oral_surgery">口腔外科</option>
                 </select>
                 <label for="rag-file-upload">データファイル:</label>
                 <input type="file" id="rag-file-upload" name="rag_file" accept=".txt,.csv,.json">
@@ -32,13 +62,26 @@
             </form>
             <div class="data-list">
                 <h3>登録済みデータ</h3>
-                <!-- TODO: List uploaded data with edit/delete options -->
-                <p>（ここに登録済みのRAGデータが表示されます）</p>
+                <div id="rag-status-message" class="status-message"></div>
+                <table class="rag-data-table">
+                    <thead>
+                        <tr>
+                            <th>診療科</th>
+                            <th>ファイル名</th>
+                            <th>データ数</th>
+                            <th>アップロード日時</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rag-data-list">
+                        <tr><td colspan="5" style="text-align: center;">読み込み中...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </section>
 
         <section id="api-management">
-            <h2>API連携管理</h2>
+            <h2>生成モデル設定</h2>
 
             <fieldset>
                 <legend>テキスト生成設定</legend>
@@ -60,8 +103,8 @@
                      <div class="form-group">
                          <label for="image-api-model-select">使用モデル:</label>
                          <select id="image-api-model-select" name="image_api_model">
-                             <option value="dall-e-3">OpenAI / DALL-E 3</option>
                              <option value="gemini-2.0-flash-exp-image-generation">Gemini 2.0 Flash Image Generation</option>
+                             <option value="dall-e-3">OpenAI / DALL-E 3</option>
                              <option value="none">画像生成なし</option>
                              <!-- Add other image models here later if needed -->
                          </select>
@@ -69,7 +112,7 @@
                 </form>
             </fieldset>
 
-            <button id="save-api-settings-btn">API連携設定を保存</button>
+            <button id="save-api-settings-btn">生成モデル設定を保存</button>
             <div id="api-status-message" class="status-message"></div>
 
         </section>

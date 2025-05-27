@@ -50,6 +50,7 @@ except ImportError:
 from .routers import admin_settings
 from . import crud
 from . import models
+from . import rag_processor
 
 # Create a FastAPI app instance
 app = FastAPI(
@@ -352,20 +353,6 @@ def parse_ai_response(text):
     
     return sections
 
-@app.get("/api/settings/output")
-async def get_output_settings_for_user():
-    """
-    ユーザー向けの出力設定を取得するエンドポイント。
-    フロントエンドがこのエンドポイントを呼び出して、有効な出力形式を確認します。
-    """
-    # 環境変数から設定を取得するか、デフォルト値を使用
-    settings = {
-        "enablePdf": os.environ.get("OUTPUT_PDF_ENABLED", "true").lower() == "true",
-        "enablePpt": os.environ.get("OUTPUT_PPT_ENABLED", "true").lower() == "true",
-        "enableCsvExport": os.environ.get("OUTPUT_CSV_ENABLED", "false").lower() == "true"
-    }
-    return settings
-
 @app.post("/api/generate")
 async def generate_persona(request: Request):
     try:
@@ -399,18 +386,77 @@ async def generate_persona(request: Request):
                 # 今回はget_ai_clientやAPI呼び出しでエラーになることを許容
 
 
-        # プロンプト構築
-        prompt_text = build_prompt(data)
+        # RAGデータベースの初期化
+        rag_processor.init_rag_database()
+        
+        # RAGデータの検索
+        rag_context = ""
+        department = data.get('department')
+        age = data.get('age')
+        gender = data.get('gender')
+        
+        if department:
+            # 年齢グループの判定
+            age_group = None
+            if age:
+                try:
+                    age_str = str(age)
+                    # 年齢を数値に変換
+                    if 'y' in age_str:
+                        # "45y3m" -> 45
+                        age_num = int(age_str.split('y')[0])
+                    elif age_str.isdigit():
+                        # "45" -> 45
+                        age_num = int(age_str)
+                    else:
+                        age_num = None
+                    
+                    if age_num is not None:
+                        if age_num < 20:
+                            age_group = "10s"
+                        elif age_num < 30:
+                            age_group = "20s"
+                        elif age_num < 40:
+                            age_group = "30s"
+                        elif age_num < 50:
+                            age_group = "40s"
+                        elif age_num < 60:
+                            age_group = "50s"
+                        elif age_num < 70:
+                            age_group = "60s"
+                        else:
+                            age_group = "70s"
+                except (ValueError, AttributeError):
+                    print(f"Warning: Could not parse age '{age}' for RAG search")
+            
+            # RAGデータの検索
+            rag_results = rag_processor.search_rag_data(
+                specialty=department,
+                age_group=age_group,
+                gender=gender,
+                limit=5
+            )
+            
+            if rag_results:
+                rag_context = "\n\n# 参考情報（この診療科の患者が検索するキーワード）\n"
+                rag_context += "以下は、同じ診療科・年代・性別の患者がよく検索するキーワードです。ペルソナ作成の参考にしてください：\n"
+                for i, result in enumerate(rag_results, 1):
+                    rag_context += f"{i}. {result['keyword']} (検索数: {result['search_volume']}人)\n"
+                    if result.get('category'):
+                        rag_context += f"   カテゴリ: {result['category']}\n"
+        
+        # プロンプト構築（RAGコンテキストを含む）
+        prompt_text = build_prompt(data) + rag_context
         
         # AIクライアント初期化 (テキスト生成用)
         text_generation_client = None
+        client_init_error = None
         if text_api_key_to_use or (selected_text_model.startswith("gemini") and google_api_key):
             try:
                 text_generation_client = get_ai_client(selected_text_model, text_api_key_to_use)
             except Exception as e:
-                print(f"AI Client initialization error for text model {selected_text_model}: {str(e)}")
-                # クライアント初期化失敗時は、ダミーデータでフォールバックするかエラーを返す
-                # ここでは後のAPI呼び出しでエラーになるのに任せる
+                client_init_error = str(e)
+                print(f"AI Client initialization error for text model {selected_text_model}: {client_init_error}")
         
         generated_text_str = None
         # テキスト生成実行
@@ -451,7 +497,10 @@ async def generate_persona(request: Request):
                 traceback.print_exc()
         
         if generated_text_str is None: # AI生成失敗またはスキップ時のフォールバック
-            print("Text generation failed or was skipped. Using dummy details.")
+            error_msg = "Text generation failed or was skipped."
+            if client_init_error:
+                error_msg += f" Client initialization error: {client_init_error}"
+            print(error_msg)
             generated_details = {
                 "personality": "真面目で責任感が強く、家族を大切にする。健康意識が高く、予防医療に関心がある。",
                 "reason": "定期的な健康診断と、軽度の高血圧の管理のため。",
@@ -768,17 +817,27 @@ HEADER_MAP = {
 
 def format_age_for_pdf_ppt(age_value):
     if not age_value: return '-'
-    age_value_str = str(age_value) # Ensure it's a string
-    if 'm' in age_value_str and 'y' in age_value_str:
-        parts = age_value_str.split('y')
-        years = parts[0]
-        months = parts[1].replace('m', '')
-        return f"{years}歳{months}ヶ月"
-    elif 'y' in age_value_str:
-        return f"{age_value_str.replace('y', '')}歳"
-    elif 'm' in age_value_str:
-            return f"0歳{age_value_str.replace('m','')}ヶ月"
-    return age_value_str 
+    try:
+        age_value_str = str(age_value) # Ensure it's a string
+        if 'm' in age_value_str and 'y' in age_value_str:
+            parts = age_value_str.split('y')
+            years = parts[0]
+            months = parts[1].replace('m', '')
+            if years == '0' and months == '0':
+                return "0歳"
+            return f"{years}歳{months}ヶ月"
+        elif 'y' in age_value_str:
+            return f"{age_value_str.replace('y', '')}歳"
+        elif 'm' in age_value_str:
+            months = age_value_str.replace('m', '')
+            if months == '0':
+                return "0歳"
+            return f"0歳{months}ヶ月"
+        elif age_value_str.isdigit():
+            return f"{age_value_str}歳"
+        return age_value_str
+    except Exception:
+        return str(age_value) 
 
 # Helper function to generate PPT
 def add_text_to_shape(shape, text, font_size=Pt(9), is_bold=False, alignment=PP_ALIGN.LEFT, font_name='Meiryo UI'):
@@ -857,8 +916,12 @@ def generate_pdf(data):
             # Data URLの場合の処理
             if image_url.startswith('data:'):
                 # data:image/png;base64,... の形式から画像データを抽出
-                header, encoded = image_url.split(',', 1)
-                image_data = base64.b64decode(encoded)
+                try:
+                    header, encoded = image_url.split(',', 1)
+                    image_data = base64.b64decode(encoded)
+                except (ValueError, base64.binascii.Error) as e:
+                    print(f"Error decoding data URL: {e}")
+                    raise
             else:
                 # 通常のURLの場合
                 image_data = urlopen(image_url).read()

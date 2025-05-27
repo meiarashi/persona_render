@@ -36,6 +36,7 @@ def ensure_settings_dir_exists():
 def read_settings() -> AdminSettings:
     """Reads admin settings from the JSON file. Returns default settings if file not found or invalid."""
     ensure_settings_dir_exists()
+
     if not SETTINGS_FILE_PATH.exists():
         print(f"Settings file not found at {SETTINGS_FILE_PATH}. Using default settings and creating file.")
         write_settings(DEFAULT_SETTINGS)
@@ -43,8 +44,6 @@ def read_settings() -> AdminSettings:
     try:
         with open(SETTINGS_FILE_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
-            if 'output_settings' in data: # Clean up old field if present
-                del data['output_settings']
             return AdminSettings(**data)
     except json.JSONDecodeError:
         print(f"Error decoding JSON from {SETTINGS_FILE_PATH}. Overwriting with default settings.")
@@ -89,7 +88,7 @@ def update_char_limits(new_limits_data: Dict[str, str]) -> bool:
 
 
 if __name__ == "__main__":
-    print("Testing CRUD operations (output settings removed)...")
+    print("Testing CRUD operations...")
     
     ensure_settings_dir_exists()
     print(f"Settings file will be at: {SETTINGS_FILE_PATH}")
@@ -121,4 +120,4 @@ if __name__ == "__main__":
         assert reread_settings.limits.get("personality") == "1000"
         assert reread_settings.limits.get("new_custom_limit") == "50"
     
-    print("\nCRUD tests completed (output settings removed).") 
+    print("\nCRUD tests completed.") 

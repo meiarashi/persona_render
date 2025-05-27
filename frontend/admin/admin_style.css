@@ -155,4 +155,48 @@ footer {
     border: none; /* Reset border if browser adds one by default */
     width: auto; /* Allow legend to size naturally */
     color: #343a40; /* Darker color for legend */
+}
+
+/* RAGデータテーブルのスタイル */
+.rag-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.rag-data-table th,
+.rag-data-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.rag-data-table th {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.rag-data-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+.rag-data-table button {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.rag-data-table button:hover {
+    background-color: #da190b;
+}
+
+.status-message {
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 5px;
+    font-weight: bold;
+    text-align: center;
 } 
