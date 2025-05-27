@@ -295,7 +295,8 @@ def parse_ai_response(text):
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
                 if content:
                     # 「(100文字程度)」のような文字数指定を削除
-                    content = re.sub(r'\(\d+文字程度\)\s*', '', content)
+                    content = re.sub(r'[（(]\d+文字程度[）)]\s*', '', content)
+                    content = re.sub(r'\d+文字程度\s*', '', content)
                     sections[current_section] = content
                 continue
                 
@@ -347,7 +348,8 @@ def parse_ai_response(text):
             # If we're in a section, append text
             if current_section and not line.startswith(("#", "##")):
                 # 「(100文字程度)」のような文字数指定を削除
-                cleaned_line = re.sub(r'\(\d+文字程度\)\s*', '', line)
+                cleaned_line = re.sub(r'[（(]\d+文字程度[）)]\s*', '', line)
+                cleaned_line = re.sub(r'\d+文字程度\s*', '', cleaned_line)
                 if sections[current_section]:
                     sections[current_section] += " " + cleaned_line
                 else:
@@ -392,6 +394,14 @@ async def generate_persona(request: Request):
                 # 今回はget_ai_clientやAPI呼び出しでエラーになることを許容
 
 
+        # 文字数制限を取得
+        limit_personality = os.environ.get("LIMIT_PERSONALITY", "100")
+        limit_reason = os.environ.get("LIMIT_REASON", "100")
+        limit_behavior = os.environ.get("LIMIT_BEHAVIOR", "100")
+        limit_reviews = os.environ.get("LIMIT_REVIEWS", "100")
+        limit_values = os.environ.get("LIMIT_VALUES", "100")
+        limit_demands = os.environ.get("LIMIT_DEMANDS", "100")
+        
         # RAGデータベースの初期化
         rag_processor.init_rag_database()
         
@@ -437,13 +447,14 @@ async def generate_persona(request: Request):
                     print(f"Warning: Could not parse age '{age}' for RAG search")
             
             # RAGデータの検索
+            print(f"[DEBUG] Searching RAG data for department={department}, age_group={age_group}, gender={gender}")
             rag_results = rag_processor.search_rag_data(
                 specialty=department,
                 age_group=age_group,
                 gender=gender,
                 limit=5
             )
-            
+            print(f"[DEBUG] RAG search returned {len(rag_results)} results")
             
             if rag_results:
                 rag_context = "\n\n# 参考情報（この診療科の患者が検索するキーワード）\n"
@@ -455,14 +466,6 @@ async def generate_persona(request: Request):
         # プロンプト構築（RAGコンテキストを含む）
         prompt_text = build_prompt(data, limit_personality, limit_reason, limit_behavior, 
                                   limit_reviews, limit_values, limit_demands) + rag_context
-        
-        # 文字数制限を取得
-        limit_personality = os.environ.get("LIMIT_PERSONALITY", "100")
-        limit_reason = os.environ.get("LIMIT_REASON", "100")
-        limit_behavior = os.environ.get("LIMIT_BEHAVIOR", "100")
-        limit_reviews = os.environ.get("LIMIT_REVIEWS", "100")
-        limit_values = os.environ.get("LIMIT_VALUES", "100")
-        limit_demands = os.environ.get("LIMIT_DEMANDS", "100")
         
         # 生成情報をログ出力
         print(f"[INFO] Generating persona with model: {selected_text_model}")
@@ -524,6 +527,9 @@ async def generate_persona(request: Request):
                         print(f"[DEBUG] Using old SDK for text generation with model: {selected_text_model}")
                         response = text_generation_client.generate_content(prompt_text)
                         generated_text_str = response.text
+                        # Gemini特有の文字数指定を追加で削除
+                        generated_text_str = re.sub(r'[（(]\d+文字程度[）)]\s*', '', generated_text_str)
+                        generated_text_str = re.sub(r'\d+文字程度[\s、。]', '', generated_text_str)
             except Exception as e:
                 print(f"Error during text generation with {selected_text_model}: {e}")
                 traceback.print_exc()
@@ -542,7 +548,12 @@ async def generate_persona(request: Request):
                 "demands": "わかりやすい説明と、必要に応じて専門医への適切な紹介。予防医療のアドバイスも欲しい。"
             }
         else:
+            print(f"[DEBUG] Raw AI response preview (first 200 chars): {generated_text_str[:200] if generated_text_str else 'None'}")
             generated_details = parse_ai_response(generated_text_str)
+            # 生成後のチェック
+            for key, value in generated_details.items():
+                if "文字程度" in str(value):
+                    print(f"[WARNING] Character count text found in {key}: {value[:50]}...")
             
 
         # --- 画像生成 ---
