@@ -181,8 +181,14 @@ def build_prompt(data, limit_personality="100", limit_reason="100", limit_behavi
     }
 
     prompt_parts = [
-        "以下の情報に基づいて、医療系のペルソナを作成してください。",
-        "各項目は自然な文章で記述し、**日本語で、指定されたおおよその文字数制限に従ってください**。",
+        "あなたは医療マーケティングの専門家です。以下の情報に基づいて、リアルで説得力のある医療系ペルソナを作成してください。",
+        "",
+        "## 重要な指示:",
+        "1. 実在の人物として感じられるよう、具体的で一貫性のある人物像を描いてください",
+        "2. 診療科と患者タイプに合致した、現実的な悩みや行動パターンを描写してください",
+        "3. 年齢・性別・職業・年収が矛盾なく統合された人物像にしてください",
+        "4. 各項目は自然な日本語で、指定された文字数の目安に従って記述してください",
+        "5. 医療機関のマーケティングに役立つ具体的な洞察を含めてください",
         "",
         "# 利用者からの入力情報"
     ]
@@ -255,14 +261,18 @@ def build_prompt(data, limit_personality="100", limit_reason="100", limit_behavi
         prompt_parts.extend(dynamic_additional_info)
 
     prompt_parts.append("\n# 生成項目")
-    prompt_parts.append("以下の項目について、上記情報に基づいた自然な文章を生成してください。各項目は指定された文字数の目安で記述してください。")
-    prompt_parts.append("\n重要: 出力には項目名と内容のみを含め、文字数の指定（例：「(100文字程度)」）は出力に含めないでください。")
-    prompt_parts.append(f"\n1. **性格（価値観・人生観）**: {limit_personality}文字程度で記述")
-    prompt_parts.append(f"2. **通院理由**: {limit_reason}文字程度で記述")
-    prompt_parts.append(f"3. **症状通院頻度・行動パターン**: {limit_behavior}文字程度で記述")
-    prompt_parts.append(f"4. **口コミの重視ポイント**: {limit_reviews}文字程度で記述")
-    prompt_parts.append(f"5. **医療機関への価値観・行動傾向**: {limit_values}文字程度で記述")
-    prompt_parts.append(f"6. **医療機関に求めるもの**: {limit_demands}文字程度で記述")
+    prompt_parts.append("以下の6つの項目について、上記の人物設定に基づいて具体的で一貫性のある内容を生成してください。")
+    prompt_parts.append("\n## 出力形式の重要な注意:")
+    prompt_parts.append("- 各項目は「項目名: 内容」の形式で出力してください")
+    prompt_parts.append("- 文字数の指定（例：「(100文字程度)」）は絶対に出力に含めないでください")
+    prompt_parts.append("- 各項目は指定された文字数の目安を守ってください")
+    prompt_parts.append("")
+    prompt_parts.append(f"1. **性格（価値観・人生観）**: この人物の価値観、人生観、性格的特徴を{limit_personality}文字程度で記述。座右の銘や性格キーワードを反映させること。")
+    prompt_parts.append(f"2. **通院理由**: 診療科に関連した具体的な症状や健康上の悩みを{limit_reason}文字程度で記述。年齢や職業と整合性を持たせること。")
+    prompt_parts.append(f"3. **症状通院頻度・行動パターン**: 通院頻度、治療への取り組み方、日常的な健康管理行動を{limit_behavior}文字程度で記述。患者タイプを反映させること。")
+    prompt_parts.append(f"4. **口コミの重視ポイント**: 医療機関を選ぶ際に口コミで重視する点を{limit_reviews}文字程度で記述。情報収集の方法も含めること。")
+    prompt_parts.append(f"5. **医療機関への価値観・行動傾向**: 医療機関や医師に対する考え方、受診時の行動傾向を{limit_values}文字程度で記述。患者タイプの特徴を具体化すること。")
+    prompt_parts.append(f"6. **医療機関に求めるもの**: 理想の医療機関像、重視するサービスや対応を{limit_demands}文字程度で記述。作成目的（患者増加/来院頻度/客単価）と関連付けること。")
     
     return "\n".join(prompt_parts)
 

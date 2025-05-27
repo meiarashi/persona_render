@@ -2402,36 +2402,36 @@ function getRandomAnnualIncome(ageInYears, currentOccupation, allPossibleHtmlInc
     // Define professions with generally capped income (not likely to reach very high brackets)
     const incomeCappedProfessions = {
         // 公務員・公的機関系
-        "自衛官": 1500, // Max ~15 million JPY
-        "警察官": 1500,
-        "消防士": 1500,
-        "公務員（国家）": 1800, // Max ~18 million JPY for high-ranking national public servants
-        "公務員（地方）": 1500, // Max ~15 million JPY for local public servants
+        "自衛官": 1000, // 実際の平均年収を反映（下方修正）
+        "警察官": 1000,
+        "消防士": 900,
+        "公務員（国家）": 1200, // キャリア官僚除く一般的な範囲
+        "公務員（地方）": 900, 
         
         // 教育系
-        "教員・教師（小学校）": 1200,
-        "教員・教師（中学校）": 1200,
-        "教員・教師（高校）": 1300,
-        "教員・教師（専門学校）": 1200,
-        "教員・教師（大学）": 1800,
-        "学者・研究者": 1800,
+        "教員・教師（小学校）": 800,
+        "教員・教師（中学校）": 800,
+        "教員・教師（高校）": 900,
+        "教員・教師（専門学校）": 700,
+        "教員・教師（大学）": 1200,
+        "学者・研究者": 1000,
         
         // 医療・福祉系
-        "保育士": 800,
-        "介護福祉士": 800,
-        "社会福祉士": 900,
-        "精神保健福祉士": 900,
-        "看護師": 1200,
-        "助産師": 1200,
-        "保健師": 1000,
-        "介護職": 800,
-        "理学療法士": 1000,
-        "作業療法士": 1000,
-        "言語聴覚士": 1000,
-        "臨床検査技師": 1000,
-        "診療放射線技師": 1000,
-        "薬剤師": 1500,
-        "臨床心理士": 1000,
+        "保育士": 400,
+        "介護福祉士": 400,
+        "社会福祉士": 500,
+        "精神保健福祉士": 500,
+        "看護師": 600,
+        "助産師": 700,
+        "保健師": 600,
+        "介護職": 400,
+        "理学療法士": 500,
+        "作業療法士": 500,
+        "言語聴覚士": 500,
+        "臨床検査技師": 500,
+        "診療放射線技師": 600,
+        "薬剤師": 800,
+        "臨床心理士": 600,
         "栄養士・管理栄養士": 900,
         
         // 事務・管理系
@@ -2601,13 +2601,28 @@ function getRandomAnnualIncome(ageInYears, currentOccupation, allPossibleHtmlInc
         }
     }
 
+    // 職業別の最低年収設定
+    const minimumIncomeByProfession = {
+        "医師": 800,
+        "弁護士": 600,
+        "公認会計士": 600,
+        "税理士": 500,
+        "会社経営者": 800,
+        "会社役員": 700,
+        "パイロット": 800,
+        "大学教授": 700,
+        "ITコンサルタント": 600,
+        "投資家": 500,
+        "不動産関連専門職": 500,
+    };
+    
     // 職業別の特殊ケース
     if (ageInYears >= 70) {
         // 70歳以上で年金受給者・定年退職者の場合は、より厳しく制限
         if (currentOccupation === "年金受給者") {
-            ageCap = Math.min(ageCap, 500); // 年金受給者は最大500万円
+            ageCap = Math.min(ageCap, 400); // 年金受給者は最大400万円に下方修正
         } else if (currentOccupation === "定年退職者") {
-            ageCap = Math.min(ageCap, 700); // 定年退職者は最大700万円
+            ageCap = Math.min(ageCap, 500); // 定年退職者は最大500万円に下方修正
         }
 
         // 秘書・事務職・受付など特定職種は70歳以上では特に収入上限を低く設定
@@ -2685,6 +2700,52 @@ function getRandomAnnualIncome(ageInYears, currentOccupation, allPossibleHtmlInc
     if (ageCap < Infinity) {
         console.log(`Age ${ageInYears} has an income cap at lower bound ${ageCap}万円.`);
         filteredHtmlIncomeValues = applyIncomeCap(filteredHtmlIncomeValues, ageCap);
+    }
+    
+    // 最低年収の適用
+    if (minimumIncomeByProfession.hasOwnProperty(currentOccupation)) {
+        const minIncome = minimumIncomeByProfession[currentOccupation];
+        console.log(`Occupation ${currentOccupation} has a minimum income of ${minIncome}万円.`);
+        
+        // 年齢による調整（若すぎる場合は最低年収を下げる）
+        let adjustedMinIncome = minIncome;
+        if (ageInYears < 35) {
+            adjustedMinIncome = Math.floor(minIncome * 0.7); // 35歳未満は70%
+        } else if (ageInYears < 30) {
+            adjustedMinIncome = Math.floor(minIncome * 0.5); // 30歳未満は50%
+        }
+        
+        filteredHtmlIncomeValues = filteredHtmlIncomeValues.filter(incomeRange => {
+            let upperBoundOfRange = 0;
+            if (incomeRange.startsWith(">=")) {
+                return true; // 最高範囲は常に含める
+            } else if (incomeRange.includes("-")) {
+                const parts = incomeRange.split('-');
+                upperBoundOfRange = parseInt(parts[1]);
+            } else if (incomeRange.startsWith("<")) {
+                upperBoundOfRange = parseInt(incomeRange.substring(1));
+            }
+            return upperBoundOfRange >= adjustedMinIncome;
+        });
+        
+        if (filteredHtmlIncomeValues.length === 0) {
+            // 最低年収を満たす範囲がない場合は、最も近い範囲を選択
+            const closestRange = allPossibleHtmlIncomeValues
+                .filter(range => {
+                    if (range.startsWith(">=")) return true;
+                    const upperBound = parseInt(range.split('-')[1] || range.substring(1));
+                    return upperBound >= adjustedMinIncome * 0.8; // 80%まで許容
+                })
+                .sort((a, b) => {
+                    const ubA = a.startsWith(">=") ? 10000 : parseInt(a.split('-')[1] || a.substring(1));
+                    const ubB = b.startsWith(">=") ? 10000 : parseInt(b.split('-')[1] || b.substring(1));
+                    return Math.abs(ubA - adjustedMinIncome) - Math.abs(ubB - adjustedMinIncome);
+                });
+            
+            if (closestRange.length > 0) {
+                filteredHtmlIncomeValues = [closestRange[0]];
+            }
+        }
     }
 
     // 強制的な上書き: 78歳の秘書などの極端なケースは強制的に調整
