@@ -401,6 +401,7 @@ async def generate_persona(request: Request):
         
         # RAGデータの検索
         rag_context = ""
+        rag_results = []
         department = data.get('department')
         age = data.get('age')
         gender = data.get('gender')
@@ -447,6 +448,7 @@ async def generate_persona(request: Request):
                 limit=5
             )
             
+            
             if rag_results:
                 rag_context = "\n\n# 参考情報（この診療科の患者が検索するキーワード）\n"
                 rag_context += "以下は、同じ診療科・年代・性別の患者がよく検索するキーワードです。ペルソナ作成の参考にしてください：\n"
@@ -456,6 +458,19 @@ async def generate_persona(request: Request):
         
         # プロンプト構築（RAGコンテキストを含む）
         prompt_text = build_prompt(data) + rag_context
+        
+        # 生成情報をログ出力
+        print(f"[INFO] Generating persona with model: {selected_text_model}")
+        print(f"[INFO] Character limits - Personality: {os.environ.get('LIMIT_PERSONALITY', '100')}文字, "
+              f"Reason: {os.environ.get('LIMIT_REASON', '100')}文字, "
+              f"Behavior: {os.environ.get('LIMIT_BEHAVIOR', '100')}文字, "
+              f"Reviews: {os.environ.get('LIMIT_REVIEWS', '100')}文字, "
+              f"Values: {os.environ.get('LIMIT_VALUES', '100')}文字, "
+              f"Demands: {os.environ.get('LIMIT_DEMANDS', '100')}文字")
+        if rag_context:
+            print(f"[INFO] RAG data included: {len(rag_results)} keywords from {department}")
+        else:
+            print(f"[INFO] No RAG data available for {department}")
         
         # AIクライアント初期化 (テキスト生成用)
         text_generation_client = None
@@ -520,6 +535,7 @@ async def generate_persona(request: Request):
             }
         else:
             generated_details = parse_ai_response(generated_text_str)
+            
 
         # --- 画像生成 ---
         image_url = "https://placehold.jp/150x150.png" # デフォルトプレースホルダー
