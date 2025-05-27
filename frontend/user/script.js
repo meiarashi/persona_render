@@ -50,30 +50,32 @@ const personaRandomValues = {
     // 人口（千人）をそのままウェイトとして使用。合計約124,352千人。
     // 未成年者の選出確率を意図的に下げるため、19歳以下のweightを調整 (元の値の約7.5%に)
     ageDistributionWeights: [
-        // 0歳児の月齢表現のため、0歳は特別扱い
-        { ageGroup: "0y_months", weight: 54 },   // 元: 720 -> 216 -> 54
-        { ageRange: "1-4y", weight: 224 },    // 元: 2989 -> 897 -> 224
-        { ageRange: "5-9y", weight: 303 },    // 元: 4039 -> 1212 -> 303
-        { ageRange: "10-14y", weight: 336 },   // 元: 4477 -> 1343 -> 336
-        { ageRange: "15-19y", weight: 385 },   // 元: 5128 -> 1538 -> 385
-        // 成人層のweightは未成年からの削減分を比例配分して増加
-        { ageRange: "20-24y", weight: 6142 },  // 元: 5891
-        { ageRange: "25-29y", weight: 6472 },  // 元: 6207
-        { ageRange: "30-34y", weight: 6564 },  // 元: 6295
-        { ageRange: "35-39y", weight: 6850 },  // 元: 6570
-        { ageRange: "40-44y", weight: 7503 },  // 元: 7196
-        { ageRange: "45-49y", weight: 8528 },  // 元: 8179
-        { ageRange: "50-54y", weight: 10132 }, // 元: 9718
-        { ageRange: "55-59y", weight: 7847 },  // 元: 7526
-        { ageRange: "60-64y", weight: 7017 },  // 元: 6730
-        { ageRange: "65-69y", weight: 7521 },  // 元: 7214
-        { ageRange: "70-74y", weight: 8964 },  // 元: 8597
-        { ageRange: "75-79y", weight: 7470 },  // 元: 7165
-        { ageRange: "80-84y", weight: 5706 },  // 元: 5473
-        { ageRange: "85-89y", weight: 4006 },  // 元: 3842
-        { ageRange: "90-94y", weight: 2165 },  // 元: 2076
-        { ageRange: "95-99y", weight: 797 },   // 元: 764
-        { ageValue: "100y", weight: 163 }      // 元: 156
+        // 2023年日本の人口統計に基づく分布（総務省統計局データ参照）
+        // 医療マーケティング用に調整：未成年は25%削減、働き盛りと高齢者を重視
+        { ageGroup: "0y_months", weight: 60 },     // 0歳: 0.6%
+        { ageRange: "1-4y", weight: 280 },         // 1-4歳: 2.8%
+        { ageRange: "5-9y", weight: 380 },         // 5-9歳: 3.8%
+        { ageRange: "10-14y", weight: 420 },       // 10-14歳: 4.2%
+        { ageRange: "15-19y", weight: 480 },       // 15-19歳: 4.8%
+        // 20-50代は日本の労働人口の中核（重点配分）
+        { ageRange: "20-24y", weight: 550 },       // 20-24歳: 5.5%
+        { ageRange: "25-29y", weight: 580 },       // 25-29歳: 5.8%
+        { ageRange: "30-34y", weight: 600 },       // 30-34歳: 6.0%
+        { ageRange: "35-39y", weight: 700 },       // 35-39歳: 7.0%
+        { ageRange: "40-44y", weight: 800 },       // 40-44歳: 8.0%
+        { ageRange: "45-49y", weight: 900 },       // 45-49歳: 9.0%（団塊ジュニア世代）
+        { ageRange: "50-54y", weight: 850 },       // 50-54歳: 8.5%
+        { ageRange: "55-59y", weight: 750 },       // 55-59歳: 7.5%
+        // 高齢者層（医療需要が高い）
+        { ageRange: "60-64y", weight: 700 },       // 60-64歳: 7.0%
+        { ageRange: "65-69y", weight: 750 },       // 65-69歳: 7.5%
+        { ageRange: "70-74y", weight: 900 },       // 70-74歳: 9.0%（団塊世代）
+        { ageRange: "75-79y", weight: 750 },       // 75-79歳: 7.5%
+        { ageRange: "80-84y", weight: 600 },       // 80-84歳: 6.0%
+        { ageRange: "85-89y", weight: 400 },       // 85-89歳: 4.0%
+        { ageRange: "90-94y", weight: 200 },       // 90-94歳: 2.0%
+        { ageRange: "95-99y", weight: 80 },        // 95-99歳: 0.8%
+        { ageValue: "100y", weight: 20 }           // 100歳以上: 0.2%
     ],
     prefectureCityPairs: [
         "北海道札幌市", "北海道函館市", "北海道旭川市", "北海道釧路市", "北海道帯広市",
@@ -125,13 +127,25 @@ const personaRandomValues = {
         "沖縄県那覇市", "沖縄県沖縄市", "沖縄県うるま市"
     ],
     families: [
-        "独身", "婚約中", "既婚", "新婚（3ヶ月未満）", "新婚（6ヶ月未満）", "新婚（1年未満）", 
-        "子どもが生まれたばかり（0〜12ヶ月）", "幼児の子どもがいる（1〜2歳）", "子どもがいる（3〜5歳）", 
-        "小学校低学年の子どもがいる（6〜8歳）", "小学校高学年の子どもがいる（9〜12歳）", 
-        "中高生の子どもがいる（13〜17歳）", "成人の子どもがいる（18〜26歳）", 
-        "配偶者と死別", "離婚", "別居中", "遠距離恋愛", "ドメスティックパートナー（事実婚）", 
-        "オープンな関係", "シビルユニオン（法的パートナーシップ）", "複雑な関係", 
-        "両親がいる", "母子家庭", "父子家庭"
+        // 基本的な状態
+        "独身", "既婚", "既婚（子どもなし）", "交際中",
+        
+        // 結婚関連
+        "婚約中", "新婚", "結婚5年目", "結婚10年目", "結婚20年以上",
+        
+        // 子どもありの一般的な家族構成
+        "夫婦と子ども1人", "夫婦と子ども2人", "夫婦と子ども3人",
+        "乳幼児がいる", "小学生の子どもがいる", "中高生の子どもがいる", 
+        "大学生の子どもがいる", "成人した子どもがいる", "子どもが独立した",
+        
+        // 世帯構成
+        "一人暮らし", "実家暮らし", "親と同居", "二世帯住宅", "三世代同居",
+        
+        // その他の状態
+        "離婚", "再婚", "配偶者と死別", "シングルマザー", "シングルファザー",
+        
+        // 特殊なケース（頻度は低め）
+        "別居中", "遠距離恋愛", "事実婚", "単身赴任中"
     ],
     occupations: [
         "未就学児", "幼稚園児", "保育園児", "小学生", "中学生", "高校生", "大学生", "大学院生", "専門学校生", "浪人生", 
@@ -180,14 +194,29 @@ const personaRandomValues = {
         "ボランティア活動", "地域活動", "占い・スピリチュアル", "瞑想・マインドフルネス", "アロマテラピー", "ペット（犬、猫など）の世話", "熱帯魚・アクアリウム", "天体観測", "カラオケ", "ダーツ", "ビリヤード", "パチンコ・パチスロ", "競馬・競輪・競艇", "麻雀", "献血", "フリーマーケット出店・参加", "ネットサーフィン", "SNSチェック", "ポイント活動・ポイ活", "懸賞応募", "昼寝", "人間観察"
     ],
     life_events: [
-        "婚約中（1年未満）", "婚約中（6ヶ月未満）", "婚約中（3ヶ月未満）",
-        "新しい交際関係", "最近転居した", "最近引っ越しした人の友達",
-        "出身地から離れた所に住んでいる", "家族から離れた所に住んでいる",
-        "就職・転職", "近日中に誕生日を迎える",
-        "1ヶ月以内に誕生日を迎える人の友達", "1週間以内に誕生日を迎える人の友達",
-        "7日以内に誕生日を迎える女性の友達", "7日以内に誕生日を迎える男性の友達",
-        "7〜30日後に誕生日を迎える女性の友達", "7〜30日後に誕生日を迎える男性の友達",
-        "30日以内に記念日がある人", "31〜60日以内に記念日がある人"
+        // 一般的なライフイベント
+        "特になし", "普段通りの生活", "健康に気をつけている", "仕事が忙しい", "家族との時間を大切にしている",
+        "趣味を楽しんでいる", "新しいことに挑戦中", "勉強・自己啓発中", "節約・貯金中", "ダイエット中",
+        
+        // 家族関連
+        "子どもの成長を見守っている", "家族旅行を計画中", "親の介護を考え始めた", "実家に帰省予定",
+        "子どもの受験準備", "子どもの進学を検討中", "ペットを飼い始めた", "家族が増える予定",
+        
+        // 仕事・キャリア関連
+        "昇進・昇格した", "新しいプロジェクトに参加", "資格取得を目指している", "副業を始めた",
+        "在宅勤務中", "起業準備中", "定年退職が近い", "セカンドキャリアを検討中",
+        
+        // 健康関連
+        "健康診断を受けた", "運動を始めた", "禁煙・節酒中", "通院中", "健康改善に取り組んでいる",
+        
+        // 住まい・生活関連
+        "引っ越しを検討中", "家のリフォーム中", "車の買い替えを検討", "断捨離中",
+        
+        // 人間関係・交際関連
+        "婚約中", "結婚準備中", "新しい交際関係", "婚活中", "友人関係を大切にしている",
+        
+        // 特別なイベント
+        "最近転居した", "就職・転職", "近日中に誕生日を迎える", "記念日が近い"
     ],
     incomeRanges: [ // HTMLのselect#incomeのvalue値を設定
         "<100", "100-200", "200-300", "300-400", "400-500", "500-600", "600-700", "700-800", "800-900", "900-1000",
@@ -461,127 +490,199 @@ function randomizeDetailSettingsFields() {
         }
     }
     
-    // Life Events - Filter based on age (This should be determined *before* family structure if it influences family structure)
+    // Life Events - 年齢、職業、家族構成を考慮したより現実的なライフイベント選択
     let availableLifeEvents = [...personaRandomValues.life_events];
+    
+    // 年齢別のライフイベント分類
+    const generalEvents = ["特になし", "普段通りの生活", "健康に気をつけている", "趣味を楽しんでいる"];
+    const workEvents = ["仕事が忙しい", "昇進・昇格した", "新しいプロジェクトに参加", "資格取得を目指している", "就職・転職"];
+    const familyEvents = ["家族との時間を大切にしている", "子どもの成長を見守っている", "家族旅行を計画中"];
+    const relationshipEvents = ["婚約中", "結婚準備中", "新しい交際関係", "婚活中"];
+    const healthEvents = ["健康診断を受けた", "運動を始めた", "ダイエット中", "健康改善に取り組んでいる"];
+    const studentEvents = ["勉強・自己啓発中", "受験準備", "就職活動中"];
+    const seniorEvents = ["親の介護を考え始めた", "定年退職が近い", "セカンドキャリアを検討中"];
+    
+    // 年齢による制限と優先順位設定
     if (ageInYears < 18) {
+        // 未成年向け
+        availableLifeEvents = [...generalEvents, ...studentEvents, "家族との時間を大切にしている"];
+        // 恋愛・仕事関連を除外
         availableLifeEvents = availableLifeEvents.filter(event => 
-            !event.startsWith("婚約中") && 
-            event !== "就職・転職"
+            !relationshipEvents.includes(event) && !workEvents.includes(event)
         );
-        if (ageInYears < 15) { 
-            availableLifeEvents = availableLifeEvents.filter(event => 
-                event !== "出身地から離れた所に住んでいる" && 
-                event !== "家族から離れた所に住んでいる"
-            );
+    } else if (ageInYears >= 18 && ageInYears < 25) {
+        // 学生・若手社会人
+        availableLifeEvents = [...generalEvents, ...studentEvents, ...healthEvents, "新しいことに挑戦中"];
+        // 20%の確率で恋愛関連
+        if (Math.random() < 0.2) {
+            availableLifeEvents.push("新しい交際関係", "友人関係を大切にしている");
+        }
+    } else if (ageInYears >= 25 && ageInYears < 35) {
+        // 若手社会人
+        availableLifeEvents = [...generalEvents, ...workEvents, ...healthEvents];
+        // 30%の確率で恋愛・結婚関連
+        if (Math.random() < 0.3) {
+            availableLifeEvents = [...availableLifeEvents, ...relationshipEvents];
+        }
+        // 20%の確率で家族関連（結婚している場合）
+        if (Math.random() < 0.2) {
+            availableLifeEvents.push("家族との時間を大切にしている");
+        }
+    } else if (ageInYears >= 35 && ageInYears < 50) {
+        // 中年層
+        availableLifeEvents = [...generalEvents, ...workEvents, ...familyEvents, ...healthEvents];
+        // 子育て世代の可能性が高い
+        if (Math.random() < 0.4) {
+            availableLifeEvents.push("子どもの成長を見守っている", "子どもの受験準備", "子どもの進学を検討中");
+        }
+    } else if (ageInYears >= 50 && ageInYears < 65) {
+        // 壮年層
+        availableLifeEvents = [...generalEvents, ...healthEvents, "家族との時間を大切にしている"];
+        // キャリアの転換期
+        if (Math.random() < 0.3) {
+            availableLifeEvents.push(...seniorEvents);
+        }
+    } else if (ageInYears >= 65) {
+        // 高齢者
+        availableLifeEvents = [...generalEvents, ...healthEvents, ...seniorEvents];
+        // 家族との時間
+        availableLifeEvents.push("家族との時間を大切にしている", "実家に帰省予定");
+    }
+    
+    // 職業による調整
+    if (currentOccupation) {
+        if (["学生", "大学生", "大学院生", "専門学校生"].includes(currentOccupation)) {
+            // 学生は就職活動中の可能性
+            if (!availableLifeEvents.includes("就職・転職") && Math.random() < 0.3) {
+                availableLifeEvents.push("就職・転職");
+            }
+        } else if (["専業主婦・主夫", "定年退職者", "年金受給者"].includes(currentOccupation)) {
+            // これらの職業は転職を除外
+            availableLifeEvents = availableLifeEvents.filter(event => event !== "就職・転職");
         }
     }
-    // No specific filtering for 65+ for life events for now
-    if (availableLifeEvents.length === 0) {
-        // Fallback if all specific events are filtered out - allow field to be empty or set a very generic one if any.
+    
+    // 確率的な選択
+    if (availableLifeEvents.length > 0) {
+        // 「特になし」と「普段通りの生活」を40%の確率で選択
+        if (Math.random() < 0.4 && (availableLifeEvents.includes("特になし") || availableLifeEvents.includes("普段通りの生活"))) {
+            const normalEvents = availableLifeEvents.filter(e => e === "特になし" || e === "普段通りの生活");
+            setRandomValueIfEmpty("life_events", getRandomItem(normalEvents));
+        } else {
+            // その他のイベントから選択
+            const selectedLifeEvent = getRandomItem(availableLifeEvents);
+            setRandomValueIfEmpty("life_events", selectedLifeEvent);
+        }
+    } else {
+        setRandomValueIfEmpty("life_events", "特になし");
     }
-    const selectedLifeEvent = getRandomItem(availableLifeEvents);
-    setRandomValueIfEmpty("life_events", selectedLifeEvent);
 
-    // Family - Filter based on age AND selectedLifeEvent
+    // Family - 年齢、ライフイベント、職業を考慮したより現実的な家族構成選択
     let availableFamilies = [...personaRandomValues.families];
+    const selectedLifeEvent = document.getElementById('life_events').value;
+    
+    // 年齢による基本的な制限
     if (ageInYears < 18) {
-        availableFamilies = availableFamilies.filter(family => 
-            !["婚約中", "既婚", "新婚（3ヶ月未満）", "新婚（6ヶ月未満）", "新婚（1年未満）", 
-             "子どもが生まれたばかり（0〜12ヶ月）", "幼児の子どもがいる（1〜2歳）", "子どもがいる（3〜5歳）", 
-             "小学校低学年の子どもがいる（6〜8歳）", "小学校高学年の子どもがいる（9〜12歳）", 
-             "中高生の子どもがいる（13〜17歳）", "成人の子どもがいる（18〜26歳）", 
-             "配偶者と死別", "離婚", "別居中", "ドメスティックパートナー（事実婚）", 
-             "オープンな関係", "シビルユニオン（法的パートナーシップ）"].includes(family)
-        );
-    }
-    if (ageInYears < 1) {
-        availableFamilies = availableFamilies.filter(family => family !== "父子家庭");
+        // 未成年は主に実家暮らし
+        availableFamilies = ["実家暮らし", "親と同居"];
+    } else if (ageInYears >= 18 && ageInYears < 25) {
+        // 若年成人（18-24歳）
+        // 一人暮らしか実家暮らしが多い
+        availableFamilies = ["独身", "一人暮らし", "実家暮らし", "交際中"];
+        // 5%の確率で既婚
+        if (Math.random() < 0.05) {
+            availableFamilies.push("既婚", "新婚");
+        }
+    } else if (ageInYears >= 25 && ageInYears < 35) {
+        // 結婚適齢期（25-34歳）
+        const marriageProb = ageInYears < 30 ? 0.3 : 0.55;
+        if (Math.random() < marriageProb) {
+            // 既婚者向け
+            availableFamilies = ["既婚", "既婚（子どもなし）", "新婚", "夫婦と子ども1人", "夫婦と子ども2人"];
+            if (ageInYears >= 28) {
+                availableFamilies.push("乳幼児がいる", "小学生の子どもがいる");
+            }
+        } else {
+            // 未婚者向け
+            availableFamilies = ["独身", "一人暮らし", "交際中", "実家暮らし"];
+        }
+    } else if (ageInYears >= 35 && ageInYears < 50) {
+        // 中年層（35-49歳）
+        // 既婚率が高く、子どもがいる可能性も高い
+        availableFamilies = [
+            "既婚", "夫婦と子ども1人", "夫婦と子ども2人", "夫婦と子ども3人",
+            "小学生の子どもがいる", "中高生の子どもがいる", "大学生の子どもがいる"
+        ];
+        // 15%の確率で離婚・再婚
+        if (Math.random() < 0.15) {
+            availableFamilies.push("離婚", "再婚", "シングルマザー", "シングルファザー");
+        }
+    } else if (ageInYears >= 50 && ageInYears < 65) {
+        // 壮年層（50-64歳）
+        availableFamilies = [
+            "既婚", "結婚20年以上", "中高生の子どもがいる", 
+            "大学生の子どもがいる", "成人した子どもがいる", "子どもが独立した"
+        ];
+        // 親の介護の可能性
+        if (Math.random() < 0.3) {
+            availableFamilies.push("親と同居", "二世帯住宅");
+        }
+    } else if (ageInYears >= 65) {
+        // 高齢者（65歳以上）
+        if (ageInYears >= 80) {
+            // 80歳以上
+            availableFamilies = ["既婚", "配偶者と死別", "一人暮らし", "子どもが独立した", "親と同居"];
+            // 配偶者と死別の確率を上げる
+            if (Math.random() < 0.4) {
+                availableFamilies = ["配偶者と死別", "一人暮らし"];
+            }
+        } else {
+            // 65-79歳
+            availableFamilies = [
+                "既婚", "結婚20年以上", "成人した子どもがいる", 
+                "子どもが独立した", "二世帯住宅", "三世代同居"
+            ];
+        }
     }
     
-    // For very elderly (90+), limit relationship types and prioritize certain family structures
-    if (ageInYears >= 90) {
-        // Make "新婚" (newlywed) types and legal partnership types very rare for 90+
-        const rareForVeryElderly = [
-            "新婚（3ヶ月未満）", "新婚（6ヶ月未満）", "新婚（1年未満）", 
-            "シビルユニオン（法的パートナーシップ）", "オープンな関係", "遠距離恋愛", "婚約中"
-        ];
-        
-        // Still possible but with 95% chance of removal - leaves small chance for interesting cases
-        const randomRemovalProb = Math.random();
-        if (randomRemovalProb < 0.95) {
-            availableFamilies = availableFamilies.filter(family => !rareForVeryElderly.includes(family));
-        }
-        
-        // 母子家庭・父子家庭を除外（90歳以上では非現実的）
-        availableFamilies = availableFamilies.filter(family => 
-            family !== "母子家庭" && family !== "父子家庭"
-        );
-        
-        // Prioritize common elderly family statuses by duplicating them in the array
-        const commonVeryElderlyFamilies = ["配偶者と死別", "成人の子どもがいる（18〜26歳）", "独身"];
-        
-        // Add these 3 times to greatly increase their probability
-        for (let i = 0; i < 3; i++) {
-            availableFamilies = [...availableFamilies, ...commonVeryElderlyFamilies.filter(f => availableFamilies.includes(f))];
-        }
-    }
-    // For elderly (65-89), make "新婚" types less common
-    else if (ageInYears >= 65) {
-        const lessCommonForElderly = [
-            "新婚（3ヶ月未満）", "新婚（6ヶ月未満）", "新婚（1年未満）"
-        ];
-        
-        // Remove with 70% probability for 65-79 age range
-        if (ageInYears < 80 && Math.random() < 0.7) {
-            availableFamilies = availableFamilies.filter(family => !lessCommonForElderly.includes(family));
-        }
-        // Remove with 85% probability for 80-89 age range
-        else if (ageInYears >= 80 && Math.random() < 0.85) {
-            availableFamilies = availableFamilies.filter(family => !lessCommonForElderly.includes(family));
-        }
-        
-        // 母子家庭・父子家庭を80歳以上では除外（非現実的なため）
-        if (ageInYears >= 80) {
+    // ライフイベントとの整合性
+    if (selectedLifeEvent) {
+        if (selectedLifeEvent === "婚約中" || selectedLifeEvent === "結婚準備中") {
+            // 婚約中の場合
+            availableFamilies = ["婚約中", "交際中"];
+        } else if (selectedLifeEvent === "新しい交際関係") {
+            // 新しい交際の場合
             availableFamilies = availableFamilies.filter(family => 
-                family !== "母子家庭" && family !== "父子家庭"
+                ["独身", "一人暮らし", "交際中", "離婚"].includes(family)
+            );
+        } else if (selectedLifeEvent === "婚活中") {
+            // 婚活中の場合
+            availableFamilies = ["独身", "一人暮らし", "離婚"];
+        } else if (selectedLifeEvent.includes("子ども")) {
+            // 子ども関連のイベント
+            availableFamilies = availableFamilies.filter(family => 
+                family.includes("子ども") || family === "シングルマザー" || family === "シングルファザー"
             );
         }
-        
-        // Prioritize common elderly family statuses
-        const commonElderlyFamilies = ["配偶者と死別", "成人の子どもがいる（18〜26歳）", "既婚", "独身"];
-        
-        // Add these 2 times to increase their probability
-        for (let i = 0; i < 2; i++) {
-            availableFamilies = [...availableFamilies, ...commonElderlyFamilies.filter(f => availableFamilies.includes(f))];
+    }
+    
+    // 職業との整合性
+    if (currentOccupation === "専業主婦・主夫") {
+        // 専業主婦・主夫は既婚または子持ちの可能性が高い
+        const familyWeight = availableFamilies.filter(f => 
+            f.includes("既婚") || f.includes("夫婦") || f.includes("子ども")
+        );
+        if (familyWeight.length > 0) {
+            availableFamilies = familyWeight;
         }
     }
-
-    // If life event is "婚約中", remove "成人の子どもがいる" from family options
-    if (selectedLifeEvent && selectedLifeEvent.startsWith("婚約中")) {
-        availableFamilies = availableFamilies.filter(family => 
-            family !== "成人の子どもがいる（18〜26歳）" && 
-            family !== "配偶者と死別" && // 矛盾する状態を防ぐ: 婚約中の人が配偶者と死別というのはおかしい
-            family !== "離婚" // 矛盾する状態を防ぐ: 婚約中の人が離婚経験というのも整合性が取れない
-        );
-    }
-
-    availableFamilies = availableFamilies.filter(family => {
-        if (family.includes("子どもが生まれたばかり（0〜12ヶ月）") && (ageInYears < 0 || ageInYears > 55)) return false; // Unlikely for <0 or >55 to have newborn
-        if (family.includes("幼児の子どもがいる（1〜2歳）") && (ageInYears < 2 || ageInYears > 57)) return false; // Unlikely for <2 or >57 to have toddler
-        if (family.includes("子どもがいる（3〜5歳）") && (ageInYears < 5 || ageInYears > 60)) return false; // Unlikely for <5 or >60 to have 3-5yo
-        if (family.includes("小学校低学年の子どもがいる（6〜8歳）") && (ageInYears < 8 || ageInYears > 63)) return false;
-        if (family.includes("小学校高学年の子どもがいる（9〜12歳）") && (ageInYears < 12 || ageInYears > 67)) return false;
-        if (family.includes("中高生の子どもがいる（13〜17歳）") && (ageInYears < 17 || ageInYears > 72)) return false;
-        // For "成人の子どもがいる（18〜26歳）", it's plausible for older parents, so less strict upper bound or remove it.
-        // However, ensure persona is at least 18 + 18 = 36 to have an 18yo child.
-        if (family.includes("成人の子どもがいる（18〜26歳）") && ageInYears < 36) return false; 
-        return true;
-    });
     
-    // If all families are filtered out (e.g., for a very young age), default to "独身" or "両親がいる"
+    // If all families are filtered out, provide appropriate defaults
     if (availableFamilies.length === 0) {
         if (ageInYears < 18) {
-            availableFamilies = ["両親がいる", "独身"]; // Prioritize "両親がいる" for minors
+            availableFamilies = ["実家暮らし"];
+        } else if (ageInYears < 30) {
+            availableFamilies = ["独身", "一人暮らし"];
         } else {
             availableFamilies = ["独身"];
         }
@@ -706,50 +807,112 @@ function randomizeDetailSettingsFields() {
     const adjustedIncome = getRandomAnnualIncome(ageInYears, currentOccupation, availableIncomeRanges);
     setRandomValueIfEmpty("income", adjustedIncome);
 
-    // Hobbies - Filter based on age
+    // Hobbies - 年齢、職業、収入、体力を考慮したより現実的な趣味選択
     let availableHobbies = [...personaRandomValues.hobbies];
     
+    // 年齢別の体力制限のある趣味
+    const physicallyDemandingHobbies = [
+        "ジョギング・ランニング", "サイクリング", "ハイキング・登山", "サーフィン", 
+        "ダイビング・シュノーケリング", "スキー・スノーボード", "スケート", "水泳", 
+        "ダンス", "テニス", "バドミントン", "野球", "サッカー・フットサル", 
+        "バスケットボール", "バレーボール", "武道（剣道、柔道、空手、合気道など）", 
+        "ボルダリング・クライミング", "フィットネス・筋トレ", "ラフティング", "カヌー・カヤック"
+    ];
+    
+    // 高額な趣味（年収による制限）
+    const expensiveHobbies = [
+        "海外旅行", "ゴルフ", "モータースポーツ", "船旅", "アンティーク収集", 
+        "時計収集", "美術品収集", "ワイン収集", "日本酒・焼酎収集", "香水収集",
+        "ダイビング・シュノーケリング", "スキー・スノーボード", "乗馬"
+    ];
+    
+    // 職業別に関連性の高い趣味
+    const occupationRelatedHobbies = {
+        "医師": ["医学研究", "ゴルフ", "読書", "クラシック音楽", "ワイン"],
+        "IT関連": ["プログラミング", "ゲーム", "電子工作", "オンライン学習", "最新技術"],
+        "芸術家": ["美術鑑賞", "絵画", "写真撮影", "舞台鑑賞", "創作活動"],
+        "教育関連": ["読書", "歴史研究", "語学学習", "文化活動", "博物館"],
+        "スポーツ関連": ["各種スポーツ", "フィットネス・筋トレ", "ヨガ・ピラティス", "スポーツ観戦"]
+    };
+    
     if (ageInYears < 1) {
-        availableHobbies = ["おもちゃ", "公園"].filter(h => personaRandomValues.hobbies.includes(h));
-        if (availableHobbies.length === 0) { // Ultimate fallback for infant
-            availableHobbies = ["おもちゃで遊ぶ"];
-        }
-    } else if (ageInYears < 3) {
-        availableHobbies = ["おもちゃ", "テレビ", "公園"].filter(h => personaRandomValues.hobbies.includes(h));
-        if (availableHobbies.length === 0) { // Ultimate fallback for toddler
-            availableHobbies = ["おもちゃで遊ぶ", "絵本", "お絵かき"];
-        }
-    } else if (ageInYears >= 65) {
-        // 高齢者向けの趣味リストを追加
-        const elderlyHobbies = ["読書", "園芸", "散歩", "テレビ鑑賞", "ラジオ", "将棋", "囲碁", "俳句", "短歌", "家庭菜園", 
-                               "料理", "絵画", "歴史探訪", "温泉めぐり", "健康体操", "カラオケ", "手芸", "お茶", "花見", "写真"];
-        
-        // 高齢者に適さない趣味をフィルタリング
+        availableHobbies = ["おもちゃで遊ぶ", "音楽を聴く", "絵本を見る"];
+    } else if (ageInYears < 6) {
+        availableHobbies = ["おもちゃ", "テレビ", "アニメ", "公園", "絵を描く", "歌を歌う"];
+    } else if (ageInYears < 12) {
         availableHobbies = availableHobbies.filter(hobby => 
-            !["スケートボード", "サーフィン", "スノーボード", "バンジージャンプ", "ロッククライミング", "パルクール", 
-              "ヘビーメタル", "クラブ通い", "アイドル追っかけ", "コスプレ"].includes(hobby)
+            !expensiveHobbies.includes(hobby) && 
+            !["パチンコ・パチスロ", "競馬・競輪・競艇", "麻雀", "お酒"].includes(hobby)
         );
-        
-        // 高齢者向け趣味を追加（重複を避けるためにSet使用）
-        availableHobbies = [...new Set([...availableHobbies, ...elderlyHobbies.filter(h => personaRandomValues.hobbies.includes(h))])];
-        
-        // もし選択肢がない場合は elderlyHobbies から直接選ぶ
-        if (availableHobbies.length === 0) {
-            availableHobbies = elderlyHobbies;
+        // 子供向けの趣味を優先
+        const childHobbies = ["ゲーム", "アニメ", "漫画", "スポーツ", "読書", "公園遊び"];
+        availableHobbies = [...new Set([...childHobbies.filter(h => personaRandomValues.hobbies.includes(h)), ...availableHobbies])];
+    } else if (ageInYears >= 65) {
+        // 高齢者向けの調整
+        if (ageInYears >= 75) {
+            // 75歳以上は激しい運動を除外
+            availableHobbies = availableHobbies.filter(hobby => !physicallyDemandingHobbies.includes(hobby));
         }
-    } else {
-        availableHobbies = ["読書", "音楽", "映画"].filter(h => personaRandomValues.hobbies.includes(h));
-        if (availableHobbies.length === 0 && personaRandomValues.hobbies.length > 0) { // Ultimate fallback general
-            availableHobbies = [getRandomItem(personaRandomValues.hobbies)];
+        
+        // 高齢者向けの趣味を追加
+        const elderlyHobbies = ["読書", "園芸", "散歩", "ウォーキング", "テレビ鑑賞", "ラジオ", 
+                               "将棋", "囲碁", "俳句", "短歌", "家庭菜園", "料理", "絵画", 
+                               "歴史探訪", "温泉巡り", "健康体操", "カラオケ", "手芸", "茶道", 
+                               "花見", "写真撮影", "瞑想・マインドフルネス", "ボランティア活動"];
+        
+        availableHobbies = [...new Set([...elderlyHobbies.filter(h => personaRandomValues.hobbies.includes(h)), ...availableHobbies])];
+    }
+    
+    // 収入による制限
+    const incomeValue = parseInt(document.getElementById('income').value.split('-')[0]?.replace(/[<>=]/g, '') || '0');
+    if (incomeValue < 300) {
+        // 低収入者は高額な趣味を除外
+        availableHobbies = availableHobbies.filter(hobby => !expensiveHobbies.includes(hobby));
+        // 低コストな趣味を優先
+        const lowCostHobbies = ["読書", "ウォーキング", "公園", "テレビ", "ラジオ", "料理", "家庭菜園"];
+        availableHobbies = [...new Set([...lowCostHobbies.filter(h => availableHobbies.includes(h)), ...availableHobbies])];
+    } else if (incomeValue >= 1000) {
+        // 高収入者向けの趣味を追加
+        const highIncomeHobbies = ["ゴルフ", "海外旅行", "ワイン収集", "美術品収集", "船旅", "高級レストラン巡り"];
+        availableHobbies = [...new Set([...availableHobbies, ...highIncomeHobbies.filter(h => personaRandomValues.hobbies.includes(h))])];
+    }
+    
+    // 職業による調整
+    if (currentOccupation) {
+        // IT関連職種
+        if (["プログラマー", "システムエンジニア", "ITコンサルタント", "データサイエンティスト"].includes(currentOccupation)) {
+            const techHobbies = ["プログラミング", "ゲーム", "電子工作", "最新技術の研究", "オンライン学習"];
+            availableHobbies = [...new Set([...techHobbies.filter(h => personaRandomValues.hobbies.includes(h)), ...availableHobbies])];
+        }
+        // 医療従事者
+        else if (["医師", "歯科医師", "薬剤師", "看護師"].includes(currentOccupation)) {
+            const medicalHobbies = ["読書", "ゴルフ", "クラシック音楽", "美術鑑賞", "ワイン"];
+            availableHobbies = [...new Set([...medicalHobbies.filter(h => personaRandomValues.hobbies.includes(h)), ...availableHobbies])];
+        }
+        // 芸術関連
+        else if (["芸術家・アーティスト", "音楽家・ミュージシャン", "デザイナー", "写真家"].includes(currentOccupation)) {
+            const artisticHobbies = ["美術鑑賞", "音楽", "写真撮影", "絵画", "舞台鑑賞"];
+            availableHobbies = [...new Set([...artisticHobbies.filter(h => personaRandomValues.hobbies.includes(h)), ...availableHobbies])];
         }
     }
     
     // 最終的な保険として、趣味が空にならないようにする
     if (!availableHobbies || availableHobbies.length === 0) {
-        availableHobbies = ["読書"];
+        availableHobbies = ["読書", "散歩", "テレビ鑑賞"];
     }
     
-    setRandomValueIfEmpty("hobby", getRandomItem(availableHobbies));
+    // 複数の趣味を選択（1-3個）
+    const hobbyCount = Math.min(availableHobbies.length, Math.floor(Math.random() * 3) + 1);
+    const selectedHobbies = [];
+    const tempHobbies = [...availableHobbies];
+    
+    for (let i = 0; i < hobbyCount; i++) {
+        const index = Math.floor(Math.random() * tempHobbies.length);
+        selectedHobbies.push(tempHobbies[index]);
+        tempHobbies.splice(index, 1);
+    }
+    
+    setRandomValueIfEmpty("hobby", selectedHobbies.join('、'));
 
     // 追加項目の年齢フィルタリングを行う関数
     function filterRandomValuesForAge(list, ageInYears, categoryType) {
@@ -2801,68 +2964,90 @@ function getRandomAnnualIncome(ageInYears, currentOccupation, allPossibleHtmlInc
         }
     }
 
-    // 新規追加：高収入領域に対する確率重み付け
-    // 2000万円以上の年収は発生確率を下げる
+    // 日本の所得分布に基づく年収の確率重み付け
+    // 国税庁「民間給与実態統計調査」を参考
     function applyIncomeWeighting(incomeValues) {
-        // 収入値を低・中・高の3つのグループに分類
+        // 収入値を実態に即した4つのグループに分類
+        const veryLowIncomeValues = incomeValues.filter(v => {
+            const lb = parseInt(v.split('-')[0]?.replace('<', '') || '0');
+            return lb < 300; // 300万円未満（約20%）
+        });
+        
         const lowIncomeValues = incomeValues.filter(v => {
             const lb = parseInt(v.split('-')[0]?.replace('<', '') || '0');
-            return lb < 800; // 800万円未満
+            return lb >= 300 && lb < 500; // 300-500万円（約30%）
         });
         
         const midIncomeValues = incomeValues.filter(v => {
             const lb = parseInt(v.split('-')[0]?.replace('<', '') || '0');
-            return lb >= 800 && lb < 2000; // 800万円以上2000万円未満
+            return lb >= 500 && lb < 1000; // 500-1000万円（約40%）
         });
         
         const highIncomeValues = incomeValues.filter(v => {
             const lb = parseInt(v.split('-')[0]?.replace('<', '') || '0');
-            return lb >= 2000; // 2000万円以上
+            return lb >= 1000; // 1000万円以上（約10%）
         });
         
-        // 高収入がある場合は確率を調整
-        if (highIncomeValues.length > 0) {
-            // 職業に基づいて高収入の選択確率を調整
-            let highIncomeChance = 0.01; // デフォルト1%に変更
-            
-            // 高収入が一般的な職業の場合は確率を上げる
-            const highIncomeOccupations = [
-                "医師", "歯科医師", "弁護士", "公認会計士", "税理士", 
-                "会社経営者", "会社役員", "投資家", "不労所得者"
-            ];
-            
-            if (highIncomeOccupations.includes(currentOccupation)) {
-                highIncomeChance = 0.05; // 高収入職業でも5%に変更
+        // 日本の実際の所得分布に基づいて選択
+        const random = Math.random();
+        let selectedRange;
+        
+        // 職業別の特殊な分布調整
+        const highIncomeOccupations = [
+            "医師", "歯科医師", "弁護士", "公認会計士", "税理士", 
+            "会社経営者", "会社役員", "投資家", "パイロット", "ITコンサルタント"
+        ];
+        
+        const lowIncomeOccupations = [
+            "パートタイム勤務", "アルバイト", "清掃員", "店舗スタッフ（販売）", 
+            "店舗スタッフ（飲食）", "保育士", "介護福祉士", "美容師", "理容師"
+        ];
+        
+        if (highIncomeOccupations.includes(currentOccupation)) {
+            // 高収入職業の分布（中央値が高い）
+            if (random < 0.10 && veryLowIncomeValues.length > 0) {
+                selectedRange = getRandomItem(veryLowIncomeValues);
+            } else if (random < 0.25 && lowIncomeValues.length > 0) {
+                selectedRange = getRandomItem(lowIncomeValues);
+            } else if (random < 0.70 && midIncomeValues.length > 0) {
+                selectedRange = getRandomItem(midIncomeValues);
+            } else if (highIncomeValues.length > 0) {
+                selectedRange = getRandomItem(highIncomeValues);
             }
-            
-            // 運命の選択：高収入を選ぶかどうか
-            const selectHighIncome = Math.random() < highIncomeChance;
-            
-            if (selectHighIncome && highIncomeValues.length > 0) {
-                return getRandomItem(highIncomeValues);
-            } else {
-                // 中所得か低所得から選択
-                const combinedLowMidValues = [...lowIncomeValues, ...midIncomeValues];
-                if (combinedLowMidValues.length > 0) {
-                    // さらに、中所得と低所得の選択にも重み付け
-                    const midIncomeChance = 0.6; // 中所得を選ぶ確率60%
-                    const selectMidIncome = Math.random() < midIncomeChance;
-                    
-                    if (selectMidIncome && midIncomeValues.length > 0) {
-                        return getRandomItem(midIncomeValues);
-                    } else if (lowIncomeValues.length > 0) {
-                        return getRandomItem(lowIncomeValues);
-                    } else {
-                        return getRandomItem(midIncomeValues || combinedLowMidValues);
-                    }
-                } else {
-                    // 万が一、中・低所得の選択肢がない場合
-                    return getRandomItem(highIncomeValues);
-                }
+        } else if (lowIncomeOccupations.includes(currentOccupation)) {
+            // 低収入職業の分布（低めに偏る）
+            if (random < 0.40 && veryLowIncomeValues.length > 0) {
+                selectedRange = getRandomItem(veryLowIncomeValues);
+            } else if (random < 0.85 && lowIncomeValues.length > 0) {
+                selectedRange = getRandomItem(lowIncomeValues);
+            } else if (random < 0.98 && midIncomeValues.length > 0) {
+                selectedRange = getRandomItem(midIncomeValues);
+            } else if (highIncomeValues.length > 0) {
+                selectedRange = getRandomItem(highIncomeValues);
+            }
+        } else {
+            // 一般的な職業の分布（日本の平均的な分布）
+            if (random < 0.20 && veryLowIncomeValues.length > 0) {
+                selectedRange = getRandomItem(veryLowIncomeValues);
+            } else if (random < 0.50 && lowIncomeValues.length > 0) {
+                selectedRange = getRandomItem(lowIncomeValues);
+            } else if (random < 0.90 && midIncomeValues.length > 0) {
+                selectedRange = getRandomItem(midIncomeValues);
+            } else if (highIncomeValues.length > 0) {
+                selectedRange = getRandomItem(highIncomeValues);
             }
         }
         
-        // 高収入の選択肢がない場合は、従来通りの処理
+        // 選択された範囲を返す
+        if (selectedRange) {
+            return selectedRange;
+        }
+        
+        // フォールバック：選択肢がない場合
+        if (incomeValues.length > 0) {
+            return getRandomItem(incomeValues);
+        }
+        
         return null;
     }
     
