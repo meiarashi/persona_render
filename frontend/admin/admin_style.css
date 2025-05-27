@@ -6,7 +6,7 @@ body {
     padding: 0;
     color: #333;
     background-color: #f8f9fa; /* ユーザー画面と同じ背景色 */
-    font-size: 13px; /* ユーザー画面と同じフォントサイズ */
+    font-size: 14px; /* 少し大きめに調整 */
 }
 
 header {
@@ -55,13 +55,16 @@ section h2 {
     padding-bottom: 10px;
     border-bottom: 1px solid #eee;
     color: #333; /* ユーザー画面と同じ文字色 */
-    font-size: 1.5em;
+    font-size: 1.8em; /* より大きめの見出し */
+    font-weight: bold;
 }
 
 section h3 {
     margin-top: 25px;
     margin-bottom: 15px;
     color: #333;
+    font-size: 1.3em;
+    font-weight: bold;
 }
 
 /* Form Styles */
@@ -69,7 +72,8 @@ label {
     display: block;
     margin-bottom: 8px;
     font-weight: bold;
-    color: #555;
+    color: #333; /* より濃い色 */
+    font-size: 1em;
 }
 
 input[type="text"],
@@ -78,13 +82,14 @@ input[type="file"],
 input[type="number"],
 select {
     width: 100%;
-    padding: 8px; /* ユーザー画面と同じパディング */
+    padding: 10px 12px; /* より大きめのパディング */
     border: 1px solid #ccc;
     border-radius: 4px;
     box-sizing: border-box;
     margin-bottom: 15px;
-    font-size: 1em; /* ユーザー画面と同じフォントサイズ */
+    font-size: 1em;
     background-color: #fff;
+    line-height: 1.5;
 }
 
 /* Adjust width for inline elements like number inputs */
@@ -102,17 +107,19 @@ form div {
 /* Output settings related styles are removed as the section is removed */
 
 button {
-    padding: 10px 12px; /* ユーザー画面と同じパディング */
+    padding: 12px 24px; /* より大きめのパディング */
     background-color: #007bff;
     color: white;
     border: none;
-    border-radius: 4px; /* ユーザー画面と同じ角丸 */
+    border-radius: 5px; /* ユーザー画面と同じ角丸 */
     cursor: pointer;
-    font-size: 0.9em; /* ユーザー画面と同じフォントサイズ */
-    font-weight: bold; /* ユーザー画面と同じ太字 */
+    font-size: 1em; /* 相対的なフォントサイズ */
+    font-weight: bold;
     transition: all 0.3s ease;
     margin-top: 10px;
     margin-bottom: 10px;
+    min-width: 100px; /* 最小幅を設定 */
+    box-sizing: border-box;
 }
 
 button:hover {
@@ -154,13 +161,13 @@ footer {
 }
 
 #api-management fieldset legend {
-    font-size: 1.4em; /* Increase legend font size (adjust as needed) */
+    font-size: 1.2em; /* より適切なサイズに調整 */
     font-weight: bold;
     margin-bottom: 15px; /* Add space below legend */
     padding: 0; /* Remove default padding/margin from legend if any */
     border: none; /* Reset border if browser adds one by default */
     width: auto; /* Allow legend to size naturally */
-    color: #343a40; /* Darker color for legend */
+    color: #333; /* 統一された文字色 */
 }
 
 /* RAGデータテーブルのスタイル */
@@ -168,12 +175,13 @@ footer {
     width: 100%;
     border-collapse: collapse;
     margin-top: 15px;
+    font-size: 1em;
 }
 
 .rag-data-table th,
 .rag-data-table td {
     border: 1px solid #ddd;
-    padding: 8px;
+    padding: 12px; /* より大きめのパディング */
     text-align: left;
 }
 
@@ -190,12 +198,13 @@ footer {
     background-color: #dc3545; /* Bootstrap danger colorに近い赤 */
     color: white;
     border: none;
-    padding: 5px 10px;
+    padding: 8px 16px; /* より大きめのパディング */
     cursor: pointer;
     border-radius: 4px;
-    font-size: 0.85em;
+    font-size: 0.9em;
     font-weight: bold;
     transition: all 0.3s ease;
+    min-width: 60px;
 }
 
 .rag-data-table button:hover {
@@ -204,8 +213,10 @@ footer {
 
 .status-message {
     margin: 10px 0;
-    padding: 10px;
+    padding: 12px 15px;
     border-radius: 5px;
     font-weight: bold;
     text-align: center;
+    font-size: 1em;
+    line-height: 1.5;
 } 
