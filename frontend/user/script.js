@@ -1164,18 +1164,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.showStep = showStep; // Assign to window object
     // --- END NEW showStep FUNCTION DEFINITION ---
 
+    // 出力設定をデフォルトで設定（PDFとPPTを有効化）
     window.currentOutputSettings = { pdf: true, ppt: true, gslide: false };
-    try {
-        const response = await fetch('/api/settings/output'); 
-        if (response.ok) {
-            const outputSettings = await response.json();
-            window.currentOutputSettings = { ...outputSettings, pdf: true, ppt: true }; 
-        } else {
-            console.error("Failed to fetch output settings for user:", response.status);
-        }
-    } catch (error) {
-        console.error("Error fetching output settings:", error);
-    }
 
     // --- REMOVE OLD/FAULTY showStep WRAPPER (original lines ~562-574) ---
     // const originalShowStep = showStep; // THIS LINE AND THE BLOCK SHOULD BE GONE
