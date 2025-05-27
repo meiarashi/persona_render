@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${item.current_records}</td>
                 <td>${new Date(item.uploaded_at).toLocaleString('ja-JP')}</td>
                 <td>
-                    <button class="delete-rag-btn" data-specialty="${escapeHTML(item.specialty)}">削除</button>
+                    <button class="delete-rag-btn" data-specialty="${escapeHTML(item.specialty_code || item.specialty)}">削除</button>
                 </td>
             `;
             ragDataList.appendChild(row);

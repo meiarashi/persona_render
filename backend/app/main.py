@@ -442,8 +442,7 @@ async def generate_persona(request: Request):
                 rag_context += "以下は、同じ診療科・年代・性別の患者がよく検索するキーワードです。ペルソナ作成の参考にしてください：\n"
                 for i, result in enumerate(rag_results, 1):
                     rag_context += f"{i}. {result['keyword']} (検索数: {result['search_volume']}人)\n"
-                    if result.get('category'):
-                        rag_context += f"   カテゴリ: {result['category']}\n"
+                    # カテゴリーフィールドは削除（CSVに存在しないため）
         
         # プロンプト構築（RAGコンテキストを含む）
         prompt_text = build_prompt(data) + rag_context

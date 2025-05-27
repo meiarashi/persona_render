@@ -6,6 +6,24 @@ from datetime import datetime
 from typing import List, Dict, Optional
 import json
 
+# 診療科の英語→日本語マッピング
+DEPARTMENT_MAP = {
+    "internal_medicine": "内科", "surgery": "外科", "pediatrics": "小児科",
+    "orthopedics": "整形外科", "dermatology": "皮膚科", "ophthalmology": "眼科",
+    "cardiology": "循環器内科", "psychiatry": "精神科", "dentistry": "歯科",
+    "pediatric_dentistry": "小児歯科", "otorhinolaryngology": "耳鼻咽喉科",
+    "ent": "耳鼻咽喉科", "gynecology": "婦人科", "urology": "泌尿器科",
+    "neurosurgery": "脳神経外科", "general_dentistry": "一般歯科",
+    "orthodontics": "矯正歯科", "cosmetic_dentistry": "審美歯科",
+    "oral_surgery": "口腔外科", "anesthesiology": "麻酔科",
+    "radiology": "放射線科", "rehabilitation": "リハビリテーション科",
+    "allergy": "アレルギー科", "gastroenterology": "消化器内科",
+    "respiratory_medicine": "呼吸器内科", "diabetes_medicine": "糖尿病内科",
+    "nephrology": "腎臓内科", "neurology": "神経内科",
+    "hematology": "血液内科", "plastic_surgery": "形成外科",
+    "beauty_surgery": "美容外科"
+}
+
 # 永続ストレージのパス（既存設定と同じ場所）
 PERSISTENT_DISK_MOUNT_PATH = Path(os.getenv("PERSISTENT_DISK_PATH", "/var/app_settings"))
 RAG_DB_PATH = PERSISTENT_DISK_MOUNT_PATH / "rag_data.db"
@@ -113,7 +131,7 @@ def save_rag_data(specialty: str, df: pd.DataFrame, original_filename: str) -> D
                     'age_50s': int(row.get('50代割合(%)', 0)) if pd.notna(row.get('50代割合(%)')) else 0,
                     'age_60s': int(row.get('60代割合(%)', 0)) if pd.notna(row.get('60代割合(%)')) else 0,
                     'age_70s': int(row.get('70代以上割合(%)', 0)) if pd.notna(row.get('70代以上割合(%)')) else 0,
-                    'category': str(row.get('カテゴリー', '')) if pd.notna(row.get('カテゴリー')) else ''
+                    'category': ''  # カテゴリーカラムは存在しない場合は空文字
                 }
                 
                 cursor.execute('''
@@ -188,8 +206,11 @@ def get_uploaded_rag_data() -> List[Dict]:
         
         results = []
         for row in cursor.fetchall():
+            # 診療科を日本語に変換
+            specialty_ja = DEPARTMENT_MAP.get(row[0], row[0])
             results.append({
-                "specialty": row[0],
+                "specialty": specialty_ja,
+                "specialty_code": row[0],  # 元の英語コードも保持
                 "filename": row[1],
                 "record_count": row[2],
                 "uploaded_at": row[3],
