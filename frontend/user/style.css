@@ -1591,6 +1591,7 @@ footer {
 .loading-container {
   text-align: center;
   position: relative;
+  padding: 40px 20px;
 }
 .owl-loading {
   width: 150px;
@@ -1598,7 +1599,7 @@ footer {
   position: relative;
   display: inline-block;
   animation: float 2s ease-in-out infinite;
-  margin-top: 50px;
+  margin-top: 80px; /* アイコンを下に移動 */
 }
 .loading-circle {
   position: absolute;
@@ -1622,13 +1623,13 @@ footer {
   100% { transform: translate(-50%, -50%) rotate(360deg);}
 }
 .loading-text {
-  margin-top: 60px;
-  font-size: 18px;
+  margin-top: 40px; /* テキストを上に移動 */
+  font-size: 20px; /* 少し大きく */
   color: #005b99;
   font-weight: bold;
-  text-align: right;
+  text-align: center; /* 中央寄せに変更 */
   width: 100%;
-  margin-right: 10vw;
+  margin-left: 0; /* 左寄せを解除 */
 }
 .dots {
   display: inline-block;

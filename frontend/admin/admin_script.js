@@ -198,10 +198,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const limits = {};
             const inputs = charLimitForm.querySelectorAll('input[type="number"]');
+            let hasError = false;
+            
             inputs.forEach(input => {
                 const key = input.id.replace('limit-', '');
-                limits[key] = input.value; 
+                const value = parseInt(input.value);
+                
+                // バリデーション
+                if (isNaN(value) || value < 50 || value > 200) {
+                    hasError = true;
+                    input.style.borderColor = 'red';
+                    limitsStatusMessage.textContent = '文字数は50〜200の範囲で設定してください。';
+                    limitsStatusMessage.style.color = 'red';
+                } else {
+                    input.style.borderColor = '';
+                    limits[key] = value.toString();
+                }
             });
+            
+            if (hasError) return;
 
             limitsStatusMessage.textContent = '保存中...'; // Show loading message
             limitsStatusMessage.style.color = 'orange';

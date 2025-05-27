@@ -568,13 +568,56 @@ async def generate_persona(request: Request):
         # --- 画像生成 ---
         image_url = "https://placehold.jp/150x150.png" # デフォルトプレースホルダー
 
+        # 性別と年齢の情報を取得
+        gender = data.get('gender', 'unknown')
+        age = data.get('age', 'unknown')
+        occupation = data.get('occupation', '')
+        
+        # 年齢を数値に変換
+        age_num = None
+        if age and age != 'unknown':
+            try:
+                age_str = str(age)
+                if 'y' in age_str:
+                    age_num = int(age_str.split('y')[0])
+                elif age_str.isdigit():
+                    age_num = int(age_str)
+            except:
+                pass
+        
+        # 性別に応じた自然な記述
+        gender_desc = {
+            'male': 'Japanese man',
+            'female': 'Japanese woman',
+        }.get(gender, 'Japanese person')
+        
+        # 年齢に応じた記述
+        age_desc = ""
+        if age_num is not None:
+            if age_num < 30:
+                age_desc = "young"
+            elif age_num < 50:
+                age_desc = "middle-aged"
+            elif age_num < 65:
+                age_desc = "mature"
+            else:
+                age_desc = "senior"
+        
+        # プロンプトの構築
         img_prompt_parts = [
-            f"Create a profile picture for a persona named {data.get('name', 'person')}",
-            f"who is {data.get('age', 'age unknown')}, {data.get('gender', 'gender unknown')}.",
-            "Style: realistic photo."
+            f"Professional portrait photograph of a {age_desc} {gender_desc}",
+            f"age {age_num if age_num else 'unknown'} years old,",
+            "natural lighting, friendly expression, business casual attire,",
+            "high quality, realistic, photographic style,",
+            "neutral background, head and shoulders shot"
         ]
-        if data.get('occupation'):
-            img_prompt_parts.append(f"Occupation: {data.get('occupation')}.")
+        
+        # 職業が医療関係者の場合は白衣を追加
+        if occupation and any(med in occupation for med in ['医師', '看護師', '薬剤師', '医療']):
+            img_prompt_parts.append("wearing white medical coat")
+        elif occupation:
+            img_prompt_parts.append(f"dressed appropriately for {occupation}")
+        
         img_prompt = " ".join(img_prompt_parts)
 
         if selected_image_model == "dall-e-3":
@@ -944,6 +987,11 @@ def generate_pdf(data):
     # --- 定数定義 ---
     name_line_height = 6  # ペルソナ名の行の高さ (mm)
     section_title_height = 7 # セクションタイトルのセルの高さ (mm)
+    
+    # カラー設定（ユーザー画面のボタン色と統一）
+    primary_color = (0, 123, 255)  # #007bff
+    primary_color_dark = (0, 86, 179)  # #0056b3
+    section_bg_color = (245, 248, 255)  # セクション背景色
 
     # --- ページとカラムの基本設定 ---
     left_column_content_x = pdf.l_margin
@@ -1034,27 +1082,35 @@ def generate_pdf(data):
 
     # --- 基本情報セクション ---
     pdf.set_xy(left_column_content_x, current_y_after_icon_name)
-    pdf.set_font("ipa", 'BU', 11) # セクションタイトル (太字・下線)
-    pdf.cell(left_column_width, section_title_height, "基本情報", 0, 1, 'L')
+    pdf.set_font("ipa", 'B', 11) # セクションタイトル (太字)
+    pdf.set_fill_color(*section_bg_color)  # 背景色を設定
+    pdf.cell(left_column_width, section_title_height, "基本情報", 0, 1, 'L', fill=True)
     current_y_after_icon_name = pdf.get_y() # 「基本情報」タイトルの後にY座標を更新
     pdf.set_font("ipa", '', 10) # 内容のフォントに戻す
 
-    # 1. 診療科 (左カラム)
-    pdf.set_xy(left_column_content_x, current_y_after_icon_name) # 更新されたY座標を使用
-    pdf.set_font("ipa", '', 10)
-    department_val = profile.get('department', '-')
-    department_display = DEPARTMENT_MAP.get(department_val.lower(), department_val) # Lowercase for map key
-    pdf.multi_cell(left_column_width, 7, f"診療科: {department_display}", 0, 'L')
-    current_y_after_icon_name = pdf.get_y()
-
-    # 2. 作成目的 (左カラム)
+    # 診療科と作成目的をボックスで囲む
     pdf.set_xy(left_column_content_x, current_y_after_icon_name)
+    pdf.set_font("ipa", '', 10)
+    pdf.set_fill_color(*section_bg_color)
+    pdf.set_draw_color(*primary_color)  # 枠線の色
+    
+    # 枠の描画
+    box_y = current_y_after_icon_name
+    pdf.rect(left_column_content_x, box_y, left_column_width, 18, 'DF')  # D=Draw, F=Fill
+    
+    # 1. 診療科
+    pdf.set_xy(left_column_content_x + 2, box_y + 2)
+    department_val = profile.get('department', '-')
+    department_display = DEPARTMENT_MAP.get(department_val.lower(), department_val)
+    pdf.cell(left_column_width - 4, 6, f"診療科: {department_display}", 0, 1, 'L')
+    
+    # 2. 作成目的
+    pdf.set_xy(left_column_content_x + 2, pdf.get_y())
     purpose_val = profile.get('purpose', '-')
-    purpose_display = PURPOSE_MAP.get(purpose_val.lower(), purpose_val) # Lowercase for map key
-    pdf.multi_cell(left_column_width, 7, f"作成目的: {purpose_display}", 0, 'L')
-    current_y_after_icon_name = pdf.get_y()
-    pdf.ln(3) # 少しスペース
-    current_y_after_icon_name = pdf.get_y()
+    purpose_display = PURPOSE_MAP.get(purpose_val.lower(), purpose_val)
+    pdf.cell(left_column_width - 4, 6, f"作成目的: {purpose_display}", 0, 1, 'L')
+    
+    current_y_after_icon_name = box_y + 18 + 5  # ボックスの高さ + スペース
 
     # 3. 基本情報セクション (左カラム)
     pdf.set_xy(left_column_content_x, current_y_after_icon_name) 
@@ -1072,7 +1128,7 @@ def generate_pdf(data):
         ("患者タイプ", profile.get('patient_type', '-'))
     ]
     
-    item_height = 4 
+    item_height = 5  # 行間を広く (4 -> 5)
     key_width = 25 
     value_width = left_column_width - key_width
 
@@ -1089,8 +1145,8 @@ def generate_pdf(data):
     
     # 4. その他の特徴セクション (左カラム)
     pdf.set_xy(left_column_content_x, current_y_after_icon_name)
-    pdf.set_font("ipa", '', 11)
-    pdf.set_fill_color(240, 240, 240) 
+    pdf.set_font("ipa", 'B', 11)
+    pdf.set_fill_color(*section_bg_color)  # 統一された背景色
     pdf.cell(left_column_width, 6, "その他の特徴", 0, 1, 'L', fill=True)
     current_y_after_icon_name = pdf.get_y() 
     pdf.ln(1)
@@ -1144,15 +1200,17 @@ def generate_pdf(data):
             pdf.set_xy(right_column_x, right_column_current_y)
             
             # セクションヘッダー
-            pdf.set_font("ipa", 'BU', 11) # 太字・下線付き、サイズ11
-            pdf.set_fill_color(240, 240, 240) # 薄いグレーの背景
+            pdf.set_font("ipa", 'B', 11) # 太字、サイズ11
+            pdf.set_fill_color(*primary_color)  # プライマリーカラーの背景
+            pdf.set_text_color(255, 255, 255)  # 白文字
             pdf.cell(right_column_width, 6, str(japanese_header_text), 0, 1, 'L', fill=True) # ln=1 で改行
+            pdf.set_text_color(0, 0, 0)  # テキスト色を黒に戻す
             # pdf.get_y() はこのセルの後に自動更新される
 
             # コンテンツ
             pdf.set_x(right_column_x) # multi_cell のためにX座標を右カラムの開始位置にリセット
             pdf.set_font("ipa", '', 9) # 通常フォント、サイズ9
-            pdf.multi_cell(right_column_width, 5, str(value), 0, 'L') # 行の高さ5mm
+            pdf.multi_cell(right_column_width, 6, str(value), 0, 'L') # 行の高さ6mmに増やして行間を広く
             right_column_current_y = pdf.get_y() # multi_cell 後のY座標を更新
             
             pdf.ln(3) # セクション間のスペース
@@ -1170,6 +1228,10 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
     prs.slide_height = Inches(8.27) # A4 Landscape height
     slide_layout = prs.slide_layouts[5]  # Blank layout
     slide = prs.slides.add_slide(slide_layout)
+    
+    # カラー設定（PDFと統一）
+    primary_color = RGBColor(0, 123, 255)  # #007bff
+    section_bg_color = RGBColor(245, 248, 255)  # セクション背景色
 
     # Margins (approximated from PDF's 8mm)
     left_margin_ppt = Cm(0.8)
@@ -1179,7 +1241,7 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
     content_width = prs.slide_width - left_margin_ppt - right_margin_ppt
     content_height = prs.slide_height - top_margin_ppt - bottom_margin_ppt
     
-    item_spacing_ppt = Cm(0.15) # Spacing between items
+    item_spacing_ppt = Cm(0.25) # Spacing between items (増やして行間を広く)
 
     # Title
     title_shape = slide.shapes.add_textbox(left=Cm(0.5), top=Cm(0.2), width=prs.slide_width - Cm(1.0), height=Cm(1.0))
@@ -1275,6 +1337,9 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
 
     # Section Title: 基本情報
     shape_title_basic = slide.shapes.add_textbox(left_column_x, current_y_left, left_width, Cm(0.6))
+    # 背景色を追加
+    shape_title_basic.fill.solid()
+    shape_title_basic.fill.fore_color.rgb = section_bg_color
     add_text_to_shape(shape_title_basic, "基本情報", font_size=Pt(11), is_bold=True, font_name='Meiryo UI')
     current_y_left += Cm(0.6) + item_spacing_ppt # Update Y position
 
@@ -1306,6 +1371,9 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
     # Section Title: 追加情報 (Fixed)
     current_y_left += item_spacing_ppt # Extra space before next section
     shape_title_add_fixed = slide.shapes.add_textbox(left_column_x, current_y_left, left_width, Cm(0.6))
+    # 背景色を追加
+    shape_title_add_fixed.fill.solid()
+    shape_title_add_fixed.fill.fore_color.rgb = section_bg_color
     add_text_to_shape(shape_title_add_fixed, "追加情報", font_size=Pt(11), is_bold=True, font_name='Meiryo UI')
     current_y_left += Cm(0.6) + item_spacing_ppt
 
@@ -1356,7 +1424,18 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
         value = persona_data['personality']
         
         title_shape = slide.shapes.add_textbox(right_column_x, current_y_right, right_width, Cm(0.6))
-        add_text_to_shape(title_shape, section_title, font_size=Pt(11), is_bold=True, font_name='Meiryo UI')
+        # 背景色を追加
+        title_shape.fill.solid()
+        title_shape.fill.fore_color.rgb = primary_color
+        # 白文字に設定
+        text_frame = title_shape.text_frame
+        text_frame.clear()
+        p = text_frame.add_paragraph()
+        p.text = section_title
+        p.font.name = 'Meiryo UI'
+        p.font.size = Pt(11)
+        p.font.bold = True
+        p.font.color.rgb = RGBColor(255, 255, 255)  # 白文字
         current_y_right += Cm(0.6)
 
         content_shape = slide.shapes.add_textbox(right_column_x, current_y_right, right_width, Cm(2.5))
