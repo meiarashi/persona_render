@@ -161,13 +161,8 @@ def get_ai_client(model_name, api_key):
         raise ValueError(f"未対応のモデルです: {model_name}")
 
 # --- Function to build prompts ---
-def build_prompt(data):
-    limit_personality = os.environ.get("LIMIT_PERSONALITY", "100") 
-    limit_reason = os.environ.get("LIMIT_REASON", "100")
-    limit_behavior = os.environ.get("LIMIT_BEHAVIOR", "100")
-    limit_reviews = os.environ.get("LIMIT_REVIEWS", "100")
-    limit_values = os.environ.get("LIMIT_VALUES", "100")
-    limit_demands = os.environ.get("LIMIT_DEMANDS", "100")
+def build_prompt(data, limit_personality="100", limit_reason="100", limit_behavior="100", 
+                 limit_reviews="100", limit_values="100", limit_demands="100"):
 
     # --- Patient Type Descriptions ---
     patient_type_details_map = {
@@ -259,14 +254,15 @@ def build_prompt(data):
         prompt_parts.append("\n## 追加情報（自由入力項目）")
         prompt_parts.extend(dynamic_additional_info)
 
-    prompt_parts.append("\n# 生成項目 (日本語で、指定文字数程度で)")
-    prompt_parts.append("以下の項目について、上記情報に基づいた自然な文章を生成してください。")
-    prompt_parts.append(f"\n1.  **性格（価値観・人生観）**: (日本語で{limit_personality}文字程度)")
-    prompt_parts.append(f"2.  **通院理由**: (日本語で{limit_reason}文字程度)")
-    prompt_parts.append(f"3.  **症状通院頻度・行動パターン**: (日本語で{limit_behavior}文字程度)")
-    prompt_parts.append(f"4.  **口コミの重視ポイント**: (日本語で{limit_reviews}文字程度)")
-    prompt_parts.append(f"5.  **医療機関への価値観・行動傾向**: (日本語で{limit_values}文字程度)")
-    prompt_parts.append(f"6.  **医療機関に求めるもの**: (日本語で{limit_demands}文字程度)")
+    prompt_parts.append("\n# 生成項目")
+    prompt_parts.append("以下の項目について、上記情報に基づいた自然な文章を生成してください。各項目は指定された文字数の目安で記述してください。")
+    prompt_parts.append("\n重要: 出力には項目名と内容のみを含め、文字数の指定（例：「(100文字程度)」）は出力に含めないでください。")
+    prompt_parts.append(f"\n1. **性格（価値観・人生観）**: {limit_personality}文字程度で記述")
+    prompt_parts.append(f"2. **通院理由**: {limit_reason}文字程度で記述")
+    prompt_parts.append(f"3. **症状通院頻度・行動パターン**: {limit_behavior}文字程度で記述")
+    prompt_parts.append(f"4. **口コミの重視ポイント**: {limit_reviews}文字程度で記述")
+    prompt_parts.append(f"5. **医療機関への価値観・行動傾向**: {limit_values}文字程度で記述")
+    prompt_parts.append(f"6. **医療機関に求めるもの**: {limit_demands}文字程度で記述")
     
     return "\n".join(prompt_parts)
 
@@ -457,18 +453,30 @@ async def generate_persona(request: Request):
                     # カテゴリーフィールドは削除（CSVに存在しないため）
         
         # プロンプト構築（RAGコンテキストを含む）
-        prompt_text = build_prompt(data) + rag_context
+        prompt_text = build_prompt(data, limit_personality, limit_reason, limit_behavior, 
+                                  limit_reviews, limit_values, limit_demands) + rag_context
+        
+        # 文字数制限を取得
+        limit_personality = os.environ.get("LIMIT_PERSONALITY", "100")
+        limit_reason = os.environ.get("LIMIT_REASON", "100")
+        limit_behavior = os.environ.get("LIMIT_BEHAVIOR", "100")
+        limit_reviews = os.environ.get("LIMIT_REVIEWS", "100")
+        limit_values = os.environ.get("LIMIT_VALUES", "100")
+        limit_demands = os.environ.get("LIMIT_DEMANDS", "100")
         
         # 生成情報をログ出力
         print(f"[INFO] Generating persona with model: {selected_text_model}")
-        print(f"[INFO] Character limits - Personality: {os.environ.get('LIMIT_PERSONALITY', '100')}文字, "
-              f"Reason: {os.environ.get('LIMIT_REASON', '100')}文字, "
-              f"Behavior: {os.environ.get('LIMIT_BEHAVIOR', '100')}文字, "
-              f"Reviews: {os.environ.get('LIMIT_REVIEWS', '100')}文字, "
-              f"Values: {os.environ.get('LIMIT_VALUES', '100')}文字, "
-              f"Demands: {os.environ.get('LIMIT_DEMANDS', '100')}文字")
-        if rag_context:
+        print(f"[INFO] Department: {department}, Age: {age}, Gender: {gender}")
+        print(f"[INFO] Character limits - Personality: {limit_personality}文字, "
+              f"Reason: {limit_reason}文字, "
+              f"Behavior: {limit_behavior}文字, "
+              f"Reviews: {limit_reviews}文字, "
+              f"Values: {limit_values}文字, "
+              f"Demands: {limit_demands}文字")
+        if rag_results:
             print(f"[INFO] RAG data included: {len(rag_results)} keywords from {department}")
+            for i, result in enumerate(rag_results[:3], 1):
+                print(f"  - Keyword {i}: {result['keyword']}")
         else:
             print(f"[INFO] No RAG data available for {department}")
         
