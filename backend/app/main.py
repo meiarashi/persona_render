@@ -7,6 +7,7 @@ import os
 import random
 import traceback
 import io
+import re
 from urllib.parse import quote
 from urllib.request import urlopen
 import base64
@@ -297,6 +298,8 @@ def parse_ai_response(text):
                 # Remove the header and keep only content
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
                 if content:
+                    # 「(100文字程度)」のような文字数指定を削除
+                    content = re.sub(r'\(\d+文字程度\)\s*', '', content)
                     sections[current_section] = content
                 continue
                 
@@ -305,6 +308,7 @@ def parse_ai_response(text):
                 current_section = "reason"
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
                 if content:
+                    content = re.sub(r'\(\d+文字程度\)\s*', '', content)
                     sections[current_section] = content
                 continue
                 
@@ -313,6 +317,7 @@ def parse_ai_response(text):
                 current_section = "behavior"
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
                 if content:
+                    content = re.sub(r'\(\d+文字程度\)\s*', '', content)
                     sections[current_section] = content
                 continue
                 
@@ -321,6 +326,7 @@ def parse_ai_response(text):
                 current_section = "reviews"
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
                 if content:
+                    content = re.sub(r'\(\d+文字程度\)\s*', '', content)
                     sections[current_section] = content
                 continue
                 
@@ -329,6 +335,7 @@ def parse_ai_response(text):
                 current_section = "values"
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
                 if content:
+                    content = re.sub(r'\(\d+文字程度\)\s*', '', content)
                     sections[current_section] = content
                 continue
                 
@@ -337,15 +344,18 @@ def parse_ai_response(text):
                 current_section = "demands"
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
                 if content:
+                    content = re.sub(r'\(\d+文字程度\)\s*', '', content)
                     sections[current_section] = content
                 continue
                 
             # If we're in a section, append text
             if current_section and not line.startswith(("#", "##")):
+                # 「(100文字程度)」のような文字数指定を削除
+                cleaned_line = re.sub(r'\(\d+文字程度\)\s*', '', line)
                 if sections[current_section]:
-                    sections[current_section] += " " + line
+                    sections[current_section] += " " + cleaned_line
                 else:
-                    sections[current_section] = line
+                    sections[current_section] = cleaned_line
     
     except Exception as e:
         print(f"Error parsing AI response: {e}")
