@@ -1494,6 +1494,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (typeof window.showStep === 'function') window.showStep(TOTAL_FORM_STEPS + 1); // Show loading
             else console.error('showStep is not a function for finalGenerateBtns (loading)');
             
+            // Initialize progress bar animation
+            startProgressAnimation();
+            
             const data = getFormData();
             currentPersonaResult = null;
             try {
@@ -1510,6 +1513,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const result = await response.json();
                 currentPersonaResult = result; // Store the result
                 
+                // Complete progress animation
+                completeProgressAnimation();
+                
                 // Call showStep before populateResults
                 showStep(TOTAL_FORM_STEPS + 2); // Show result screen (Step 7)
                 // Delay populateResults to allow DOM to update
@@ -1519,13 +1525,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             } catch (error) {
                 console.error('Error generating persona:', error);
+                stopProgressAnimation(); // Stop animation on error
                 alert(`ペルソナ生成に失敗しました: ${error.message}`);
                 showStep(TOTAL_FORM_STEPS); // Go back to confirmation screen on error
             } finally {
-                // Hide loading screen
-                if (loadingStep) { // <--- 存在確認を追加
-                loadingStep.classList.remove('active');
-                }
+                // Hide loading screen (handled by showStep)
+                // Progress animation will continue until completion
             }
         });
     });
@@ -2861,6 +2866,105 @@ const patientTypeDetails = {
     // ... other types
 };
 */ 
+
+// Global variable to store animation ID
+let progressAnimationId = null;
+
+// Progress bar animation functions
+function startProgressAnimation() {
+    const progressFill = document.querySelector('.progress-bar-fill');
+    const progressPercentage = document.querySelector('.progress-percentage');
+    const statusText = document.querySelector('.loading-status-text');
+    const currentStep = document.querySelector('.current-step');
+    const estimatedTime = document.querySelector('.estimated-time');
+    
+    if (!progressFill || !progressPercentage) return;
+    
+    // Cancel any existing animation
+    if (progressAnimationId) {
+        cancelAnimationFrame(progressAnimationId);
+        progressAnimationId = null;
+    }
+    
+    let progress = 0;
+    let phase = 'persona'; // 'persona' or 'image'
+    const personaDuration = 8000; // 8 seconds for persona (0-20%)
+    const imageDuration = 32000; // 32 seconds for image (20-100%)
+    const totalDuration = personaDuration + imageDuration;
+    
+    // Reset progress
+    progressFill.style.width = '0%';
+    progressPercentage.textContent = '0%';
+    
+    const startTime = Date.now();
+    
+    const updateProgress = () => {
+        const elapsed = Date.now() - startTime;
+        
+        if (elapsed < personaDuration) {
+            // Phase 1: Persona generation (0-20%)
+            progress = (elapsed / personaDuration) * 20;
+            if (statusText) statusText.textContent = 'ペルソナを分析しています...';
+            if (currentStep) currentStep.textContent = 'ステップ 1/2: AIがペルソナを生成中';
+        } else if (elapsed < totalDuration) {
+            // Phase 2: Image generation (20-100%)
+            const imageElapsed = elapsed - personaDuration;
+            progress = 20 + (imageElapsed / imageDuration) * 80;
+            if (statusText) statusText.textContent = 'ペルソナ画像を生成しています...';
+            if (currentStep) currentStep.textContent = 'ステップ 2/2: AIが画像を生成中';
+            
+            // Update estimated time
+            const remainingSeconds = Math.ceil((totalDuration - elapsed) / 1000);
+            if (estimatedTime) {
+                if (remainingSeconds > 20) {
+                    estimatedTime.textContent = `予想時間: 約${Math.ceil(remainingSeconds / 10) * 10}秒`;
+                } else {
+                    estimatedTime.textContent = `予想時間: あと少し...`;
+                }
+            }
+        }
+        
+        // Cap progress at 95% until actual completion
+        progress = Math.min(progress, 95);
+        
+        progressFill.style.width = `${progress}%`;
+        progressPercentage.textContent = `${Math.round(progress)}%`;
+        
+        // Continue animation if not complete
+        if (elapsed < totalDuration && progressAnimationId !== null) {
+            progressAnimationId = requestAnimationFrame(updateProgress);
+        }
+    };
+    
+    progressAnimationId = requestAnimationFrame(updateProgress);
+}
+
+// Complete progress animation
+function completeProgressAnimation() {
+    // Stop ongoing animation
+    if (progressAnimationId) {
+        cancelAnimationFrame(progressAnimationId);
+        progressAnimationId = null;
+    }
+    
+    const progressFill = document.querySelector('.progress-bar-fill');
+    const progressPercentage = document.querySelector('.progress-percentage');
+    const statusText = document.querySelector('.loading-status-text');
+    
+    if (progressFill && progressPercentage) {
+        progressFill.style.width = '100%';
+        progressPercentage.textContent = '100%';
+        if (statusText) statusText.textContent = '完了しました！';
+    }
+}
+
+// Stop progress animation (for error cases)
+function stopProgressAnimation() {
+    if (progressAnimationId) {
+        cancelAnimationFrame(progressAnimationId);
+        progressAnimationId = null;
+    }
+}
 
 // 画像を表示するコード箇所
 // 関数は他の場所で定義されているため、この重複した定義は削除しました 

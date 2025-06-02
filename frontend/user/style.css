@@ -1591,58 +1591,82 @@ footer {
 .loading-container {
   text-align: center;
   position: relative;
+  padding: 40px 20px;
 }
+
 .owl-loading {
-  width: 150px;
-  height: 150px;
+  width: 120px;
+  height: 120px;
   position: relative;
-  display: inline-block;
+  display: block;
+  margin: 0 auto 30px;
   animation: float 2s ease-in-out infinite;
-  margin-top: 50px;
 }
-.loading-circle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 180px;
-  height: 180px;
-  border: 6px solid #e1e1e1;
-  border-top: 6px solid #005b99;
-  border-radius: 50%;
-  animation: spin 1.5s linear infinite;
-  box-sizing: border-box;
-}
+
 @keyframes float {
   0%, 100% { transform: translateY(0);}
   50% { transform: translateY(-10px);}
 }
-@keyframes spin {
-  0% { transform: translate(-50%, -50%) rotate(0deg);}
-  100% { transform: translate(-50%, -50%) rotate(360deg);}
+
+/* New progress bar styles */
+.loading-status-text {
+  font-size: 1.1em;
+  color: #333;
+  margin-bottom: 15px;
+  text-align: center;
 }
-.loading-text {
-  margin-top: 60px;
-  font-size: 18px;
-  color: #005b99;
-  font-weight: bold;
-  text-align: right;
+
+.progress-bar-container {
   width: 100%;
-  margin-right: 10vw;
+  max-width: 400px;
+  margin: 0 auto 20px;
 }
+
+.progress-bar-bg {
+  background-color: #e0e0e0;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  background-color: #ff7f00;
+  height: 100%;
+  width: 0%;
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+.progress-percentage {
+  text-align: center;
+  margin-top: 8px;
+  font-size: 0.9em;
+  color: #666;
+}
+
+.loading-step-info {
+  text-align: center;
+  color: #666;
+  font-size: 0.9em;
+}
+
+.current-step {
+  margin-bottom: 5px;
+}
+
+.estimated-time {
+  color: #999;
+}
+
+/* Remove old loading styles */
+.loading-circle {
+  display: none;
+}
+
+.loading-text {
+  display: none;
+}
+
 .dots {
-  display: inline-block;
-  width: 40px;
-  text-align: left;
-}
-.dots::after {
-  content: '';
-  animation: dots 1.5s infinite;
-}
-@keyframes dots {
-  0% { content: ''; }
-  25% { content: '.'; }
-  50% { content: '..'; }
-  75% { content: '...'; }
-  100% { content: ''; }
+  display: none;
 } 

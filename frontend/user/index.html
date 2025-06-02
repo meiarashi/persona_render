@@ -597,9 +597,21 @@
                 <!-- Step 6: Loading (Previously Step 5) -->
                 <div class="form-step loading-step" data-step="6">
                      <div class="loading-container">
-                       <div class="loading-circle"></div>
-                       <img src="/images/owl.png" alt="owl" class="owl-loading" style="width:150px;height:150px;object-fit:contain;display:inline-block;margin-top:20px;">
-                       <div class="loading-text" style="margin-left: 20px;">ペルソナ生成中<span class="dots"></span></div>
+                       <img src="/images/owl.png" alt="owl" class="owl-loading" style="width:120px;height:120px;object-fit:contain;display:block;margin:0 auto 30px;">
+                       
+                       <div class="loading-status-text" style="font-size: 1.1em; color: #333; margin-bottom: 15px; text-align: center;">ペルソナを分析しています...</div>
+                       
+                       <div class="progress-bar-container" style="width: 100%; max-width: 400px; margin: 0 auto 20px;">
+                           <div class="progress-bar-bg" style="background-color: #e0e0e0; height: 8px; border-radius: 4px; overflow: hidden;">
+                               <div class="progress-bar-fill" style="background-color: #ff7f00; height: 100%; width: 0%; transition: width 0.3s ease; border-radius: 4px;"></div>
+                           </div>
+                           <div class="progress-percentage" style="text-align: center; margin-top: 8px; font-size: 0.9em; color: #666;">0%</div>
+                       </div>
+                       
+                       <div class="loading-step-info" style="text-align: center; color: #666; font-size: 0.9em;">
+                           <div class="current-step" style="margin-bottom: 5px;">ステップ 1/2: AIがペルソナを生成中</div>
+                           <div class="estimated-time" style="color: #999;">予想時間: 約30-40秒</div>
+                       </div>
                      </div>
                  </div>
 
