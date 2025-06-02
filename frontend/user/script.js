@@ -556,12 +556,14 @@ function randomizeDetailSettingsFields() {
         }
     }
 
-    // If life event is "婚約中", remove "成人の子どもがいる" from family options
+    // If life event is "婚約中", remove contradicting family statuses
     if (selectedLifeEvent && selectedLifeEvent.startsWith("婚約中")) {
         availableFamilies = availableFamilies.filter(family => 
+            family !== "既婚" && // 婚約中なのに既婚は矛盾
             family !== "成人の子どもがいる（18〜26歳）" && 
             family !== "配偶者と死別" && // 矛盾する状態を防ぐ: 婚約中の人が配偶者と死別というのはおかしい
-            family !== "離婚" // 矛盾する状態を防ぐ: 婚約中の人が離婚経験というのも整合性が取れない
+            family !== "離婚" && // 矛盾する状態を防ぐ: 婚約中の人が離婚経験というのも整合性が取れない
+            !family.includes("子ども") // 婚約中で子どもがいるのは不自然
         );
     }
 
@@ -914,7 +916,22 @@ function randomizeDetailSettingsFields() {
     setRandomValueIfEmpty("motto", getRandomItem(filteredMottos));
 
     // 最近の悩み/関心 (Concerns)
-    const filteredConcerns = filterRandomValuesForAge(personaRandomValues.concerns, ageInYears, 'concerns');
+    let filteredConcerns = filterRandomValuesForAge(personaRandomValues.concerns, ageInYears, 'concerns');
+    
+    // 家族構成に基づいて悩み/関心もフィルタリング
+    const familyStatus = getFieldValue('family');
+    const lifeEvent = getFieldValue('life_events');
+    
+    if (familyStatus === "既婚" || 
+        (lifeEvent && lifeEvent.includes("婚約中")) ||
+        (familyStatus && familyStatus.includes("子ども"))) {
+        filteredConcerns = filteredConcerns.filter(concern => 
+            !concern.includes("婚活") && 
+            !concern.includes("結婚相手") &&
+            !concern.includes("出会い")
+        );
+    }
+    
     setRandomValueIfEmpty("concerns", getRandomItem(filteredConcerns));
 
     // 好きな有名人/尊敬する人物 (Favorite Person)
@@ -933,7 +950,29 @@ function randomizeDetailSettingsFields() {
     setRandomValueIfEmpty("health_actions", getRandomItem(filteredHealthActions));
 
     // 休日の過ごし方 (Holiday Activities)
-    const filteredHolidayActivities = filterRandomValuesForAge(personaRandomValues.holiday_activities, ageInYears, 'holiday_activities');
+    let filteredHolidayActivities = filterRandomValuesForAge(personaRandomValues.holiday_activities, ageInYears, 'holiday_activities');
+    
+    // 家族構成に基づいて休日の過ごし方をさらにフィルタリング
+    // (familyStatus and lifeEvent already defined above for concerns filtering)
+    
+    // 既婚者、婚約中、子持ちの人は婚活関連の活動を除外
+    if (familyStatus === "既婚" || 
+        (lifeEvent && lifeEvent.includes("婚約中")) ||
+        (familyStatus && familyStatus.includes("子ども"))) {
+        filteredHolidayActivities = filteredHolidayActivities.filter(activity => 
+            !activity.includes("婚活") && 
+            !activity.includes("合コン") &&
+            !activity.includes("マッチングアプリ")
+        );
+    }
+    
+    // 独身・未婚でない人はデート関連も調整
+    if (familyStatus === "既婚" || familyStatus === "配偶者と死別") {
+        filteredHolidayActivities = filteredHolidayActivities.filter(activity => 
+            !activity.includes("デート") || activity.includes("家族")
+        );
+    }
+    
     setRandomValueIfEmpty("holiday_activities", getRandomItem(filteredHolidayActivities));
 
     // キャッチコピー (Catchphrase)
