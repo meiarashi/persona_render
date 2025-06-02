@@ -568,13 +568,56 @@ async def generate_persona(request: Request):
         # --- 画像生成 ---
         image_url = "https://placehold.jp/150x150.png" # デフォルトプレースホルダー
 
+        # Enhanced prompt for more realistic images
+        name = data.get('name', 'person')
+        age_raw = data.get('age', 'age unknown')
+        gender = data.get('gender', 'gender unknown')
+        occupation = data.get('occupation', '')
+        
+        # Extract numeric age from various formats (e.g., "25y", "25歳", "25")
+        age = age_raw
+        if isinstance(age_raw, str):
+            import re
+            age_match = re.search(r'(\d+)', age_raw)
+            if age_match:
+                age = age_match.group(1)
+            else:
+                age = "30"  # Default age if parsing fails
+        
+        # Convert gender to more natural language
+        gender_text = {
+            'male': 'man',
+            'female': 'woman',
+            '男性': 'man',
+            '女性': 'woman'
+        }.get(gender, gender)
+        
+        # Build detailed prompt for photorealistic image
         img_prompt_parts = [
-            f"Create a profile picture for a persona named {data.get('name', 'person')}",
-            f"who is {data.get('age', 'age unknown')}, {data.get('gender', 'gender unknown')}.",
-            "Style: realistic photo."
+            "Professional headshot portrait photograph,",
+            f"a {age} year old Japanese {gender_text},",
+            "photorealistic, high resolution, natural lighting,",
+            "friendly and approachable expression,",
+            "business casual attire,",
+            "shallow depth of field with blurred background,",
+            "taken with professional camera,"
         ]
-        if data.get('occupation'):
-            img_prompt_parts.append(f"Occupation: {data.get('occupation')}.")
+        
+        # Add occupation-specific details if available
+        if occupation:
+            if '医師' in occupation or '医者' in occupation or 'doctor' in occupation.lower():
+                img_prompt_parts.append("wearing a white coat,")
+            elif '看護' in occupation or 'nurse' in occupation.lower():
+                img_prompt_parts.append("wearing medical scrubs,")
+            else:
+                img_prompt_parts.append(f"dressed appropriately for {occupation},")
+        
+        img_prompt_parts.extend([
+            "centered composition,",
+            "neutral gray background,",
+            "professional photography style"
+        ])
+        
         img_prompt = " ".join(img_prompt_parts)
 
         if selected_image_model == "dall-e-3":
@@ -585,8 +628,9 @@ async def generate_persona(request: Request):
                     image_response = image_client.images.generate(
                         model="dall-e-3",
                         prompt=img_prompt,
-                        size="1024x1024", 
-                        quality="standard", 
+                        size="1024x1024",  # Square format for consistency
+                        quality="hd",  # Use HD quality for better results
+                        style="natural",  # Natural style for photorealistic images
                         n=1,
                     )
                     image_url = image_response.data[0].url

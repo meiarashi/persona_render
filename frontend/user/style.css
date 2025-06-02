@@ -742,7 +742,11 @@ button:hover {
 }
 
 .persona-preview img#preview-persona-image {
-    width: 150px; 
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
 }
 
 /* 画像上にオーバーレイテキストを配置 */
