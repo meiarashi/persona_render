@@ -1630,7 +1630,7 @@ footer {
 }
 
 .progress-bar-fill {
-  background-color: #ff7f00;
+  background-color: #28a745;
   height: 100%;
   width: 0%;
   transition: width 0.3s ease;

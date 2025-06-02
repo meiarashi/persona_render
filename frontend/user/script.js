@@ -2887,10 +2887,9 @@ function startProgressAnimation() {
     }
     
     let progress = 0;
-    let phase = 'persona'; // 'persona' or 'image'
-    const personaDuration = 8000; // 8 seconds for persona (0-20%)
-    const imageDuration = 32000; // 32 seconds for image (20-100%)
-    const totalDuration = personaDuration + imageDuration;
+    const textDuration = 10000; // 10 seconds for text generation (0-25%)
+    const imageDuration = 30000; // 30 seconds for image generation (25-100%)
+    const totalDuration = textDuration + imageDuration;
     
     // Reset progress
     progressFill.style.width = '0%';
@@ -2901,15 +2900,15 @@ function startProgressAnimation() {
     const updateProgress = () => {
         const elapsed = Date.now() - startTime;
         
-        if (elapsed < personaDuration) {
-            // Phase 1: Persona generation (0-20%)
-            progress = (elapsed / personaDuration) * 20;
-            if (statusText) statusText.textContent = 'ペルソナを分析しています...';
-            if (currentStep) currentStep.textContent = 'ステップ 1/2: AIがペルソナを生成中';
+        if (elapsed < textDuration) {
+            // Phase 1: Text generation (0-25%)
+            progress = (elapsed / textDuration) * 25;
+            if (statusText) statusText.textContent = 'ペルソナの詳細を分析しています...';
+            if (currentStep) currentStep.textContent = 'ステップ 1/2: AIがペルソナ詳細を生成中';
         } else if (elapsed < totalDuration) {
-            // Phase 2: Image generation (20-100%)
-            const imageElapsed = elapsed - personaDuration;
-            progress = 20 + (imageElapsed / imageDuration) * 80;
+            // Phase 2: Image generation (25-100%)
+            const imageElapsed = elapsed - textDuration;
+            progress = 25 + (imageElapsed / imageDuration) * 75;
             if (statusText) statusText.textContent = 'ペルソナ画像を生成しています...';
             if (currentStep) currentStep.textContent = 'ステップ 2/2: AIが画像を生成中';
             
