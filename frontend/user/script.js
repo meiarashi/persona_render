@@ -1511,6 +1511,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 const result = await response.json();
+                console.log('[DEBUG] API Response:', result); // デバッグ用
                 currentPersonaResult = result; // Store the result
                 
                 // Complete progress animation
@@ -1520,8 +1521,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showStep(TOTAL_FORM_STEPS + 2); // Show result screen (Step 7)
                 // Delay populateResults to allow DOM to update
                 setTimeout(() => {
+                    console.log('[DEBUG] Calling populateResults with:', result); // デバッグ用
                     populateResults(result); // Populate results on Step 7
-                }, 0); 
+                }, 100); // 少し遅延を増やす 
 
             } catch (error) {
                 console.error('Error generating persona:', error);
@@ -1755,49 +1757,62 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
 
-        // Populate detailed persona text on the right side
-        const detailsContainer = document.querySelector('.persona-details');
-        detailsContainer.innerHTML = ''; // Clear previous details
-
+        // Populate detailed persona text using existing HTML elements
         if (result.details) {
-            // Map the backend keys to their display titles
-            const detailOrder = [
-                { key: 'personality', title: '性格（価値観・人生観）' },
-                { key: 'reason', title: '通院理由' },
-                { key: 'behavior', title: '症状通院頻度・行動パターン' },
-                { key: 'reviews', title: '口コミの重視ポイント' },
-                { key: 'values', title: '医療機関への価値観・行動傾向' },
-                { key: 'demands', title: '医療機関に求めるもの' }
-            ];
-            
-            let contentAdded = false;
-            detailOrder.forEach(item => {
-                if (result.details[item.key]) {
-                    const sectionTitle = document.createElement('h4');
-                    sectionTitle.textContent = item.title;
-                    detailsContainer.appendChild(sectionTitle);
-
-                    const sectionContent = document.createElement('p');
-                    if (Array.isArray(result.details[item.key])) {
-                         sectionContent.innerHTML = result.details[item.key].map(pText => String(pText || '').replace(/\n/g, '<br>')).join('<br>');
-                    } else {
-                        sectionContent.innerHTML = String(result.details[item.key] || '').replace(/\n/g, '<br>');
-                    }
-                    detailsContainer.appendChild(sectionContent);
-                    contentAdded = true;
-                }
-            });
-
-            if (!contentAdded) {
-                 const noResultText = document.createElement('p');
-                 noResultText.textContent = 'ペルソナの詳細情報が生成されませんでした。';
-                 detailsContainer.appendChild(noResultText);
+            // Populate personality
+            const personalityEl = document.getElementById('result-personality');
+            if (personalityEl) {
+                personalityEl.innerHTML = result.details.personality ? 
+                    String(result.details.personality).replace(/\n/g, '<br>') : 
+                    'データなし';
             }
-
+            
+            // Populate reason
+            const reasonEl = document.getElementById('result-reason');
+            if (reasonEl) {
+                reasonEl.innerHTML = result.details.reason ? 
+                    String(result.details.reason).replace(/\n/g, '<br>') : 
+                    'データなし';
+            }
+            
+            // Populate behavior
+            const behaviorEl = document.getElementById('result-behavior');
+            if (behaviorEl) {
+                behaviorEl.innerHTML = result.details.behavior ? 
+                    String(result.details.behavior).replace(/\n/g, '<br>') : 
+                    'データなし';
+            }
+            
+            // Populate reviews
+            const reviewsEl = document.getElementById('result-reviews');
+            if (reviewsEl) {
+                reviewsEl.innerHTML = result.details.reviews ? 
+                    String(result.details.reviews).replace(/\n/g, '<br>') : 
+                    'データなし';
+            }
+            
+            // Populate values
+            const valuesEl = document.getElementById('result-values');
+            if (valuesEl) {
+                valuesEl.innerHTML = result.details.values ? 
+                    String(result.details.values).replace(/\n/g, '<br>') : 
+                    'データなし';
+            }
+            
+            // Populate demands
+            const demandsEl = document.getElementById('result-demands');
+            if (demandsEl) {
+                demandsEl.innerHTML = result.details.demands ? 
+                    String(result.details.demands).replace(/\n/g, '<br>') : 
+                    'データなし';
+            }
         } else {
-            const noResultText = document.createElement('p');
-            noResultText.textContent = 'ペルソナの詳細情報が生成されませんでした。';
-            detailsContainer.appendChild(noResultText);
+            // No details available
+            console.log('[WARNING] No details in result:', result);
+            ['result-personality', 'result-reason', 'result-behavior', 'result-reviews', 'result-values', 'result-demands'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = 'ペルソナの詳細情報が生成されませんでした。';
+            });
         }
 
         // 編集可能フィールドのセットアップ
