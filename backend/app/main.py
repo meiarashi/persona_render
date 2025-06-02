@@ -1034,8 +1034,10 @@ def generate_pdf(data):
 
     # --- 基本情報セクション ---
     pdf.set_xy(left_column_content_x, current_y_after_icon_name)
-    pdf.set_font("ipa", 'BU', 11) # セクションタイトル (太字・下線)
-    pdf.cell(left_column_width, section_title_height, "基本情報", 0, 1, 'L')
+    pdf.set_font("ipa", 'B', 11) # セクションタイトル (太字、下線削除)
+    pdf.set_fill_color(220, 220, 220)  # グレーの背景
+    pdf.set_text_color(0, 0, 0)  # テキストは黒
+    pdf.cell(left_column_width, 7, "基本情報", 0, 1, 'L', fill=True)
     current_y_after_icon_name = pdf.get_y() # 「基本情報」タイトルの後にY座標を更新
     pdf.set_font("ipa", '', 10) # 内容のフォントに戻す
 
@@ -1090,8 +1092,9 @@ def generate_pdf(data):
     # 4. その他の特徴セクション (左カラム)
     pdf.set_xy(left_column_content_x, current_y_after_icon_name)
     pdf.set_font("ipa", '', 11)
-    pdf.set_fill_color(240, 240, 240) 
-    pdf.cell(left_column_width, 6, "その他の特徴", 0, 1, 'L', fill=True)
+    pdf.set_fill_color(220, 220, 220)  # より濃いグレーに変更
+    pdf.set_text_color(0, 0, 0)  # テキストは黒
+    pdf.cell(left_column_width, 7, "その他の特徴", 0, 1, 'L', fill=True)  # 高さを6から7に変更
     current_y_after_icon_name = pdf.get_y() 
     pdf.ln(1)
     current_y_after_icon_name = pdf.get_y() 
@@ -1117,6 +1120,7 @@ def generate_pdf(data):
         pdf.set_font("ipa", '', 9)
         pdf.set_xy(left_column_content_x + additional_key_width, current_y_after_icon_name)
         pdf.multi_cell(additional_value_width, item_height, str(value), 0, 'L')
+        pdf.ln(1)  # 項目間に1mmの余白を追加
         current_y_after_icon_name = pdf.get_y()
 
     if profile.get('additional_field_name') and profile.get('additional_field_value'):
@@ -1130,6 +1134,7 @@ def generate_pdf(data):
                 pdf.set_font("ipa", '', 9)
                 pdf.set_xy(left_column_content_x + additional_key_width, current_y_after_icon_name)
                 pdf.multi_cell(additional_value_width, item_height, str(field_value) if field_value else '-', 0, 'L')
+                pdf.ln(1)  # 項目間に1mmの余白を追加
                 current_y_after_icon_name = pdf.get_y()
     
     max_left_y = current_y_after_icon_name # 左カラムの最終Y座標
@@ -1144,18 +1149,22 @@ def generate_pdf(data):
             pdf.set_xy(right_column_x, right_column_current_y)
             
             # セクションヘッダー
-            pdf.set_font("ipa", 'BU', 11) # 太字・下線付き、サイズ11
-            pdf.set_fill_color(240, 240, 240) # 薄いグレーの背景
-            pdf.cell(right_column_width, 6, str(japanese_header_text), 0, 1, 'L', fill=True) # ln=1 で改行
+            pdf.set_font("ipa", 'B', 12) # 太字、サイズ12に変更（下線削除）
+            pdf.set_fill_color(200, 230, 200) # 薄い緑色の背景に変更
+            pdf.set_text_color(0, 0, 0)  # テキストは黒
+            pdf.cell(right_column_width, 8, str(japanese_header_text), 0, 1, 'L', fill=True) # 高さを6から8に変更
             # pdf.get_y() はこのセルの後に自動更新される
 
             # コンテンツ
             pdf.set_x(right_column_x) # multi_cell のためにX座標を右カラムの開始位置にリセット
-            pdf.set_font("ipa", '', 9) # 通常フォント、サイズ9
-            pdf.multi_cell(right_column_width, 5, str(value), 0, 'L') # 行の高さ5mm
+            pdf.set_font("ipa", '', 10) # 通常フォント、サイズ10に変更
+            pdf.set_text_color(0, 0, 0)  # テキストは黒にリセット
+            pdf.ln(2) # コンテンツ前に少し余白を追加
+            pdf.set_x(right_column_x)
+            pdf.multi_cell(right_column_width, 6, str(value), 0, 'L') # 行の高さ5mmから6mmに変更
             right_column_current_y = pdf.get_y() # multi_cell 後のY座標を更新
             
-            pdf.ln(3) # セクション間のスペース
+            pdf.ln(5) # セクション間のスペースを3mmから5mmに増加
             right_column_current_y = pdf.get_y() # スペース後のY座標を更新
 
     # Generate PDF in memory
