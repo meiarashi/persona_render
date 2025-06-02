@@ -1145,6 +1145,123 @@ function validatePersonaConsistency() {
             setFieldValue('catchphrase', getRandomItem(neutralPhrases));
         }
     }
+    
+    // 職業と趣味の時間的整合性チェック
+    const timeIntensiveOccupations = ["医師", "看護師", "経営者", "弁護士", "コンサルタント", "投資銀行"];
+    const timeIntensiveHobbies = ["毎日ジム通い", "世界旅行", "複数の習い事", "ボランティア活動"];
+    
+    if (timeIntensiveOccupations.some(o => occupation.includes(o)) && 
+        timeIntensiveHobbies.some(h => hobby.includes(h))) {
+        const lightHobbies = ["読書", "映画鑑賞", "音楽鑑賞", "散歩", "料理"];
+        setFieldValue('hobby', getRandomItem(lightHobbies));
+    }
+    
+    // 収入と趣味のコスト整合性チェック
+    const expensiveHobbies = ["ゴルフ", "ヨット", "乗馬", "海外旅行", "高級車", "ワインコレクション"];
+    const incomeNum = parseInt(income.split('-')[0] || income.replace(/[^\d]/g, ''));
+    
+    if (incomeNum < 500 && expensiveHobbies.some(h => hobby.includes(h))) {
+        const affordableHobbies = ["読書", "ジョギング", "料理", "映画鑑賞", "カフェ巡り"];
+        setFieldValue('hobby', getRandomItem(affordableHobbies));
+    }
+    
+    // 学生のライフイベント整合性チェック
+    if (studentOccupations.includes(occupation)) {
+        const inappropriateEvents = ["昇進", "起業", "定年退職", "子供が生まれた", "結婚記念日"];
+        if (inappropriateEvents.some(e => lifeEvent && lifeEvent.includes(e))) {
+            const studentEvents = ["進学", "アルバイトを始めた", "サークルに入った", "資格試験合格"];
+            setFieldValue('life_events', getRandomItem(studentEvents));
+        }
+    }
+    
+    // 地域と趣味の整合性チェック
+    const urbanPrefectures = ["東京都", "大阪府", "神奈川県", "愛知県"];
+    const ruralHobbies = ["農業", "釣り", "山菜採り", "田舎暮らし"];
+    const urbanHobbies = ["美術館巡り", "ライブ参加", "カフェ巡り", "ショッピング"];
+    
+    if (!urbanPrefectures.includes(prefecture) && urbanHobbies.some(h => hobby.includes(h))) {
+        // 地方でも可能な趣味に変更
+        const universalHobbies = ["読書", "料理", "ガーデニング", "ドライブ", "写真撮影"];
+        setFieldValue('hobby', getRandomItem(universalHobbies));
+    }
+    
+    // 診療科と関心事の整合性チェック
+    const department = getFieldValue('department');
+    if (department && concerns) {
+        // 診療科に関係ない健康上の悩みを修正
+        const departmentConcernsMap = {
+            "内科": ["胃痛", "頭痛", "疲労感", "風邪を引きやすい"],
+            "整形外科": ["腰痛", "関節の痛み", "姿勢の悪さ", "運動不足"],
+            "皮膚科": ["肌荒れ", "アトピー", "シミ・シワ", "日焼け"],
+            "精神科": ["ストレス", "不眠", "気分の落ち込み", "不安感"],
+            "眼科": ["視力低下", "目の疲れ", "ドライアイ", "老眼"],
+            "歯科": ["虫歯", "歯周病", "歯並び", "口臭"]
+        };
+        
+        if (departmentConcernsMap[department]) {
+            // 他の診療科の悩みが含まれていないかチェック
+            const otherDepartmentConcerns = Object.entries(departmentConcernsMap)
+                .filter(([dept, _]) => dept !== department)
+                .flatMap(([_, concerns]) => concerns);
+            
+            if (otherDepartmentConcerns.some(c => concerns.includes(c))) {
+                setFieldValue('concerns', getRandomItem(departmentConcernsMap[department]));
+            }
+        }
+    }
+    
+    // 患者タイプと行動の整合性チェック
+    const patientType = getFieldValue('patient_type');
+    const holidayActivities = getFieldValue('holiday_activities');
+    
+    if (patientType && holidayActivities) {
+        // 利便性重視型なのに時間のかかる活動
+        if (patientType === "利便性重視型" && 
+            ["長時間の料理", "一日中読書", "終日ゴルフ"].some(a => holidayActivities.includes(a))) {
+            const quickActivities = ["ネットサーフィン", "近所の散歩", "コンビニ巡り", "動画視聴"];
+            setFieldValue('holiday_activities', getRandomItem(quickActivities));
+        }
+        
+        // 予防健康管理型なのに不健康な活動
+        if (patientType === "予防健康管理型" && 
+            ["飲み歩き", "夜更かし", "ゲーム三昧", "暴飲暴食"].some(a => holidayActivities.includes(a))) {
+            const healthyActivities = ["ジョギング", "ヨガ", "健康的な料理作り", "早朝散歩"];
+            setFieldValue('holiday_activities', getRandomItem(healthyActivities));
+        }
+    }
+    
+    // 性別と職業の現実的な分布（完全な制限ではなく、極端なケースを修正）
+    const gender = getFieldValue('gender');
+    if (gender === "男性" && occupation === "助産師") {
+        // 日本では男性助産師は法的に認められていない
+        const alternativeOccupations = ["看護師", "医療事務", "理学療法士"];
+        setFieldValue('occupation', getRandomItem(alternativeOccupations));
+    }
+    
+    // 座右の銘と性格の整合性
+    const motto = getFieldValue('motto');
+    if (personality && motto) {
+        // 慎重な性格なのに無謀な座右の銘
+        if (personality.includes("慎重") && motto && 
+            ["一か八か", "やるかやられるか", "リスクを恐れるな"].some(m => motto.includes(m))) {
+            const carefulMottos = ["石橋を叩いて渡る", "備えあれば憂いなし", "慎重第一"];
+            setFieldValue('motto', getRandomItem(carefulMottos));
+        }
+    }
+    
+    // 家族構成と住居の整合性（市区町村から推測）
+    if (family && municipality) {
+        // 大家族なのに都心の狭い地域
+        const downtownAreas = ["千代田区", "中央区", "港区", "渋谷区"];
+        const largeFamilies = ["三世代同居", "子供3人以上", "大家族"];
+        
+        if (downtownAreas.includes(municipality) && 
+            largeFamilies.some(f => family.includes(f))) {
+            // より現実的な家族構成に変更
+            const smallFamilies = ["夫婦のみ", "子ども1人", "独身"];
+            setFieldValue('family', getRandomItem(smallFamilies));
+        }
+    }
 }
 
 // --- Helper function to map granular HTML income values to the keys used in incomeBracketsWithWeights ---
