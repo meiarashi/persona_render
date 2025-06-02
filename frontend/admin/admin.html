@@ -119,30 +119,37 @@
         
         <section id="char-limit-settings">
             <h2>文字数の目安設定</h2>
+            <div id="char-limit-error" class="error-message" style="display: none;"></div>
             <form id="char-limit-form">
                 <div>
                     <label for="limit-personality">性格（価値観・人生観）:</label>
-                    <input type="number" id="limit-personality" name="limit_personality" min="0"> 文字
+                    <input type="number" id="limit-personality" name="limit_personality" min="50" max="200"> 文字
+                    <span class="input-hint">(50-200文字)</span>
                 </div>
                  <div>
                     <label for="limit-reason">通院理由:</label>
-                    <input type="number" id="limit-reason" name="limit_reason" min="0"> 文字
+                    <input type="number" id="limit-reason" name="limit_reason" min="50" max="200"> 文字
+                    <span class="input-hint">(50-200文字)</span>
                 </div>
                  <div>
                     <label for="limit-behavior">症状通院頻度・行動パターン:</label>
-                    <input type="number" id="limit-behavior" name="limit_behavior" min="0"> 文字
+                    <input type="number" id="limit-behavior" name="limit_behavior" min="50" max="200"> 文字
+                    <span class="input-hint">(50-200文字)</span>
                 </div>
                 <div>
                     <label for="limit-reviews">口コミの重視ポイント:</label>
-                    <input type="number" id="limit-reviews" name="limit_reviews" min="0"> 文字
+                    <input type="number" id="limit-reviews" name="limit_reviews" min="50" max="200"> 文字
+                    <span class="input-hint">(50-200文字)</span>
                 </div>
                 <div>
                     <label for="limit-values">医療機関への価値観・行動傾向:</label>
-                    <input type="number" id="limit-values" name="limit_values" min="0"> 文字
+                    <input type="number" id="limit-values" name="limit_values" min="50" max="200"> 文字
+                    <span class="input-hint">(50-200文字)</span>
                 </div>
                 <div>
                     <label for="limit-demands">医療機関に求めるもの:</label>
-                    <input type="number" id="limit-demands" name="limit_demands" min="0"> 文字
+                    <input type="number" id="limit-demands" name="limit_demands" min="50" max="200"> 文字
+                    <span class="input-hint">(50-200文字)</span>
                 </div>
                  <!-- Add more fields as needed -->
                  <button id="save-limits-btn" type="button">文字数制限を保存</button>

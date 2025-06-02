@@ -220,3 +220,29 @@ footer {
     font-size: 1em;
     line-height: 1.5;
 } 
+/* Input hints and error messages */
+.input-hint {
+    font-size: 0.85em;
+    color: #666;
+    margin-left: 5px;
+}
+
+.error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 12px 15px;
+    border: 1px solid #f5c6cb;
+    border-radius: 5px;
+    margin: 10px 0;
+    font-weight: bold;
+}
+
+/* Invalid input styling */
+input[type="number"]:invalid {
+    border-color: #dc3545;
+    background-color: #fff5f5;
+}
+
+input[type="number"]:valid {
+    border-color: #28a745;
+}

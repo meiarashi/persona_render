@@ -191,18 +191,68 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveLimitsBtn = document.getElementById('save-limits-btn'); // Use button ID
     const limitsStatusMessage = document.getElementById('limits-status-message'); // Get status element
     const charLimitForm = document.getElementById('char-limit-form'); // Still need the form element
+    
+    // Add real-time validation for character limit inputs
+    if (charLimitForm) {
+        const inputs = charLimitForm.querySelectorAll('input[type="number"]');
+        inputs.forEach(input => {
+            input.addEventListener('input', () => {
+                const value = parseInt(input.value);
+                const min = parseInt(input.min) || 50;
+                const max = parseInt(input.max) || 200;
+                
+                if (!isNaN(value) && value >= min && value <= max) {
+                    input.style.borderColor = '#28a745';
+                    input.style.backgroundColor = '#fff';
+                } else {
+                    input.style.borderColor = '#dc3545';
+                    input.style.backgroundColor = '#fff5f5';
+                }
+            });
+        });
+    }
 
     if(saveLimitsBtn && charLimitForm && limitsStatusMessage){
         saveLimitsBtn.addEventListener('click', async () => { // Listen for click
             console.log("Attempting to save character limit settings...");
+            
+            // Error message element
+            const errorDiv = document.getElementById('char-limit-error');
 
+            // Validate inputs
             const limits = {};
             const inputs = charLimitForm.querySelectorAll('input[type="number"]');
+            let hasError = false;
+            let errorMessages = [];
+
             inputs.forEach(input => {
                 const key = input.id.replace('limit-', '');
-                limits[key] = input.value; 
+                const value = parseInt(input.value);
+                const min = parseInt(input.min) || 50;
+                const max = parseInt(input.max) || 200;
+                const label = input.parentElement.querySelector('label').textContent.replace(':', '');
+                
+                if (isNaN(value)) {
+                    hasError = true;
+                    errorMessages.push(`${label}を入力してください。`);
+                } else if (value < min || value > max) {
+                    hasError = true;
+                    errorMessages.push(`${label}は${min}〜${max}文字の範囲で入力してください。`);
+                } else {
+                    limits[key] = value;
+                }
             });
 
+            // Show error if validation failed
+            if (hasError) {
+                errorDiv.textContent = errorMessages.join(' ');
+                errorDiv.style.display = 'block';
+                limitsStatusMessage.textContent = '';
+                return;
+            }
+
+            // Hide error message
+            errorDiv.style.display = 'none';
             limitsStatusMessage.textContent = '保存中...'; // Show loading message
             limitsStatusMessage.style.color = 'orange';
 
