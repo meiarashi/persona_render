@@ -279,36 +279,23 @@ const personaRandomValues = {
 };
 
 // --- Helper Functions for Random Values ---
+// これらの関数はpersona-random-data.jsモジュールに移動しました
+// モジュール版を使用するためのラッパー関数
+
 function getRandomItem(array) {
+    if (window.PersonaRandomData && window.PersonaRandomData.getRandomItem) {
+        return window.PersonaRandomData.getRandomItem(array);
+    }
+    // フォールバック
     return array[Math.floor(Math.random() * array.length)];
 }
 
-// Function to get a random name based on gender
 function getRandomName(gender) {
-    console.log("getRandomName called with gender:", gender);
-    // Ensure personaRandomValues.genders is defined and has entries before using it in comparisons
-    const maleGenders = ["male"]; // Default to "male"
-    const femaleGenders = ["female"]; // Default to "female"
-    if (personaRandomValues.genders && personaRandomValues.genders.length > 0) {
-        maleGenders.push(personaRandomValues.genders[0]);
-        if (personaRandomValues.genders.length > 1) {
-            femaleGenders.push(personaRandomValues.genders[1]);
-        }
+    if (window.PersonaRandomData && window.PersonaRandomData.getRandomName) {
+        return window.PersonaRandomData.getRandomName(gender, personaRandomValues);
     }
-
-    if (maleGenders.includes(gender) && personaRandomValues.names.male && personaRandomValues.names.male.length > 0) {
-        return getRandomItem(personaRandomValues.names.male);
-    } else if (femaleGenders.includes(gender) && personaRandomValues.names.female && personaRandomValues.names.female.length > 0) {
-        return getRandomItem(personaRandomValues.names.female);
-    } else {
-        // Fallback: pick from either male or female if gender is unknown, not explicitly "male"/"female", or lists are empty
-        console.log("getRandomName: Gender not matched or name list empty, using fallback.");
-        const allNames = [...(personaRandomValues.names.male || []), ...(personaRandomValues.names.female || [])];
-        if (allNames.length > 0) {
-            return getRandomItem(allNames);
-        }
-        return "名無し"; // Absolute fallback
-    }
+    // フォールバック
+    return "名無し";
 }
 
 // ランダム年齢取得関数を修正し、固定リストを使うように変更
@@ -316,8 +303,11 @@ function getRandomName(gender) {
 //     // 固定リストから年齢をランダムに選択
 //     return getRandomItem(personaRandomValues.ages);
 // }
-// New getRandomAge function using weighted distribution
 function getRandomAge() {
+    if (window.PersonaRandomData && window.PersonaRandomData.getRandomAge) {
+        return window.PersonaRandomData.getRandomAge(personaRandomValues);
+    }
+    // フォールバック（以下は元の実装）
     const weights = personaRandomValues.ageDistributionWeights;
     const totalWeight = weights.reduce((sum, item) => sum + item.weight, 0);
     let randomNum = Math.random() * totalWeight;
@@ -346,6 +336,10 @@ function getRandomAge() {
 }
 
 function getRandomPrefectureAndMunicipality() {
+    if (window.PersonaRandomData && window.PersonaRandomData.getRandomPrefectureAndMunicipality) {
+        return window.PersonaRandomData.getRandomPrefectureAndMunicipality(personaRandomValues);
+    }
+    // フォールバック
     const pairString = getRandomItem(personaRandomValues.prefectureCityPairs);
     const match = pairString.match(/^(.+?[都道府県])(.+)$/); // Regex to split prefecture and city
 
@@ -389,25 +383,16 @@ function getRandomPrefectureAndMunicipality() {
 }
 
 function getRandomPersonalityKeywords() {
-    // 3つまでのキーワードをランダムに選択
-    const count = Math.floor(Math.random() * 3) + 1; // 1-3個
-    const selectedKeywords = [];
-    const availableKeywords = [...personaRandomValues.personality]; // コピーを作成
-    
-    for (let i = 0; i < count; i++) {
-        if (availableKeywords.length === 0) break;
-        
-        const randomIndex = Math.floor(Math.random() * availableKeywords.length);
-        selectedKeywords.push(availableKeywords[randomIndex]);
-        availableKeywords.splice(randomIndex, 1); // 選んだキーワードは除外
+    if (window.PersonaRandomData && window.PersonaRandomData.getRandomPersonalityKeywords) {
+        return window.PersonaRandomData.getRandomPersonalityKeywords(personaRandomValues);
     }
-    
-    return selectedKeywords.join('、');
+    // フォールバック
+    return "";
 }
 
 // --- Utility Functions ---
-// Get a random item from an array
-function getRandomItem(arr) {
+// 重複した getRandomItem 関数を削除（上部で既に定義済み）
+function getRandomItem_duplicate(arr) {
     if (!arr || arr.length === 0) {
         return ""; // Return empty string if array is empty or undefined
     }
@@ -1003,6 +988,10 @@ function randomizeDetailSettingsFields() {
 
 // --- Helper function to map granular HTML income values to the keys used in incomeBracketsWithWeights ---
 function getWeightedBracketForIncome(incomeValueStr) {
+    if (window.IncomeCalculation && window.IncomeCalculation.getWeightedBracketForIncome) {
+        return window.IncomeCalculation.getWeightedBracketForIncome(incomeValueStr);
+    }
+    // フォールバック
     if (!incomeValueStr) return null;
     let lowerBound = 0;
     let upperBound = Infinity;
@@ -1105,8 +1094,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     let hasVisitedConfirmationScreen = false;
     const purposeLabels = multiStepForm.querySelectorAll('.purpose-options label');
 
-    // --- NEW showStep FUNCTION DEFINITION --- 
+    // --- showStep関数 - FormNavigationモジュールを使用 ---
     function showStep(stepNumberToShow) {
+        // モジュール版が利用可能な場合はそれを使用
+        if (window.FormNavigation && window.FormNavigation.showStep) {
+            // 必要な変数を渡すためのコンテキスト設定
+            window.FormNavigation.currentStep = currentStep;
+            window.FormNavigation.totalSteps = TOTAL_FORM_STEPS;
+            window.FormNavigation.showStep(stepNumberToShow);
+            currentStep = window.FormNavigation.currentStep;
+            return;
+        }
+        // フォールバック（以下は元の実装）
         loadingStep = document.querySelector('.loading-step'); // <--- ここで代入
         const resultStep = document.querySelector('.result-step');
 
@@ -1243,6 +1242,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- END REMOVAL ---
 
     function getFormData() {
+        if (window.FormNavigation && window.FormNavigation.getFormData) {
+            return window.FormNavigation.getFormData();
+        }
+        // フォールバック
         const formData = new FormData(multiStepForm);
         const data = {};
         formData.forEach((value, key) => {
@@ -1264,6 +1267,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function populateConfirmationScreen(data) {
+        if (window.FormNavigation && window.FormNavigation.populateConfirmationScreen) {
+            return window.FormNavigation.populateConfirmationScreen(data);
+        }
+        // フォールバック
         // console.log("Populating confirmation screen with data:", data);
         const getRadioDisplayText = (groupName, value) => {
             if (!value) return 'なし';
@@ -2996,11 +3003,12 @@ const patientTypeDetails = {
 };
 */ 
 
-// Global variable to store animation ID
-let progressAnimationId = null;
-
-// Progress bar animation functions
+// プログレスアニメーション関数 - PersonaGenerationモジュールを使用
 function startProgressAnimation() {
+    if (window.PersonaGeneration && window.PersonaGeneration.startProgressAnimation) {
+        return window.PersonaGeneration.startProgressAnimation();
+    }
+    // フォールバック（以下は元の実装）
     const progressFill = document.querySelector('.progress-bar-fill');
     const progressPercentage = document.querySelector('.progress-percentage');
     const statusText = document.querySelector('.loading-status-text');
@@ -3069,6 +3077,10 @@ function startProgressAnimation() {
 
 // Complete progress animation
 function completeProgressAnimation() {
+    if (window.PersonaGeneration && window.PersonaGeneration.completeProgressAnimation) {
+        return window.PersonaGeneration.completeProgressAnimation();
+    }
+    // フォールバック
     // Stop ongoing animation
     if (progressAnimationId) {
         cancelAnimationFrame(progressAnimationId);
@@ -3088,6 +3100,10 @@ function completeProgressAnimation() {
 
 // Stop progress animation (for error cases)
 function stopProgressAnimation() {
+    if (window.PersonaGeneration && window.PersonaGeneration.stopProgressAnimation) {
+        return window.PersonaGeneration.stopProgressAnimation();
+    }
+    // フォールバック
     if (progressAnimationId) {
         cancelAnimationFrame(progressAnimationId);
         progressAnimationId = null;
