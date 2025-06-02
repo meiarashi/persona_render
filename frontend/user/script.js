@@ -979,7 +979,172 @@ function randomizeDetailSettingsFields() {
     const filteredCatchphrase = filterRandomValuesForAge(personaRandomValues.catchphrase, ageInYears, 'catchphrase');
     setRandomValueIfEmpty("catchphrase", getRandomItem(filteredCatchphrase));
 
+    // 最終的な論理チェック
+    validatePersonaConsistency();
+    
     console.log("[DEBUG] randomizeDetailSettingsFields: Completed.");
+}
+
+// ペルソナの論理的整合性をチェックして修正
+function validatePersonaConsistency() {
+    const age = getFieldValue('age');
+    const ageInYears = parseAge(age);
+    const occupation = getFieldValue('occupation');
+    const income = getFieldValue('income');
+    const family = getFieldValue('family');
+    const lifeEvent = getFieldValue('life_events');
+    const hobby = getFieldValue('hobby');
+    const mediaSNS = getFieldValue('media_sns');
+    const healthActions = getFieldValue('health_actions');
+    
+    // 学生なのに高収入の矛盾を修正
+    const studentOccupations = ["小学生", "中学生", "高校生", "大学生", "大学院生", "専門学校生", "浪人生"];
+    if (studentOccupations.includes(occupation)) {
+        const incomeValue = parseInt(income);
+        if (incomeValue > 100) {
+            setFieldValue('income', '<100');
+        }
+    }
+    
+    // 未就学児・幼児の設定を修正
+    if (["未就学児", "幼稚園児", "保育園児"].includes(occupation)) {
+        // 収入は必ず100万円未満
+        setFieldValue('income', '<100');
+        // 趣味を子供向けに修正
+        const childHobbies = ["お絵かき", "ブロック遊び", "絵本", "公園遊び", "おままごと"];
+        if (!childHobbies.some(h => hobby.includes(h))) {
+            setFieldValue('hobby', getRandomItem(childHobbies));
+        }
+        // メディアを子供向けに修正
+        setFieldValue('media_sns', "YouTube（子供向けチャンネル）");
+    }
+    
+    // 高齢者の不自然な設定を修正
+    if (ageInYears >= 70) {
+        // TikTokやInstagramは不自然
+        if (mediaSNS && (mediaSNS.includes("TikTok") || mediaSNS.includes("Instagram"))) {
+            const seniorMedia = ["テレビ", "新聞", "ラジオ", "YouTube", "LINE"];
+            setFieldValue('media_sns', getRandomItem(seniorMedia));
+        }
+        
+        // アクティブすぎる趣味を修正
+        const activeHobbies = ["登山", "サーフィン", "ランニング", "筋トレ", "ダンス"];
+        if (activeHobbies.some(h => hobby.includes(h))) {
+            const seniorHobbies = ["散歩", "園芸", "読書", "囲碁・将棋", "カラオケ", "旅行"];
+            setFieldValue('hobby', getRandomItem(seniorHobbies));
+        }
+    }
+    
+    // 離婚・死別なのに幼い子供がいる矛盾を修正
+    if ((family === "離婚" || family === "配偶者と死別") && 
+        (family.includes("子どもが生まれたばかり") || family.includes("幼児の子ども"))) {
+        // より現実的な家族構成に変更
+        const reallisticFamilies = ["小学校低学年の子どもがいる（6〜8歳）", "中高生の子どもがいる（13〜17歳）", "独身"];
+        setFieldValue('family', getRandomItem(reallisticFamilies));
+    }
+    
+    // 年収と職業の不整合を追加チェック
+    const lowIncomeOccupations = ["パート・アルバイト", "フリーター", "求職中", "年金受給者"];
+    if (lowIncomeOccupations.includes(occupation)) {
+        const incomeValue = parseInt(income.split('-')[0]);
+        if (incomeValue > 400) {
+            setFieldValue('income', getRandomItem(["<100", "100-200", "200-300", "300-400"]));
+        }
+    }
+    
+    // 健康行動の年齢整合性チェック
+    if (ageInYears < 30) {
+        const seniorHealthActions = ["老眼鏡を作った", "補聴器を検討", "介護予防体操"];
+        if (seniorHealthActions.some(action => healthActions.includes(action))) {
+            const youngHealthActions = ["ジムに通い始めた", "食生活を見直した", "睡眠時間を確保するようにした"];
+            setFieldValue('health_actions', getRandomItem(youngHealthActions));
+        }
+    }
+    
+    // 妊娠・出産関連の整合性チェック
+    if (lifeEvent && lifeEvent.includes("妊娠")) {
+        // 男性の場合は配偶者の妊娠に変更
+        if (getFieldValue('gender') === "男性") {
+            setFieldValue('life_events', "配偶者が妊娠中");
+        }
+        // 年齢が不適切な場合
+        if (ageInYears < 18 || ageInYears > 50) {
+            const ageAppropriateEvents = ["引っ越し", "転職", "新しい趣味を始めた"];
+            setFieldValue('life_events', getRandomItem(ageAppropriateEvents));
+        }
+    }
+    
+    // 定年退職者の矛盾チェック
+    if (occupation === "定年退職者" || occupation === "年金受給者") {
+        // 若すぎる場合
+        if (ageInYears < 60) {
+            const appropriateOccupations = ["会社員", "自営業", "パート・アルバイト"];
+            setFieldValue('occupation', getRandomItem(appropriateOccupations));
+        }
+        // 家族構成の調整（幼い子供は不自然）
+        if (family && (family.includes("子どもが生まれたばかり") || family.includes("幼児の子ども"))) {
+            setFieldValue('family', "成人の子どもがいる（18〜26歳）");
+        }
+    }
+    
+    // 趣味と年齢・体力の整合性
+    const physicallyDemandingHobbies = ["格闘技", "トライアスロン", "ロッククライミング", "パルクール"];
+    if (physicallyDemandingHobbies.some(h => hobby.includes(h))) {
+        if (ageInYears < 15 || ageInYears > 60) {
+            const ageAppropriateHobbies = ageInYears < 15 ? 
+                ["読書", "ゲーム", "音楽鑑賞", "絵を描く"] : 
+                ["ウォーキング", "ガーデニング", "料理", "写真撮影"];
+            setFieldValue('hobby', getRandomItem(ageAppropriateHobbies));
+        }
+    }
+    
+    // 都道府県と市区町村の整合性（基本的なチェック）
+    const municipality = getFieldValue('municipality');
+    const prefecture = getFieldValue('prefecture');
+    if (municipality && prefecture) {
+        // 東京23区なのに東京都以外の場合
+        const tokyoWards = ["千代田区", "中央区", "港区", "新宿区", "文京区", "台東区", "墨田区", "江東区", "品川区", "目黒区", "大田区", "世田谷区", "渋谷区", "中野区", "杉並区", "豊島区", "北区", "荒川区", "板橋区", "練馬区", "足立区", "葛飾区", "江戸川区"];
+        if (tokyoWards.includes(municipality) && prefecture !== "東京都") {
+            setFieldValue('prefecture', "東京都");
+        }
+    }
+    
+    // 悩み・関心事の年齢整合性チェック
+    const concerns = getFieldValue('concerns');
+    if (concerns) {
+        // 子供なのに大人の悩み
+        if (ageInYears < 18) {
+            const adultConcerns = ["老後の不安", "介護", "更年期", "資産運用", "相続"];
+            if (adultConcerns.some(c => concerns.includes(c))) {
+                const childConcerns = ["進路", "友人関係", "勉強", "部活動", "将来の夢"];
+                setFieldValue('concerns', getRandomItem(childConcerns));
+            }
+        }
+        
+        // 高齢者なのに若者の悩み
+        if (ageInYears >= 65) {
+            const youngConcerns = ["就活", "婚活", "キャリアアップ", "転職"];
+            if (youngConcerns.some(c => concerns.includes(c))) {
+                const seniorConcerns = ["健康維持", "老後の生活", "孫の成長", "趣味の充実", "社会貢献"];
+                setFieldValue('concerns', getRandomItem(seniorConcerns));
+            }
+        }
+    }
+    
+    // キャッチコピーと性格の整合性チェック
+    const personality = getFieldValue('personality_keywords');
+    const catchphrase = getFieldValue('catchphrase');
+    if (personality && catchphrase) {
+        // ネガティブな性格なのにポジティブすぎるキャッチコピー
+        const negativeTraits = ["心配性", "慎重", "内向的", "悲観的"];
+        const positivePhases = ["いつも前向き", "超ポジティブ", "楽天家"];
+        
+        if (negativeTraits.some(t => personality.includes(t)) && 
+            positivePhases.some(p => catchphrase.includes(p))) {
+            const neutralPhrases = ["一歩一歩着実に", "慎重に判断", "じっくり考える"];
+            setFieldValue('catchphrase', getRandomItem(neutralPhrases));
+        }
+    }
 }
 
 // --- Helper function to map granular HTML income values to the keys used in incomeBracketsWithWeights ---
