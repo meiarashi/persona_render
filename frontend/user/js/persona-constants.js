@@ -121,3 +121,5 @@ const PersonaConstants = {
 
 // エクスポート
 window.PersonaConstants = PersonaConstants;
+// 後方互換性のため personaRandomValues としてもエクスポート
+window.personaRandomValues = PersonaConstants;

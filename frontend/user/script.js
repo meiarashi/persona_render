@@ -15,8 +15,8 @@ const patientTypeDetails = {
 };
 
 // --- Persona Fields Random Value Settings ---
-// 候補値のリスト
-const personaRandomValues = {
+// persona-constants.js モジュールから読み込む
+const personaRandomValues = window.personaRandomValues || {
     names: {
         male: [
             "三浦 健吾", "大西 直樹", "石井 慎太", "木下 涼太", "長谷川 誠", "前田 洋介", "工藤 隼", "藤原 淳一", "今井 晃", "柴田 拓真", "竹内 優太", "安藤 陽介", 
