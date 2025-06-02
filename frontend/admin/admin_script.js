@@ -218,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Error message element
             const errorDiv = document.getElementById('char-limit-error');
+            console.log('Error div element:', errorDiv);
 
             // Validate inputs
             const limits = {};
@@ -232,7 +233,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const max = parseInt(input.max) || 200;
                 const label = input.parentElement.querySelector('label').textContent.replace(':', '');
                 
-                if (isNaN(value)) {
+                console.log(`Validating ${key}: value=${value}, min=${min}, max=${max}`);
+                
+                if (input.value === '' || isNaN(value)) {
                     hasError = true;
                     errorMessages.push(`${label}を入力してください。`);
                 } else if (value < min || value > max) {
