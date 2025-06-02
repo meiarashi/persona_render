@@ -1593,6 +1593,8 @@ footer {
   text-align: center;
   position: relative;
   padding: 40px 20px;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .owl-loading {
@@ -1615,6 +1617,8 @@ footer {
   color: #333;
   margin-bottom: 15px;
   text-align: center;
+  min-height: 1.5em;
+  display: block;
 }
 
 .progress-bar-container {
