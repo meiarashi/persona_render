@@ -307,32 +307,9 @@ function getRandomAge() {
     if (window.PersonaRandomData && window.PersonaRandomData.getRandomAge) {
         return window.PersonaRandomData.getRandomAge(personaRandomValues);
     }
-    // フォールバック（以下は元の実装）
-    const weights = personaRandomValues.ageDistributionWeights;
-    const totalWeight = weights.reduce((sum, item) => sum + item.weight, 0);
-    let randomNum = Math.random() * totalWeight;
-
-    for (const item of weights) {
-        if (randomNum < item.weight) {
-            if (item.ageGroup === "0y_months") {
-                // Select a random month for 0-year-olds
-                const zeroYearMonthAges = personaRandomValues.ages.filter(age => age.startsWith("0y") && age.includes("m"));
-                return getRandomItem(zeroYearMonthAges);
-            } else if (item.ageRange) {
-                const [startStr, endStrFull] = item.ageRange.split('-');
-                const start = parseInt(startStr);
-                const end = parseInt(endStrFull.replace('y', ''));
-                const randomYear = Math.floor(Math.random() * (end - start + 1)) + start;
-                return `${randomYear}y`;
-            } else if (item.ageValue) { // For single age values like "100y"
-                return item.ageValue;
-            }
-        }
-        randomNum -= item.weight;
-    }
-    // Fallback (should ideally not be reached if weights are comprehensive)
-    console.warn("getRandomAge fallback: Could not select age from weighted distribution. Defaulting to old method.");
-    return getRandomItem(personaRandomValues.ages.filter(age => !age.includes("m") || age.startsWith("0y"))); // Prefer full years or 0yXm
+    // フォールバック
+    console.error('PersonaRandomData module not loaded');
+    return "30歳";
 }
 
 function getRandomPrefectureAndMunicipality() {
@@ -340,46 +317,8 @@ function getRandomPrefectureAndMunicipality() {
         return window.PersonaRandomData.getRandomPrefectureAndMunicipality(personaRandomValues);
     }
     // フォールバック
-    const pairString = getRandomItem(personaRandomValues.prefectureCityPairs);
-    const match = pairString.match(/^(.+?[都道府県])(.+)$/); // Regex to split prefecture and city
-
-    if (match && match[1] && match[2]) {
-        return { prefecture: match[1], municipality: match[2] };
-    } else {
-        // Fallback if regex fails (should not happen with well-formatted list)
-        console.warn("Could not parse prefecture/city pair:", pairString);
-        // Attempt a simple split for known special prefectures if regex fails
-        let prefecture = "";
-        let municipality = "";
-        if (pairString.startsWith("東京都")) { 
-            prefecture = "東京都"; 
-            municipality = pairString.substring(3); 
-        } else if (pairString.startsWith("北海道")) { 
-            prefecture = "北海道"; 
-            municipality = pairString.substring(3); 
-        } else if (pairString.startsWith("大阪府")) { 
-            prefecture = "大阪府"; 
-            municipality = pairString.substring(3); 
-        } else if (pairString.startsWith("京都府")) { 
-            prefecture = "京都府"; 
-            municipality = pairString.substring(3); 
-        } else {
-            // Generic fallback: try to find the last "県"
-            const lastKenIndex = pairString.lastIndexOf("県");
-            if (lastKenIndex > 0) {
-                prefecture = pairString.substring(0, lastKenIndex + 1);
-                municipality = pairString.substring(lastKenIndex + 1);
-            } else {
-                 // If no "県" or other suffixes, return as is, or handle as error
-                prefecture = pairString; // Or some default
-                municipality = "";       // Or some default
-            }
-        }
-        if (!municipality && prefecture === pairString) { // If municipality is still empty and no split happened
-             console.warn("Fallback parsing still resulted in no municipality for:", pairString);
-        }
-        return { prefecture, municipality };
-    }
+    console.error('PersonaRandomData module not loaded');
+    return { prefecture: "東京都", municipality: "新宿区" };
 }
 
 function getRandomPersonalityKeywords() {
@@ -704,7 +643,13 @@ function randomizeDetailSettingsFields() {
     }
     
     // 収入設定を年齢と職業に基づく制限ロジックを使用するように変更
-    const adjustedIncome = getRandomAnnualIncome(ageInYears, currentOccupation, availableIncomeRanges);
+    const adjustedIncome = (() => {
+        if (window.IncomeCalculation && window.IncomeCalculation.getRandomAnnualIncome) {
+            return window.IncomeCalculation.getRandomAnnualIncome(ageInYears, currentOccupation, availableIncomeRanges);
+        }
+        // フォールバック
+        return getRandomAnnualIncome(ageInYears, currentOccupation, availableIncomeRanges);
+    })();
     setRandomValueIfEmpty("income", adjustedIncome);
 
     // Hobbies - Filter based on age
@@ -759,154 +704,12 @@ function randomizeDetailSettingsFields() {
             return window.PersonaAgeFilters.filterRandomValuesForAge(list, ageInYears, categoryType);
         }
         // フォールバック
-        return filterRandomValuesForAge_OLD(list, ageInYears, categoryType);
+        console.error('PersonaAgeFilters module not loaded for filterRandomValuesForAge');
+        return list || [];
     }
     
-    // 追加項目の年齢フィルタリングを行う関数（後で削除予定）
-    function filterRandomValuesForAge_OLD(list, ageInYears, categoryType) {
-        if (!list || list.length === 0) return [];
-        
-        let filteredList = [...list];
-        
-        if (categoryType === 'motto') {
-            // 座右の銘の年齢フィルタリング
-            if (ageInYears < 7) {
-                // 7歳未満の子供には理解できる単純な言葉のみ
-                const simpleMottos = ["笑顔が一番", "友達大事", "楽しく遊ぶ", "元気が一番"];
-                return filteredList.filter(item => simpleMottos.includes(item)) || simpleMottos;
-            } else if (ageInYears < 15) {
-                // 15歳未満の子供には難解な四字熟語などをフィルター
-                return filteredList.filter(item => 
-                    !["初心忘るべからず", "歓びを分かち合えば二倍に、悲しみを分かち合えば半分に"].includes(item)
-                );
-            }
-        } 
-        
-        else if (categoryType === 'concerns') {
-            // 悩み・関心の年齢フィルタリング
-            if (ageInYears < 10) {
-                // 10歳未満の子供向け
-                const childConcerns = ["お友達との関係", "勉強", "好きな遊び", "好きな食べ物", "テレビアニメ"];
-                return childConcerns;
-            } else if (ageInYears < 18) {
-                // 10-18歳向け
-                return filteredList.filter(item => 
-                    !["老眼", "認知症予防", "生活習慣病予防"].includes(item)
-                ).concat(["学校生活", "勉強の成績", "将来の進路", "友人関係"]);
-            } else if (ageInYears >= 65) {
-                // 65歳以上の高齢者向け
-                return filteredList.filter(item => 
-                    !["就職活動", "昇進", "子育て"].includes(item)
-                ).concat(["老後の生活", "年金", "健康維持"]);
-            }
-        } 
-        
-        else if (categoryType === 'favorite_person') {
-            // 好きな有名人の年齢フィルタリング
-            if (ageInYears < 10) {
-                // 10歳未満の子供向け
-                const childFavoritePeople = ["アンパンマン", "ドラえもん", "クレヨンしんちゃん", "ポケモンのキャラクター", "プリキュア", "鬼滅の刃のキャラクター", "すみっコぐらし", "ミッキーマウス", "しまじろう", "いないいないばあっ！のワンワン", "おかあさんといっしょの体操のお兄さん", "戦隊ヒーロー", "仮面ライダー", "ウルトラマン", "となりのトトロ", "魔女の宅急便のキキ", "ピカチュウ"];
-                return childFavoritePeople;
-            } else if (ageInYears < 18) {
-                // 10-18歳向け - アニメキャラクターやYouTuber、若手アイドルが好きな傾向
-                return filteredList.concat(["ユーチューバー", "若手アイドル", "アニメキャラクター", "TikToker", "Vtuber"]);
-            } else if (ageInYears >= 20 && ageInYears < 35) {
-                // 20-34歳向け - アニメキャラクターは控え、若手有名人、スポーツ選手などを優先
-                const youngAdultFavorites = filteredList.filter(item => 
-                    !["アンパンマン", "ドラえもん", "クレヨンしんちゃん", "ポケモンのキャラクター", "プリキュア", "すみっコぐらし", "しまじろう", "いないいないばあっ！のワンワン", "おかあさんといっしょの体操のお兄さん", "ピカチュウ"].includes(item)
-                );
-                return youngAdultFavorites;
-            } else if (ageInYears >= 35 && ageInYears < 60) {
-                // 35-59歳向け - 子供向けキャラクターは除外、同世代の有名人や歴史的人物を優先
-                const middlewAdultFavorites = filteredList.filter(item => 
-                    !["アンパンマン", "ドラえもん", "クレヨンしんちゃん", "ポケモンのキャラクター", "プリキュア", "鬼滅の刃のキャラクター", "すみっコぐらし", "ミッキーマウス", "しまじろう", "いないいないばあっ！のワンワン", "おかあさんといっしょの体操のお兄さん", "戦隊ヒーロー", "仮面ライダー", "ウルトラマン", "となりのトトロ", "魔女の宅急便のキキ", "ピカチュウ", "ユーチューバー", "若手アイドル", "アニメキャラクター", "TikToker", "Vtuber"].includes(item)
-                );
-                // アニメや漫画のキャラクターが含まれている場合は90%の確率で除外
-                if (Math.random() < 0.9) {
-                    return middlewAdultFavorites.filter(item => 
-                        !item.includes("キャラクター") && !item.includes("アニメ") && !item.includes("漫画")
-                    );
-                }
-                return middlewAdultFavorites;
-            } else if (ageInYears >= 60) {
-                // 60歳以上の高齢者向け
-                const seniorFavoritePeople = ["美空ひばり", "加山雄三", "石原裕次郎", "中村勘三郎", "淡島千景", "松田聖子", "西田敏行", "渥美清", "山田洋次", "黒澤明", "高倉健", "坂本九", "森光子", "吉永小百合", "加藤登紀子", "小林旭", "北野武", "細川たかし", "小柳ルミ子", "司馬遼太郎", "山本五十六", "柳家小さん", "橋田壽賀子"];
-                // 子供向けキャラクターや若者向け有名人を除外
-                const filteredSeniorList = filteredList.filter(item => 
-                    !["アンパンマン", "ドラえもん", "クレヨンしんちゃん", "ポケモンのキャラクター", "プリキュア", "鬼滅の刃のキャラクター", "すみっコぐらし", "ミッキーマウス", "しまじろう", "いないいないばあっ！のワンワン", "おかあさんといっしょの体操のお兄さん", "戦隊ヒーロー", "仮面ライダー", "ウルトラマン", "となりのトトロ", "魔女の宅急便のキキ", "ピカチュウ", "ユーチューバー", "若手アイドル", "TikToker", "Vtuber", "King Gnu", "あいみょん", "Official髭男dism", "藤井聡太", "NiziU", "BTS", "SnowMan", "櫻坂46", "乃木坂46"].includes(item)
-                );
-                return [...filteredSeniorList, ...seniorFavoritePeople];
-            }
-        } 
-        
-        else if (categoryType === 'media_sns') {
-            // メディア/SNSの年齢フィルタリング
-            if (ageInYears < 10) {
-                // 10歳未満の子供には一部SNSは不適切
-                return ["テレビ", "YouTube", "子供向けアプリ"];
-            } else if (ageInYears < 15) {
-                // 10-15歳向け
-                return filteredList.filter(item => 
-                    !["Twitter", "Facebook", "TikTok", "LINE", "Podcast"].includes(item)
-                );
-            } else if (ageInYears >= 75) {
-                // 75歳以上の高齢者向け
-                const seniorMedia = ["テレビ", "新聞", "ラジオ", "NHK", "地上波テレビ"];
-                if (Math.random() < 0.3) { // 30%の確率でデジタルメディアも
-                    seniorMedia.push("YouTube");
-                }
-                return seniorMedia;
-            }
-        } 
-        
-        else if (categoryType === 'health_actions') {
-            // 健康に関する行動の年齢フィルタリング
-            if (ageInYears < 15) {
-                // 15歳未満の子供向け
-                const childHealthActions = ["手洗いうがいを心がけている", "早寝早起きを心がけている", "栄養バランスの良い食事を食べている", "外で遊ぶようにしている"];
-                return childHealthActions;
-            } else if (ageInYears < 22) {
-                // 15-22歳向け
-                return filteredList.filter(item => 
-                    !["血圧を測るようにした", "定期的に薬を飲み始めた", "禁煙した", "老眼鏡を作った"].includes(item)
-                );
-            } else if (ageInYears >= 65) {
-                // 65歳以上の高齢者向け
-                return filteredList.concat(["定期的な病院の通院", "介護予防体操", "血圧測定"]);
-            }
-        } 
-        
-        else if (categoryType === 'holiday_activities') {
-            // 休日の過ごし方の年齢フィルタリング
-            if (ageInYears < 10) {
-                // 10歳未満の子供向け
-                const childActivities = ["公園で遊ぶ", "テレビを見る", "おもちゃで遊ぶ", "友達と遊ぶ", "家族で出かける"];
-                return childActivities;
-            } else if (ageInYears < 18) {
-                // 10-18歳向け
-                return filteredList.filter(item => 
-                    !["温泉に行く", "投資の勉強", "ワイン選び", "ドライブに行く"].includes(item)
-                );
-            } else if (ageInYears >= 80) {
-                // 80歳以上の高齢者向け
-                return filteredList.filter(item => 
-                    !["アクティブスポーツ", "登山", "夜のイベント参加", "長距離旅行"].includes(item)
-                ).concat(["近所の散歩", "テレビ視聴", "家族との団欒"]);
-            }
-        } 
-        
-        else if (categoryType === 'catchphrase') {
-            // キャッチコピーの年齢フィルタリング
-            if (ageInYears < 12) {
-                // 12歳未満の子供向け
-                const childCatchphrases = ["笑顔いっぱい元気いっぱい", "友達と仲良く", "元気が一番", "いつも楽しく"];
-                return childCatchphrases;
-            }
-        }
-        
-        // カテゴリーに該当するフィルターがないか、フィルターの条件に当てはまらない場合は元のリストを返す
-        return filteredList;
-    }
+    // filterRandomValuesForAge_OLD関数は削除されました（PersonaAgeFiltersモジュールで処理）
+
 
     // 座右の銘 (Motto)
     const filteredMottos = filterRandomValuesForAgeWrapper(personaRandomValues.motto, ageInYears, 'motto');
@@ -1105,131 +908,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentStep = window.FormNavigation.currentStep;
             return;
         }
-        // フォールバック（以下は元の実装）
-        loadingStep = document.querySelector('.loading-step'); // <--- ここで代入
-        const resultStep = document.querySelector('.result-step');
-
-        formSteps.forEach(s => s.classList.remove('active'));
-        if (loadingStep) loadingStep.classList.remove('active');
-        if (resultStep) resultStep.classList.remove('active');
-
-        if (stepNumberToShow === TOTAL_FORM_STEPS + 1) { // Loading
-            if (loadingStep) loadingStep.classList.add('active');
-            currentStep = stepNumberToShow;
-            return;
-        } else if (stepNumberToShow === TOTAL_FORM_STEPS + 2) { // Result
-            if (resultStep) {
-                resultStep.classList.add('active');
-                // 結果画面の「確認画面へ戻る」ボタンを表示
-                const editBtn = resultStep.querySelector('.prev-step-btn'); // .result-step の中から検索
-                if (editBtn) {
-                    editBtn.style.display = 'inline-block'; 
-                    console.log('[DEBUG] showStep: Made .result-step .prev-step-btn visible.');
-                } else {
-                    console.warn('[DEBUG] showStep: .result-step .prev-step-btn not found inside resultStep element.');
-                }
-            }
-            currentStep = stepNumberToShow;
-            return;
-        } else if (stepNumberToShow < 1 || stepNumberToShow > TOTAL_FORM_STEPS) {
-            console.warn("showStep called with invalid step number:", stepNumberToShow, "Defaulting to step 1.");
-            stepNumberToShow = 1; // Default to step 1 if invalid
-        }
-
-        const targetStepElement = formSteps[stepNumberToShow - 1];
-        if (targetStepElement) {
-            targetStepElement.classList.add('active');
-            
-            // 確認画面（ステップ5）の処理
-            if (stepNumberToShow === 5) {
-                // 上部のボタンを確実に表示する
-                const topButtonContainer = targetStepElement.querySelector('.step-nav-buttons');
-                if (topButtonContainer) {
-                    topButtonContainer.style.display = 'block';
-                    topButtonContainer.style.visibility = 'visible';
-                    console.log('[DEBUG] Confirmation screen: Ensuring top button container is visible');
-                }
-                
-                const topGenerateButton = document.getElementById('final-generate-btn-top');
-                if (topGenerateButton) {
-                    topGenerateButton.style.display = 'inline-block';
-                    topGenerateButton.style.visibility = 'visible';
-                    console.log('[DEBUG] Confirmation screen: Ensuring top generate button is visible');
-                }
-            }
-        } else {
-            console.error(`Form step element not found for step number: ${stepNumberToShow}. Cannot proceed.`);
-            return;
+        // フォールバック - モジュールが読み込まれていない場合
+        console.error('FormNavigation module not loaded. Please check if form-navigation.js is properly included.');
+        // 最小限の実装
+        const allSteps = document.querySelectorAll('.form-step');
+        allSteps.forEach(s => s.classList.remove('active'));
+        if (allSteps[stepNumberToShow - 1]) {
+            allSteps[stepNumberToShow - 1].classList.add('active');
         }
         currentStep = stepNumberToShow;
-
-        // ステップ1の「次の質問へ進む」ボタンの状態を制御
-        if (currentStep === 1) {
-            const step1NextBtn = formSteps[0].querySelector('.next-step-btn');
-            if (step1NextBtn) {
-                const selectedDept = multiStepForm.querySelector('input[name="department"]:checked');
-                step1NextBtn.disabled = !selectedDept; // 未選択ならtrue (非活性)
-            }
-        }
-
-        if (currentStep === 3 && !hasRandomizedDetailsEver) {
-            if (typeof randomizeDetailSettingsFields === 'function') {
-                console.log("[DEBUG] showStep: Calling randomizeDetailSettingsFields for Step 3. hasRandomizedDetailsEver:", hasRandomizedDetailsEver);
-                randomizeDetailSettingsFields();
-            }
-            hasRandomizedDetailsEver = true;
-            console.log("[DEBUG] showStep: hasRandomizedDetailsEver set to true.");
-        }
-
-        const numInputSteps = TOTAL_FORM_STEPS - 1;
-        if (currentStep >= 1 && currentStep <= numInputSteps) {
-            formSteps.forEach((fs) => {
-                const stepDataNumber = parseInt(fs.dataset.step);
-                if (stepDataNumber !== currentStep) return;
-                const progressBarElement = fs.querySelector('.progress');
-                const progressTextElement = fs.querySelector('.progress-bar span');
-                if (progressBarElement && progressTextElement) {
-                    progressBarElement.style.width = `${(currentStep / numInputSteps) * 100}%`;
-                    progressTextElement.textContent = `${currentStep}/${numInputSteps}問目`;
-                }
-            });
-        }
-
-        // currentStep がローディングステップ(TOTAL_FORM_STEPS + 1)や結果ステップ(TOTAL_FORM_STEPS + 2)の場合は、
-        // 以下の汎用ボタン表示ロジックをスキップする
-        if (currentStep === TOTAL_FORM_STEPS + 1 || currentStep === TOTAL_FORM_STEPS + 2) {
-            // ローディングステップまたは結果ステップでは、専用の表示制御が既に行われているため、
-            // または return; で関数が終了しているため、ここでは何もしない
-        } else {
-        formSteps.forEach((stepElem) => {
-            const stepIdx = parseInt(stepElem.dataset.step);
-            const confirmBtn = stepElem.querySelector('.confirm-and-proceed-btn');
-            const nextBtn = stepElem.querySelector('.next-step-btn');
-            const prevBtn = stepElem.querySelector('.prev-step-btn');
-
-            if (stepIdx === currentStep) {
-                if (confirmBtn) confirmBtn.style.display = (currentStep >= 1 && currentStep <= numInputSteps) ? 'inline-block' : 'none';
-                if (nextBtn) nextBtn.style.display = (currentStep < numInputSteps) ? 'inline-block' : 'none';
-                if (prevBtn) prevBtn.style.display = (currentStep > 1 && currentStep <= TOTAL_FORM_STEPS) ? 'inline-block' : 'none';
-                } else {
-                if (confirmBtn) confirmBtn.style.display = 'none';
-                if (nextBtn) nextBtn.style.display = 'none';
-                if (prevBtn) prevBtn.style.display = 'none';
-            }
-        });
-
-        if (currentStep === numInputSteps) {
-            const lastInputStepElement = formSteps[numInputSteps - 1];
-            if (lastInputStepElement) {
-                const nextBtnOnLast = lastInputStepElement.querySelector('.next-step-btn');
-                if (nextBtnOnLast) nextBtnOnLast.style.display = 'none';
-                const confirmBtnOnLast = lastInputStepElement.querySelector('.confirm-and-proceed-btn');
-                if (confirmBtnOnLast) confirmBtnOnLast.style.display = 'inline-block';
-            }
-        }
-        } // この閉じ括弧は、if (currentStep === TOTAL_FORM_STEPS + 1 || ...) の else ブロックのものです。
     }
-    console.log('Debug: typeof showStep before assignment:', typeof showStep); // ADD THIS
     window.showStep = showStep; // Assign to window object
     // --- END NEW showStep FUNCTION DEFINITION ---
 
@@ -1246,24 +934,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             return window.FormNavigation.getFormData();
         }
         // フォールバック
-        const formData = new FormData(multiStepForm);
-        const data = {};
-        formData.forEach((value, key) => {
-            if (key.endsWith('[]')) {
-                 const cleanKey = key.slice(0, -2);
-                 if (!data[cleanKey]) data[cleanKey] = [];
-                 data[cleanKey].push(value);
-            } else if (key !== 'setting_type') { 
-                 data[key] = value;
-            }
-        });
-        const checkedSettingTypeRadio = document.querySelector('input[name="setting_type"]:checked');
-        if (checkedSettingTypeRadio) data['setting_type'] = checkedSettingTypeRadio.value;
-        else data['setting_type'] = 'patient_type'; // Default to 'patient_type' if none selected
-        const departmentRadio = multiStepForm.querySelector('input[name="department"]:checked');
-        if(departmentRadio) data['department'] = departmentRadio.value;
-        // console.log("Collected Form Data:", data);
-        return data;
+        console.error('FormNavigation module not loaded for collectFormData');
+        return {};
     }
 
     function populateConfirmationScreen(data) {
@@ -1271,75 +943,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return window.FormNavigation.populateConfirmationScreen(data);
         }
         // フォールバック
-        // console.log("Populating confirmation screen with data:", data);
-        const getRadioDisplayText = (groupName, value) => {
-            if (!value) return 'なし';
-            const radio = document.querySelector(`input[name="${groupName}"][value="${value}"]`);
-            return radio && radio.parentElement && radio.parentElement.textContent ? radio.parentElement.textContent.trim() : value;
-        };
-        const getSelectDisplayText = (selectId, value) => {
-            if (!value) return 'なし';
-            const selectElement = document.getElementById(selectId);
-            if (selectElement) {
-                const optionElement = selectElement.querySelector(`option[value="${value}"]`);
-                if (optionElement) return optionElement.textContent.trim();
-            }
-            return value;
-        };
-        document.getElementById('summary-department').textContent = getRadioDisplayText('department', data.department);
-        document.getElementById('summary-purpose').textContent = getRadioDisplayText('purpose', data.purpose);
-        const basicInfoContainer = document.getElementById('summary-basic-info');
-        basicInfoContainer.innerHTML = ''; 
-        const basicInfoOrder = ['name', 'gender', 'age', 'prefecture', 'municipality', 'family', 'occupation', 'income', 'hobby', 'life_events'];
-        const valueMap = {
-            name: data.name,
-            gender: getSelectDisplayText('gender', data.gender),
-            age: data.age ? (data.age.includes('m') ? data.age.replace('y', '歳').replace('m', 'ヶ月') : data.age.replace('y', '歳')) : 'なし',
-            prefecture: data.prefecture,
-            municipality: data.municipality,
-            family: data.family,
-            occupation: data.occupation,
-            income: data.income ? (data.income.startsWith('<') ? `${data.income.substring(1)}万円未満` : (data.income.startsWith('>=') ? `${data.income.substring(2)}万円以上` : `${data.income}万円`)) : 'なし',
-            hobby: data.hobby,
-            life_events: data.life_events
-        };
-        const labelMap = { name: '名前:', gender: '性別:', age: '年齢:', prefecture: '都道府県:', municipality: '市区町村:', family: '家族構成:', occupation: '職業:', income: '年収:', hobby: '趣味:', life_events: 'ライフイベント:' };
-        basicInfoOrder.forEach(key => {
-            const p = document.createElement('p');
-            p.innerHTML = `<strong>${labelMap[key]}</strong> ${valueMap[key] || 'なし'}`;
-            basicInfoContainer.appendChild(p);
-        });
-        if (data.patient_type) {
-            const p = document.createElement('p');
-            p.innerHTML = `<strong>患者タイプ:</strong> ${getRadioDisplayText('patient_type', data.patient_type) || 'なし'}`;
-            basicInfoContainer.appendChild(p);
-        }
-        const additionalFixedContainer = document.getElementById('summary-additional-fixed-info');
-        additionalFixedContainer.innerHTML = '';
-        const fixedFieldsOrder = [
-            { key: 'motto', label: '座右の銘:' }, { key: 'concerns', label: '最近の悩み/関心:' }, 
-            { key: 'favorite_person', label: '好きな有名人/尊敬する人物:' }, { key: 'media_sns', label: 'よく見るメディア/SNS:' }, 
-            { key: 'personality_keywords', label: '性格キーワード（3語以内）:' }, { key: 'health_actions', label: '最近した健康に関する行動:' }, 
-            { key: 'holiday_activities', label: '休日の過ごし方:' }, { key: 'catchphrase', label: 'キャッチコピー:' }
-        ];
-        fixedFieldsOrder.forEach(item => {
-            const p = document.createElement('p');
-            p.innerHTML = `<strong>${item.label}</strong> ${data[item.key] || 'なし'}`;
-            additionalFixedContainer.appendChild(p);
-        });
-        if (data.additional_field_name && data.additional_field_value && data.additional_field_name.length === data.additional_field_value.length) {
-            const hasDynamicData = data.additional_field_name.some((name, i) => name || data.additional_field_value[i]);
-            if (hasDynamicData) {
-                data.additional_field_name.forEach((fieldName, index) => {
-                    const fieldValue = data.additional_field_value[index];
-                    if (fieldName || fieldValue) { 
-                        const p = document.createElement('p');
-                        p.innerHTML = `<strong>${fieldName || '項目名なし'}:</strong> ${fieldValue || 'なし'}`;
-                        additionalFixedContainer.appendChild(p);
-                    }
-                });
-            }
-        }
+        console.error('FormNavigation module not loaded for populateConfirmationScreen');
         hasVisitedConfirmationScreen = true;
     }
 
@@ -1643,273 +1247,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             return window.ResultDisplay.populateResults(result);
         }
         // フォールバック
-        console.log("Populating results screen with data:", result);
-        const profile = result.profile || {}; 
-
-        // HTMLで定義されたダウンロードオプションコンテナを先に削除
-        const htmlDownloadOptionsOriginal = document.querySelector('.persona-details .download-options');
-        if (htmlDownloadOptionsOriginal) {
-            console.log('Removing original HTML download options container.');
-            htmlDownloadOptionsOriginal.remove();
-        }
-        
-        // 完全に独立したフローティングダウンロードボタンを作成
-        // まず既存のボタンを削除 (念のためID変更後も実行)
-        const existingPdfButton = document.getElementById('download-pdf-result');
-        const existingPptButton = document.getElementById('download-ppt-result');
-        if (existingPdfButton) existingPdfButton.remove();
-        if (existingPptButton) existingPptButton.remove();
-        
-        // フローティングコンテナ作成
-        const floatingContainer = document.createElement('div');
-        floatingContainer.id = 'floating-download-buttons'; // コンテナ自体のIDは floating- でOK
-        floatingContainer.style.position = 'absolute'; 
-        floatingContainer.style.top = '-20px'; 
-        floatingContainer.style.right = '20px'; 
-        floatingContainer.style.zIndex = '1000'; 
-        floatingContainer.style.display = 'flex'; 
-        floatingContainer.style.flexDirection = 'row'; 
-        floatingContainer.style.gap = '10px';
-
-        // PDFボタン (IDを download-pdf-result に統一)
-        const pdfButton = document.createElement('button');
-        pdfButton.id = 'download-pdf-result';
-        pdfButton.textContent = 'PDF'; 
-        pdfButton.style.backgroundColor = '#ff0000';
-        pdfButton.style.color = 'white';
-        pdfButton.style.border = 'none';
-        pdfButton.style.borderRadius = '4px';
-        pdfButton.style.padding = '6px 12px'; 
-        pdfButton.style.cursor = 'pointer';
-        pdfButton.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'; 
-        pdfButton.style.fontSize = '13px'; 
-        pdfButton.style.width = '100px'; 
-        pdfButton.style.height = '30px';
-        pdfButton.style.lineHeight = '18px';
-        pdfButton.style.textAlign = 'center'; 
-        
-        // PDFボタンのクリックイベント (既存のものを再利用できるようにする)
-        pdfButton.addEventListener('click', async () => {
-            if (!currentPersonaResult) {
-                alert('ペルソナがまだ生成されていません。');
-             return;
-        }
-            pdfButton.textContent = '生成中...';
-            pdfButton.disabled = true;
-            pdfButton.style.opacity = '0.7';
-            try {
-                const response = await fetch('/api/download/pdf', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(currentPersonaResult)
-                });
-                if (!response.ok) throw new Error(`サーバーエラー ${response.status}`);
-                const blob = await response.blob();
-                let filename = `${currentPersonaResult.profile.name || 'persona'}_persona.pdf`;
-                const contentDisposition = response.headers.get('content-disposition');
-                if (contentDisposition) {
-                    const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
-                    if (filenameMatch && filenameMatch.length > 1) filename = filenameMatch[1];
-                    }
-                triggerDownload(blob, filename);
-            } catch (error) {
-                console.error('PDF Download Error:', error);
-                alert(`エラーが発生しました: ${error.message}`);
-            } finally {
-                pdfButton.textContent = 'PDF';
-                pdfButton.disabled = false;
-                pdfButton.style.opacity = '1';
-            }
-        });
-        
-        // ボタンをコンテナに追加
-        floatingContainer.appendChild(pdfButton);
-        
-        const resultContainer = document.querySelector('.result-step');
-        if (resultContainer) {
-            const existingFloatingContainer = document.getElementById('floating-download-buttons');
-            if (existingFloatingContainer) existingFloatingContainer.remove();
-            resultContainer.style.position = 'relative';
-            resultContainer.appendChild(floatingContainer);
-            console.log('Floating download buttons added to result-step container');
-        } else {
-            document.body.appendChild(floatingContainer);
-            console.log('Floating download buttons added to body (fallback)');
-        }
-
-        // Populate New Header Info Section
-        let headerDepartmentDisplay = profile.department || '-';
-        if (profile.department) {
-            const deptRadio = document.querySelector(`input[name="department"][value="${profile.department}"]`);
-            if (deptRadio && deptRadio.parentElement && deptRadio.parentElement.textContent) {
-                headerDepartmentDisplay = deptRadio.parentElement.textContent.trim();
-            }
-        }
-        document.getElementById('header-department').textContent = headerDepartmentDisplay;
-
-        let headerPurposeDisplay = profile.purpose || '-';
-        if (profile.purpose) {
-            const purposeRadio = document.querySelector(`input[name="purpose"][value="${profile.purpose}"]`);
-            if (purposeRadio && purposeRadio.parentElement && purposeRadio.parentElement.textContent) {
-                headerPurposeDisplay = purposeRadio.parentElement.textContent.trim();
-            }
-        }
-        document.getElementById('header-purpose').textContent = headerPurposeDisplay;
-        
-        // Update image and center it
-        const personaImage = document.getElementById('preview-persona-image');
-        personaImage.src = result.image_url || 'https://via.placeholder.com/150';
-        // Center the image by styling its parent container
-        if (personaImage.parentElement) {
-            personaImage.parentElement.style.textAlign = 'center';
-        }
-
-        document.getElementById('preview-name').textContent = profile.name || '-';
-        // Center the name text as well (assuming it's a block or inline-block element in a container that can center text)
-        const nameElement = document.getElementById('preview-name');
-        if (nameElement && nameElement.parentElement) {
-            nameElement.parentElement.style.textAlign = 'center'; 
-        }
-
-        // Populate basic info in the preview pane (2-column grid)
-        // Department and Purpose are now removed from this specific section in the preview
-        // document.getElementById('preview-department').textContent = departmentDisplay; // REMOVED
-        // document.getElementById('preview-purpose').textContent = purposeDisplay; // REMOVED
-
-        document.getElementById('preview-gender').textContent = getSelectDisplayTextForResult('gender', profile.gender);
-        document.getElementById('preview-age').textContent = formatAgeDisplayForResult(profile.age);
-        const prefectureSelectResult = document.getElementById('preview-prefecture');
-        if (prefectureSelectResult) {
-            // 選択リストの値を設定し、デバッグ情報を出力
-            console.log('Setting prefecture value:', profile.prefecture);
-            prefectureSelectResult.value = profile.prefecture || "";
-            
-            // 値が正しく設定されたか確認
-            console.log('Prefecture select after setting value:', prefectureSelectResult.value);
-            
-            // 選択肢のoption要素が存在するか確認
-            const options = Array.from(prefectureSelectResult.options);
-            const matchingOption = options.find(opt => opt.value === profile.prefecture);
-            console.log('Matching option found:', matchingOption ? 'Yes' : 'No');
-            
-            // 明示的にchangeイベントを発火させる
-            prefectureSelectResult.dispatchEvent(new Event('change'));
-        }
-        document.getElementById('preview-municipality').textContent = profile.municipality || '-';
-        document.getElementById('preview-family').textContent = profile.family || '-';
-        document.getElementById('preview-occupation').textContent = profile.occupation || '-';
-        document.getElementById('preview-income').textContent = formatIncomeDisplayForResult(profile.income);
-        document.getElementById('preview-hobby').textContent = profile.hobby || '-';
-        document.getElementById('preview-life_events').textContent = profile.life_events && Array.isArray(profile.life_events) ? profile.life_events.join(', ') : (profile.life_events || '-');
-        
-        let patientTypeDisplay = profile.patient_type || '-';
-        if (profile.patient_type && typeof patientTypeDetails !== 'undefined' && patientTypeDetails[profile.patient_type]) {
-            patientTypeDisplay = profile.patient_type; 
-        } else if (profile.patient_type) {
-            const patientTypeRadio = document.querySelector(`input[name="patient_type"][value="${profile.patient_type}"]`);
-            if (patientTypeRadio && patientTypeRadio.parentElement && patientTypeRadio.parentElement.querySelector('.patient-type-name')) {
-                patientTypeDisplay = patientTypeRadio.parentElement.querySelector('.patient-type-name').textContent.trim();
-            }
-        }
-        document.getElementById('preview-patient_type').textContent = patientTypeDisplay;
-
-        // Populate Step 4 Fixed Additional Fields (1-column in .additional-info-column)
-        document.getElementById('preview-motto').textContent = profile.motto || '-';
-        document.getElementById('preview-concerns').textContent = profile.concerns || '-';
-        document.getElementById('preview-favorite_person').textContent = profile.favorite_person || '-';
-        document.getElementById('preview-media_sns').textContent = profile.media_sns || '-';
-        document.getElementById('preview-personality_keywords').textContent = profile.personality_keywords || '-';
-        document.getElementById('preview-health_actions').textContent = profile.health_actions || '-';
-        document.getElementById('preview-holiday_activities').textContent = profile.holiday_activities || '-';
-        document.getElementById('preview-catchphrase_input').textContent = profile.catchphrase || '-'; 
-
-        // Populate Step 4 Dynamically Added Fields (1-column in .additional-info-column)
-        const dynamicFieldsContainer = document.getElementById('preview-additional-dynamic-fields');
-        dynamicFieldsContainer.innerHTML = ''; 
-        if (profile.additional_field_name && profile.additional_field_value &&
-            Array.isArray(profile.additional_field_name) && Array.isArray(profile.additional_field_value) &&
-            profile.additional_field_name.length === profile.additional_field_value.length) {
-            profile.additional_field_name.forEach((fieldName, index) => {
-                const fieldValue = profile.additional_field_value[index];
-                if (fieldName || fieldValue) { 
-                    const p = document.createElement('p');
-                    p.innerHTML = `<strong>${fieldName || '項目名なし'}:</strong> ${fieldValue || 'なし'}`;
-                    dynamicFieldsContainer.appendChild(p);
-                }
-            });
-        }
-
-        // Populate detailed persona text using existing HTML elements
-        if (result.details) {
-            // Populate personality
-            const personalityEl = document.getElementById('result-personality');
-            if (personalityEl) {
-                personalityEl.innerHTML = result.details.personality ? 
-                    String(result.details.personality).replace(/\n/g, '<br>') : 
-                    'データなし';
-            }
-            
-            // Populate reason
-            const reasonEl = document.getElementById('result-reason');
-            if (reasonEl) {
-                reasonEl.innerHTML = result.details.reason ? 
-                    String(result.details.reason).replace(/\n/g, '<br>') : 
-                    'データなし';
-            }
-            
-            // Populate behavior
-            const behaviorEl = document.getElementById('result-behavior');
-            if (behaviorEl) {
-                behaviorEl.innerHTML = result.details.behavior ? 
-                    String(result.details.behavior).replace(/\n/g, '<br>') : 
-                    'データなし';
-            }
-            
-            // Populate reviews
-            const reviewsEl = document.getElementById('result-reviews');
-            if (reviewsEl) {
-                reviewsEl.innerHTML = result.details.reviews ? 
-                    String(result.details.reviews).replace(/\n/g, '<br>') : 
-                    'データなし';
-            }
-            
-            // Populate values
-            const valuesEl = document.getElementById('result-values');
-            if (valuesEl) {
-                valuesEl.innerHTML = result.details.values ? 
-                    String(result.details.values).replace(/\n/g, '<br>') : 
-                    'データなし';
-            }
-            
-            // Populate demands
-            const demandsEl = document.getElementById('result-demands');
-            if (demandsEl) {
-                demandsEl.innerHTML = result.details.demands ? 
-                    String(result.details.demands).replace(/\n/g, '<br>') : 
-                    'データなし';
-            }
-        } else {
-            // No details available
-            console.log('[WARNING] No details in result:', result);
-            ['result-personality', 'result-reason', 'result-behavior', 'result-reviews', 'result-values', 'result-demands'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.textContent = 'ペルソナの詳細情報が生成されませんでした。';
-            });
-        }
-
-        // 編集可能フィールドのセットアップ
-        setupEditableFields();
-        
-        // DEBUG: Final check of download buttons after population
-        console.log('After dynamic population - PDF Button by ID:', document.getElementById('download-pdf-result'));
-        
-        // Ensure buttons are visible (redundant if styles are correct, but for safety)
-        if (pdfButton) { // Use the direct reference to the created button
-            pdfButton.style.display = 'inline-block';
-            pdfButton.style.visibility = 'visible';
-            console.log('Ensured dynamically created PDF button is visible');
-        }
+        console.error('ResultDisplay module not loaded');
+        // 最小限の実装
+        document.getElementById('result-screen').style.display = 'block';
     }
+    // populateResults_OLD関数は削除されました（ResultDisplayモジュールで処理）
 
     // --- Download Functionality ---
     // The event listeners for download-pdf-result and download-ppt-result that were
@@ -3016,71 +2358,8 @@ function startProgressAnimation() {
     if (window.PersonaGeneration && window.PersonaGeneration.startProgressAnimation) {
         return window.PersonaGeneration.startProgressAnimation();
     }
-    // フォールバック（以下は元の実装）
-    const progressFill = document.querySelector('.progress-bar-fill');
-    const progressPercentage = document.querySelector('.progress-percentage');
-    const statusText = document.querySelector('.loading-status-text');
-    const currentStep = document.querySelector('.current-step');
-    const estimatedTime = document.querySelector('.estimated-time');
-    
-    if (!progressFill || !progressPercentage) return;
-    
-    // Cancel any existing animation
-    if (progressAnimationId) {
-        cancelAnimationFrame(progressAnimationId);
-        progressAnimationId = null;
-    }
-    
-    let progress = 0;
-    const textDuration = 10000; // 10 seconds for text generation (0-25%)
-    const imageDuration = 30000; // 30 seconds for image generation (25-100%)
-    const totalDuration = textDuration + imageDuration;
-    
-    // Reset progress
-    progressFill.style.width = '0%';
-    progressPercentage.textContent = '0%';
-    
-    const startTime = Date.now();
-    
-    const updateProgress = () => {
-        const elapsed = Date.now() - startTime;
-        
-        // Calculate continuous progress (0-95%)
-        const continuousProgress = (elapsed / totalDuration) * 95;
-        progress = Math.min(continuousProgress, 95);
-        
-        // Update text based on phase
-        if (elapsed < textDuration) {
-            // Phase 1: Text generation
-            if (statusText) statusText.textContent = 'ペルソナの詳細を分析しています...';
-            if (currentStep) currentStep.textContent = 'ステップ 1/2: AIがペルソナ詳細を生成中';
-        } else if (elapsed < totalDuration) {
-            // Phase 2: Image generation
-            if (statusText) statusText.textContent = 'ペルソナ画像を生成しています...';
-            if (currentStep) currentStep.textContent = 'ステップ 2/2: AIが画像を生成中';
-            
-            // Update estimated time
-            const remainingSeconds = Math.ceil((totalDuration - elapsed) / 1000);
-            if (estimatedTime) {
-                if (remainingSeconds > 20) {
-                    estimatedTime.textContent = `予想時間: 約${Math.ceil(remainingSeconds / 10) * 10}秒`;
-                } else {
-                    estimatedTime.textContent = `予想時間: あと少し...`;
-                }
-            }
-        }
-        
-        // Progress is already capped at 95% in the calculation above
-        progressFill.style.width = `${progress}%`;
-        progressPercentage.textContent = `${Math.round(progress)}%`;
-        
-        // Continue animation if not complete
-        if (elapsed < totalDuration && progressAnimationId !== null) {
-            progressAnimationId = requestAnimationFrame(updateProgress);
-        }
-    };
-    
-    progressAnimationId = requestAnimationFrame(updateProgress);
+    // フォールバック
+    console.error('PersonaGeneration module not loaded for startProgressAnimation');
 }
 
 // Complete progress animation
@@ -3089,21 +2368,7 @@ function completeProgressAnimation() {
         return window.PersonaGeneration.completeProgressAnimation();
     }
     // フォールバック
-    // Stop ongoing animation
-    if (progressAnimationId) {
-        cancelAnimationFrame(progressAnimationId);
-        progressAnimationId = null;
-    }
-    
-    const progressFill = document.querySelector('.progress-bar-fill');
-    const progressPercentage = document.querySelector('.progress-percentage');
-    const statusText = document.querySelector('.loading-status-text');
-    
-    if (progressFill && progressPercentage) {
-        progressFill.style.width = '100%';
-        progressPercentage.textContent = '100%';
-        if (statusText) statusText.textContent = '完了しました！';
-    }
+    console.error('PersonaGeneration module not loaded for completeProgressAnimation');
 }
 
 // Stop progress animation (for error cases)
@@ -3112,9 +2377,6 @@ function stopProgressAnimation() {
         return window.PersonaGeneration.stopProgressAnimation();
     }
     // フォールバック
-    if (progressAnimationId) {
-        cancelAnimationFrame(progressAnimationId);
-        progressAnimationId = null;
-    }
+    console.error('PersonaGeneration module not loaded for stopProgressAnimation');
 }
 
