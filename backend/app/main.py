@@ -1098,7 +1098,7 @@ def generate_pdf(data):
     # 4. その他の特徴セクション (左カラム)
     pdf.set_xy(left_column_content_x, current_y_after_icon_name)
     pdf.set_font("ipa", '', 11)
-    pdf.set_fill_color(250, 240, 200)  # 薄い黄色の背景
+    pdf.set_fill_color(200, 220, 240)  # 薄い青色の背景
     pdf.set_text_color(0, 0, 0)  # テキストは黒
     pdf.cell(left_column_width, 7, "その他の特徴", 0, 1, 'L', fill=True)  # 高さを6から7に変更
     current_y_after_icon_name = pdf.get_y() 
