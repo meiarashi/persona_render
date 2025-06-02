@@ -128,7 +128,7 @@ const personaRandomValues = {
         "独身", "婚約中", "既婚", "新婚（3ヶ月未満）", "新婚（6ヶ月未満）", "新婚（1年未満）", 
         "子どもが生まれたばかり（0〜12ヶ月）", "幼児の子どもがいる（1〜2歳）", "子どもがいる（3〜5歳）", 
         "小学校低学年の子どもがいる（6〜8歳）", "小学校高学年の子どもがいる（9〜12歳）", 
-        "中高生の子どもがいる（13〜17歳）", "成人の子どもがいる（18〜26歳）", 
+        "中高生の子どもがいる（13〜17歳）", "成人の子どもがいる（18〜26歳）", "独立した子どもがいる",
         "配偶者と死別", "離婚", "別居中", "遠距離恋愛", "ドメスティックパートナー（事実婚）", 
         "オープンな関係", "シビルユニオン（法的パートナーシップ）", "複雑な関係", 
         "両親がいる", "母子家庭", "父子家庭"
@@ -548,7 +548,10 @@ function randomizeDetailSettingsFields() {
         }
         
         // Prioritize common elderly family statuses
-        const commonElderlyFamilies = ["配偶者と死別", "成人の子どもがいる（18〜26歳）", "既婚", "独身"];
+        // 75歳以上は「成人の子ども」を除外し、代わりに「独立した子どもがいる」を追加
+        const commonElderlyFamilies = ageInYears >= 75 ? 
+            ["配偶者と死別", "既婚", "独身", "独立した子どもがいる"] :
+            ["配偶者と死別", "成人の子どもがいる（18〜26歳）", "既婚", "独身"];
         
         // Add these 2 times to increase their probability
         for (let i = 0; i < 2; i++) {
@@ -568,15 +571,14 @@ function randomizeDetailSettingsFields() {
     }
 
     availableFamilies = availableFamilies.filter(family => {
-        if (family.includes("子どもが生まれたばかり（0〜12ヶ月）") && (ageInYears < 0 || ageInYears > 55)) return false; // Unlikely for <0 or >55 to have newborn
-        if (family.includes("幼児の子どもがいる（1〜2歳）") && (ageInYears < 2 || ageInYears > 57)) return false; // Unlikely for <2 or >57 to have toddler
-        if (family.includes("子どもがいる（3〜5歳）") && (ageInYears < 5 || ageInYears > 60)) return false; // Unlikely for <5 or >60 to have 3-5yo
-        if (family.includes("小学校低学年の子どもがいる（6〜8歳）") && (ageInYears < 8 || ageInYears > 63)) return false;
-        if (family.includes("小学校高学年の子どもがいる（9〜12歳）") && (ageInYears < 12 || ageInYears > 67)) return false;
-        if (family.includes("中高生の子どもがいる（13〜17歳）") && (ageInYears < 17 || ageInYears > 72)) return false;
-        // For "成人の子どもがいる（18〜26歳）", it's plausible for older parents, so less strict upper bound or remove it.
-        // However, ensure persona is at least 18 + 18 = 36 to have an 18yo child.
-        if (family.includes("成人の子どもがいる（18〜26歳）") && ageInYears < 36) return false; 
+        if (family.includes("子どもが生まれたばかり（0〜12ヶ月）") && (ageInYears < 18 || ageInYears > 50)) return false; // 18歳未満または50歳超で新生児は非現実的
+        if (family.includes("幼児の子どもがいる（1〜2歳）") && (ageInYears < 19 || ageInYears > 52)) return false; // 19歳未満または52歳超で幼児は非現実的
+        if (family.includes("子どもがいる（3〜5歳）") && (ageInYears < 21 || ageInYears > 55)) return false; // 21歳未満または55歳超で3-5歳児は非現実的
+        if (family.includes("小学校低学年の子どもがいる（6〜8歳）") && (ageInYears < 24 || ageInYears > 58)) return false;
+        if (family.includes("小学校高学年の子どもがいる（9〜12歳）") && (ageInYears < 27 || ageInYears > 62)) return false;
+        if (family.includes("中高生の子どもがいる（13〜17歳）") && (ageInYears < 31 || ageInYears > 67)) return false;
+        // 成人の子ども（18〜26歳）の場合、最低でも36歳（18歳で出産）、最高でも70歳（44歳で出産した26歳の子）
+        if (family.includes("成人の子どもがいる（18〜26歳）") && (ageInYears < 36 || ageInYears > 70)) return false; 
         return true;
     });
     
@@ -3092,5 +3094,3 @@ function stopProgressAnimation() {
     }
 }
 
-// 画像を表示するコード箇所
-// 関数は他の場所で定義されているため、この重複した定義は削除しました 
