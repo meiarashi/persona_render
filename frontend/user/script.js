@@ -606,12 +606,24 @@ function randomizeDetailSettingsFields() {
     } else if (ageInYears <= 17) {
         availableOccupations = allOccupations.filter(o => o === "高校生");
     } else if (ageInYears <= 22) { // Roughly university/early career age
+        // 学生か新卒レベルの職業に限定
+        const studentAndEntryLevel = [
+            "大学生", "大学院生", "専門学校生", "浪人生",
+            "パート・アルバイト", "フリーター", "求職中", "就職活動中", "インターンシップ中",
+            "事務職（一般）", "受付", "販売員", "接客業", "配達員"
+        ];
+        availableOccupations = allOccupations.filter(o => studentAndEntryLevel.includes(o));
+    } else if (ageInYears >= 23 && ageInYears <= 30) { // Young professionals
+        // 若手プロフェッショナル - 役員や経営者は除外
+        const excludeForYoungProfessionals = [
+            "未就学児", "幼稚園児", "保育園児", "小学生", "中学生", "高校生",
+            "会社経営者", "会社役員", "医院長", "病院長", "理事長",
+            "定年退職者", "年金受給者", "シニアコンサルタント",
+            "教授", "准教授", "学長", "校長"
+        ];
         availableOccupations = allOccupations.filter(o => 
-            !["未就学児", "幼稚園児", "保育園児", "小学生", "中学生", "高校生", 
-             "教員・教師（小学校）", "教員・教師（中学校）", "教員・教師（高校）", "教員・教師（大学）",
-             "会社経営者", "会社役員", 
-             "定年退職者", "年金受給者"
-            ].includes(o) && !earlyRetirementOccupations.includes(o) // Less likely for very young to be in these specific roles either
+            !excludeForYoungProfessionals.includes(o) && 
+            !earlyRetirementOccupations.includes(o)
         );
     } else if (ageInYears >= 55 && ageInYears < 65) { // Ages 55-64: Filter early retirement roles
         availableOccupations = allOccupations.filter(o => 
@@ -2418,6 +2430,26 @@ function getRandomAnnualIncome(ageInYears, currentOccupation, allPossibleHtmlInc
         console.log("Selecting '<100' (100万円未満) due to student status or age < 18");
         return "<100";
     }
+    
+    // 新卒・若年層の収入制限（22歳以下）
+    if (ageInYears <= 22 && !studentOccupations.includes(currentOccupation)) {
+        console.log(`Young professional (${ageInYears}歳) - limiting income to entry level`);
+        const entryLevelOptions = allPossibleHtmlIncomeValues.filter(v => {
+            const lb = parseInt(v.split('-')[0]?.replace('<', '') || '0');
+            return lb < 400; // 新卒は400万円未満
+        });
+        return getRandomItem(entryLevelOptions.length > 0 ? entryLevelOptions : ["<100"]);
+    }
+    
+    // 23-27歳の若手プロフェッショナルの収入制限
+    if (ageInYears >= 23 && ageInYears <= 27) {
+        const youngProfessionalCap = 600; // 若手は600万円が上限
+        console.log(`Young professional (${ageInYears}歳) - capping income at ${youngProfessionalCap}万円`);
+        filteredHtmlIncomeValues = allPossibleHtmlIncomeValues.filter(v => {
+            const lb = parseInt(v.split('-')[0]?.replace('<', '') || '0');
+            return lb < youngProfessionalCap;
+        });
+    }
 
     // Define professions with generally capped income (not likely to reach very high brackets)
     const incomeCappedProfessions = {
@@ -2694,8 +2726,32 @@ function getRandomAnnualIncome(ageInYears, currentOccupation, allPossibleHtmlInc
         return filtered;
     }
 
+    // Special handling for high-income professions with age-based progression
+    const highIncomeProfessions = ["医師", "歯科医師", "弁護士", "公認会計士", "税理士", "会社経営者", "会社役員"];
+    if (highIncomeProfessions.includes(currentOccupation)) {
+        let adjustedCap = Infinity;
+        
+        if (ageInYears < 30) {
+            adjustedCap = 800; // 若手医師・弁護士等は800万円まで
+        } else if (ageInYears < 35) {
+            adjustedCap = 1200; // 30代前半は1200万円まで
+        } else if (ageInYears < 40) {
+            adjustedCap = 1800; // 30代後半は1800万円まで
+        } else if (ageInYears < 50) {
+            adjustedCap = 2500; // 40代は2500万円まで
+        } else if (ageInYears < 60) {
+            adjustedCap = 3000; // 50代は3000万円まで
+        } else if (ageInYears < 70) {
+            adjustedCap = 2000; // 60代は収入が下がり始める
+        } else {
+            adjustedCap = 1500; // 70代以降はさらに下がる
+        }
+        
+        console.log(`High-income profession ${currentOccupation} at age ${ageInYears} capped at ${adjustedCap}万円`);
+        filteredHtmlIncomeValues = applyIncomeCap(filteredHtmlIncomeValues, adjustedCap);
+    }
     // First apply profession-specific cap
-    if (incomeCappedProfessions.hasOwnProperty(currentOccupation)) {
+    else if (incomeCappedProfessions.hasOwnProperty(currentOccupation)) {
         const profCap = incomeCappedProfessions[currentOccupation];
         console.log(`Occupation ${currentOccupation} has an income cap at lower bound ${profCap}万円.`);
         filteredHtmlIncomeValues = applyIncomeCap(filteredHtmlIncomeValues, profCap);
