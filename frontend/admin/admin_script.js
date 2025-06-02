@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     hasError = true;
                     errorMessages.push(`${label}は${min}〜${max}文字の範囲で入力してください。`);
                 } else {
-                    limits[key] = value;
+                    limits[key] = String(value); // Convert to string as backend expects
                 }
             });
 
@@ -258,6 +258,10 @@ document.addEventListener('DOMContentLoaded', () => {
             errorDiv.style.display = 'none';
             limitsStatusMessage.textContent = '保存中...'; // Show loading message
             limitsStatusMessage.style.color = 'orange';
+            
+            // Debug: Log the data being sent
+            console.log('Sending limits data:', { limits: limits });
+            console.log('JSON stringified:', JSON.stringify({ limits: limits }));
 
             try {
                  const apiUrl = '/api/admin/settings/limits'; // Use relative URL
@@ -269,7 +273,8 @@ document.addEventListener('DOMContentLoaded', () => {
  
                  if (!response.ok) {
                      const errorData = await response.json();
-                     throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                     console.error('Error response data:', errorData);
+                     throw new Error(errorData.detail || errorData.error || `HTTP error! status: ${response.status}`);
                  }
  
                  const result = await response.json();
