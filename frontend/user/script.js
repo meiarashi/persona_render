@@ -1091,8 +1091,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let currentStep = 1;
     const TOTAL_FORM_STEPS = 5; 
-    let hasVisitedConfirmationScreen = false;
-    const purposeLabels = multiStepForm.querySelectorAll('.purpose-options label');
+    // let hasVisitedConfirmationScreen = false; // 未使用
+    // const purposeLabels = multiStepForm.querySelectorAll('.purpose-options label'); // 未使用
 
     // --- showStep関数 - FormNavigationモジュールを使用 ---
     function showStep(stepNumberToShow) {
@@ -1638,6 +1638,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     function populateResults(result) {
+        // ResultDisplayモジュールを使用
+        if (window.ResultDisplay && window.ResultDisplay.populateResults) {
+            return window.ResultDisplay.populateResults(result);
+        }
+        // フォールバック
         console.log("Populating results screen with data:", result);
         const profile = result.profile || {}; 
 
@@ -3002,6 +3007,9 @@ const patientTypeDetails = {
     // ... other types
 };
 */ 
+
+// プログレスアニメーション用のグローバル変数（フォールバック用）
+let progressAnimationId = null;
 
 // プログレスアニメーション関数 - PersonaGenerationモジュールを使用
 function startProgressAnimation() {
