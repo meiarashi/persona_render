@@ -2915,15 +2915,17 @@ function startProgressAnimation() {
     const updateProgress = () => {
         const elapsed = Date.now() - startTime;
         
+        // Calculate continuous progress (0-95%)
+        const continuousProgress = (elapsed / totalDuration) * 95;
+        progress = Math.min(continuousProgress, 95);
+        
+        // Update text based on phase
         if (elapsed < textDuration) {
-            // Phase 1: Text generation (0-25%)
-            progress = (elapsed / textDuration) * 25;
+            // Phase 1: Text generation
             if (statusText) statusText.textContent = 'ペルソナの詳細を分析しています...';
             if (currentStep) currentStep.textContent = 'ステップ 1/2: AIがペルソナ詳細を生成中';
         } else if (elapsed < totalDuration) {
-            // Phase 2: Image generation (25-100%)
-            const imageElapsed = elapsed - textDuration;
-            progress = 25 + (imageElapsed / imageDuration) * 75;
+            // Phase 2: Image generation
             if (statusText) statusText.textContent = 'ペルソナ画像を生成しています...';
             if (currentStep) currentStep.textContent = 'ステップ 2/2: AIが画像を生成中';
             
@@ -2938,9 +2940,7 @@ function startProgressAnimation() {
             }
         }
         
-        // Cap progress at 95% until actual completion
-        progress = Math.min(progress, 95);
-        
+        // Progress is already capped at 95% in the calculation above
         progressFill.style.width = `${progress}%`;
         progressPercentage.textContent = `${Math.round(progress)}%`;
         
