@@ -826,7 +826,7 @@ button:hover {
     color: #555;
     word-break: break-word;
     display: flex; /* Flexbox を有効化 */
-    align-items: center; /* 垂直方向中央揃え */
+    align-items: flex-start; /* 左寄せに変更 */
 }
 .persona-preview-grid p strong {
     display: inline-block !important;
@@ -845,7 +845,8 @@ button:hover {
     margin-top: 0;
     margin-bottom: 8px;
     color: #555;
-    word-break: break-word; 
+    word-break: break-word;
+    text-align: left; /* 左寄せを明示的に指定 */
 }
 .additional-info-column p strong {
     font-weight: bold;

@@ -1078,9 +1078,15 @@ def generate_pdf(data):
     key_width = 25 
     value_width = left_column_width - key_width
 
-    for key, value_display in info_items:
+    for i, (key, value_display) in enumerate(info_items):
         pdf.set_xy(left_column_content_x, current_y_after_icon_name)
+        # 偶数行に薄い背景色を追加（ストライプ効果）
+        if i % 2 == 0:
+            pdf.set_fill_color(245, 245, 245)  # 非常に薄いグレー
+            pdf.rect(left_column_content_x, current_y_after_icon_name, left_column_width, item_height + 1, 'F')
         pdf.set_font("ipa", '', 9)
+        pdf.set_text_color(0, 0, 0)  # テキストは黒
+        pdf.set_xy(left_column_content_x, current_y_after_icon_name)
         pdf.cell(key_width, item_height, f"{key}:", 0, 0, 'L')
         pdf.set_font("ipa", '', 9)
         pdf.set_xy(left_column_content_x + key_width, current_y_after_icon_name)
@@ -1113,9 +1119,15 @@ def generate_pdf(data):
     additional_key_width = 30
     additional_value_width = left_column_width - additional_key_width
 
-    for key, value in additional_items:
+    for i, (key, value) in enumerate(additional_items):
         pdf.set_xy(left_column_content_x, current_y_after_icon_name)
+        # 偶数行に薄い背景色を追加（ストライプ効果）
+        if i % 2 == 0:
+            pdf.set_fill_color(245, 245, 245)  # 非常に薄いグレー
+            pdf.rect(left_column_content_x, current_y_after_icon_name, left_column_width, item_height + 1, 'F')
         pdf.set_font("ipa", '', 9)
+        pdf.set_text_color(0, 0, 0)  # テキストは黒
+        pdf.set_xy(left_column_content_x, current_y_after_icon_name)
         pdf.cell(additional_key_width, item_height, f"{key}:", 0, 0, 'L')
         pdf.set_font("ipa", '', 9)
         pdf.set_xy(left_column_content_x + additional_key_width, current_y_after_icon_name)
@@ -1126,10 +1138,17 @@ def generate_pdf(data):
     if profile.get('additional_field_name') and profile.get('additional_field_value'):
         additional_fields = zip(profile.get('additional_field_name'), profile.get('additional_field_value'))
         current_y_after_icon_name +=1 
-        for field_name, field_value in additional_fields:
-            if field_name or field_value: 
+        for j, (field_name, field_value) in enumerate(additional_fields):
+            if field_name or field_value:
                 pdf.set_xy(left_column_content_x, current_y_after_icon_name)
+                # 追加フィールドも含めた総数で偶数行判定
+                total_index = len(additional_items) + j
+                if total_index % 2 == 0:
+                    pdf.set_fill_color(245, 245, 245)  # 非常に薄いグレー
+                    pdf.rect(left_column_content_x, current_y_after_icon_name, left_column_width, item_height + 1, 'F')
                 pdf.set_font("ipa", '', 9)
+                pdf.set_text_color(0, 0, 0)  # テキストは黒
+                pdf.set_xy(left_column_content_x, current_y_after_icon_name)
                 pdf.cell(additional_key_width, item_height, f"{field_name if field_name else ''}:", 0, 0, 'L')
                 pdf.set_font("ipa", '', 9)
                 pdf.set_xy(left_column_content_x + additional_key_width, current_y_after_icon_name)
