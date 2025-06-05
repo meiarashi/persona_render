@@ -2229,21 +2229,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (!iconDiv.querySelector('img')) {
                         // 新しいimg要素を作成
                         const img = document.createElement('img');
-                        // 環境に応じた画像パスを構築（Render用の静的ディレクトリに対応）
-                        img.src = `/images/${typeName}.png`;
+                        // WebPを優先的に読み込み、非対応ブラウザの場合はPNGにフォールバック
+                        img.src = `/images/${typeName}.webp`;
                         img.alt = typeName;
                         img.loading = 'eager'; // 即時読み込み
-                        // 画像がない場合にエラーハンドリング
+                        
+                        // シンプルなエラーハンドリング
                         img.onerror = function() {
-                            // 代替パスを試す
+                            // WebPが読み込めない場合はPNGを試す
                             this.src = `/images/${typeName}.png`;
-                            // それでもだめなら絶対パスを試す
                             this.onerror = function() {
-                                this.src = `/images/${typeName}.png`;
-                                // 最終的に失敗したらエラー表示を消す
-                                this.onerror = null;
+                                console.warn(`Failed to load image: ${typeName}`);
+                                this.style.display = 'none';
                             };
                         };
+                        
                         iconDiv.appendChild(img);
                     }
                 }
