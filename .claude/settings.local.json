@@ -4,9 +4,7 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(rg:*)",
-      "Bash(git push:*)",
-      "Bash(node:*)",
-      "Bash(ls:*)"
+      "Bash(git push:*)"
     ],
     "deny": []
   }

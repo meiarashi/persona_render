@@ -184,29 +184,9 @@ def build_prompt(data, limit_personality="100", limit_reason="100", limit_behavi
         "以下の情報に基づいて、医療系のペルソナを作成してください。",
         "各項目は自然な文章で記述し、**日本語で、指定されたおおよその文字数制限に従ってください**。",
         "",
-        "## 重要な生成ルール:",
-        "1. 全ての情報は論理的に一貫性を保つこと（例：婚約中の人が既婚者向けの内容にならないよう注意）",
-        "2. 年齢、職業、収入、家族構成は相互に矛盾しないよう、現実的な組み合わせにすること",
-        "3. ライフステージに応じた適切な悩みや関心事を記述すること",
-        "4. 患者タイプの特徴を一貫して反映すること",
-        "",
         "# 利用者からの入力情報"
     ]
 
-    # 診療科別の症状例
-    department_symptoms_map = {
-        '内科': '風邪、発熱、頭痛、腹痛、倦怠感、めまい、胸痛',
-        '外科': '外傷、腫瘍、手術適応疾患、ヘルニア',
-        '整形外科': '腰痛、関節痛、骨折、捻挫、肩こり、五十肩',
-        '皮膚科': 'アトピー、湿疹、ニキビ、じんましん、水虫、脱毛症',
-        '眼科': '視力低下、ドライアイ、白内障、緑内障、結膜炎',
-        '耳鼻咽喉科': '中耳炎、花粉症、めまい、難聴、扁桃炎、副鼻腔炎',
-        '小児科': '発熱、予防接種、発達相談、アレルギー、感染症',
-        '産婦人科': '妊婦健診、不妊治療、月経不順、更年期障害',
-        '精神科': 'うつ病、不安障害、不眠症、パニック障害、適応障害',
-        '歯科': '虫歯、歯周病、定期検診、ホワイトニング、インプラント'
-    }
-    
     # 基本情報
     basic_info = {
         "診療科": data.get('department'),
@@ -230,9 +210,7 @@ def build_prompt(data, limit_personality="100", limit_reason="100", limit_behavi
     for key, value in basic_info.items():
         if value: # 値が存在する場合のみプロンプトに追加
             prompt_parts.append(f"- {key}: {value}")
-            if key == "診療科" and value in department_symptoms_map:
-                prompt_parts.append(f"  - 一般的な症状例: {department_symptoms_map[value]}")
-            elif key == "患者タイプ" and value in patient_type_details_map:
+            if key == "患者タイプ" and value in patient_type_details_map:
                 details = patient_type_details_map[value]
                 prompt_parts.append(f"  - 患者タイプの特徴: {details['description']}")
                 prompt_parts.append(f"  - 患者タイプの例: {details['example']}")
@@ -277,27 +255,14 @@ def build_prompt(data, limit_personality="100", limit_reason="100", limit_behavi
         prompt_parts.extend(dynamic_additional_info)
 
     prompt_parts.append("\n# 生成項目")
-    prompt_parts.append("以下の項目について、上記情報に基づいた自然な文章を生成してください。")
-    prompt_parts.append("\n## 重要：文字数制限について")
-    prompt_parts.append("**各項目は指定された文字数を絶対に超えないでください。文字数上限は厳守です。**")
-    prompt_parts.append("- 指定文字数以内に必ず収めること（超過は厳禁）")
-    prompt_parts.append("- 文字数を守るために内容を適切に要約・調整すること")
-    prompt_parts.append("\n## 出力形式:")
-    prompt_parts.append("- 各項目は「項目番号. 項目名: 内容」の形式で出力")
-    prompt_parts.append("- 文字数の指定（例：「(100文字程度)」）は出力に含めない")
-    prompt_parts.append("- 内容は一人称視点ではなく、第三者視点で記述")
-    prompt_parts.append(f"\n1. **性格（価値観・人生観）**: 【上限：{limit_personality}文字以内】")
-    prompt_parts.append("   - その人の基本的な性格、物事への考え方、人生で大切にしている価値観を記述")
-    prompt_parts.append(f"2. **通院理由**: 【上限：{limit_reason}文字以内】")
-    prompt_parts.append("   - 現在抱えている症状や健康上の問題、なぜ医療機関を訪れるのかを具体的に記述")
-    prompt_parts.append(f"3. **症状通院頻度・行動パターン**: 【上限：{limit_behavior}文字以内】")
-    prompt_parts.append("   - どの程度の頻度で通院するか、症状が出た時の行動パターン、医療機関の利用傾向を記述")
-    prompt_parts.append(f"4. **口コミの重視ポイント**: 【上限：{limit_reviews}文字以内】")
-    prompt_parts.append("   - 医療機関を選ぶ際に口コミのどの部分を重視するか、どんな情報を探すかを記述")
-    prompt_parts.append(f"5. **医療機関への価値観・行動傾向**: 【上限：{limit_values}文字以内】")
-    prompt_parts.append("   - 医療機関や医師に対する基本的な姿勢、診療時の行動傾向、医療への期待を記述")
-    prompt_parts.append(f"6. **医療機関に求めるもの**: 【上限：{limit_demands}文字以内】")
-    prompt_parts.append("   - 理想の医療機関像、重視するサービスや設備、期待する対応を具体的に記述")
+    prompt_parts.append("以下の項目について、上記情報に基づいた自然な文章を生成してください。各項目は指定された文字数の目安で記述してください。")
+    prompt_parts.append("\n重要: 出力には項目名と内容のみを含め、文字数の指定（例：「(100文字程度)」）は出力に含めないでください。")
+    prompt_parts.append(f"\n1. **性格（価値観・人生観）**: {limit_personality}文字程度で記述")
+    prompt_parts.append(f"2. **通院理由**: {limit_reason}文字程度で記述")
+    prompt_parts.append(f"3. **症状通院頻度・行動パターン**: {limit_behavior}文字程度で記述")
+    prompt_parts.append(f"4. **口コミの重視ポイント**: {limit_reviews}文字程度で記述")
+    prompt_parts.append(f"5. **医療機関への価値観・行動傾向**: {limit_values}文字程度で記述")
+    prompt_parts.append(f"6. **医療機関に求めるもの**: {limit_demands}文字程度で記述")
     
     return "\n".join(prompt_parts)
 
