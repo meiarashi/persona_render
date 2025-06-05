@@ -1535,7 +1535,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 setTimeout(() => {
                     console.log('[DEBUG] Calling populateResults with:', result); // デバッグ用
                     populateResults(result); // Populate results on Step 7
-                }, 100); // 少し遅延を増やす 
+                }, 200); // 遅延を200msに増やしてDOM更新を確実に待つ 
 
             } catch (error) {
                 console.error('Error generating persona:', error);
