@@ -1652,7 +1652,59 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
         
-        // ボタンをコンテナに追加
+        // PPTボタン (IDを download-ppt-result に統一)
+        const pptButton = document.createElement('button');
+        pptButton.id = 'download-ppt-result';
+        pptButton.textContent = 'PPT'; 
+        pptButton.style.backgroundColor = '#ff8431';
+        pptButton.style.color = 'white';
+        pptButton.style.border = 'none';
+        pptButton.style.borderRadius = '4px';
+        pptButton.style.padding = '6px 12px'; 
+        pptButton.style.cursor = 'pointer';
+        pptButton.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'; 
+        pptButton.style.fontSize = '13px'; 
+        pptButton.style.width = '100px'; 
+        pptButton.style.height = '30px';
+        pptButton.style.lineHeight = '18px';
+        pptButton.style.textAlign = 'center'; 
+        
+        // PPTボタンのクリックイベント
+        pptButton.addEventListener('click', async () => {
+            if (!currentPersonaResult) {
+                alert('ペルソナがまだ生成されていません。');
+                return;
+            }
+            pptButton.textContent = '生成中...';
+            pptButton.disabled = true;
+            pptButton.style.opacity = '0.7';
+            try {
+                const response = await fetch('/api/download/ppt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentPersonaResult)
+                });
+                if (!response.ok) throw new Error(`サーバーエラー ${response.status}`);
+                const blob = await response.blob();
+                let filename = `${currentPersonaResult.profile.name || 'persona'}_persona.pptx`;
+                const contentDisposition = response.headers.get('content-disposition');
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+                    if (filenameMatch && filenameMatch.length > 1) filename = filenameMatch[1];
+                }
+                triggerDownload(blob, filename);
+            } catch (error) {
+                console.error('PPT Download Error:', error);
+                alert(`エラーが発生しました: ${error.message}`);
+            } finally {
+                pptButton.textContent = 'PPT';
+                pptButton.disabled = false;
+                pptButton.style.opacity = '1';
+            }
+        });
+        
+        // ボタンをコンテナに追加（PPTが左、PDFが右）
+        floatingContainer.appendChild(pptButton);
         floatingContainer.appendChild(pdfButton);
         
         const resultContainer = document.querySelector('.result-step');
