@@ -1176,13 +1176,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.showStep = showStep; // Assign to window object
     // --- END NEW showStep FUNCTION DEFINITION ---
 
-    // 出力設定をデフォルトで設定（PDFとPPTを有効化）
-    window.currentOutputSettings = { pdf: true, ppt: true, gslide: false };
-
-    // --- REMOVE OLD/FAULTY showStep WRAPPER (original lines ~562-574) ---
-    // const originalShowStep = showStep; // THIS LINE AND THE BLOCK SHOULD BE GONE
-    // window.showStep = function(stepNumber) { ... }; // THIS BLOCK SHOULD BE GONE
-    // --- END REMOVAL ---
+    // 出力設定をデフォルトで設定（PDFを有効化）
+    window.currentOutputSettings = { pdf: true };
 
     function getFormData() {
         const formData = new FormData(multiStepForm);
@@ -1586,9 +1581,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 完全に独立したフローティングダウンロードボタンを作成
         // まず既存のボタンを削除 (念のためID変更後も実行)
         const existingPdfButton = document.getElementById('download-pdf-result');
-        const existingPptButton = document.getElementById('download-ppt-result');
         if (existingPdfButton) existingPdfButton.remove();
-        if (existingPptButton) existingPptButton.remove();
         
         // フローティングコンテナ作成
         const floatingContainer = document.createElement('div');
@@ -1652,59 +1645,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
         
-        // PPTボタン (IDを download-ppt-result に統一)
-        const pptButton = document.createElement('button');
-        pptButton.id = 'download-ppt-result';
-        pptButton.textContent = 'PPT'; 
-        pptButton.style.backgroundColor = '#ff8431';
-        pptButton.style.color = 'white';
-        pptButton.style.border = 'none';
-        pptButton.style.borderRadius = '4px';
-        pptButton.style.padding = '6px 12px'; 
-        pptButton.style.cursor = 'pointer';
-        pptButton.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'; 
-        pptButton.style.fontSize = '13px'; 
-        pptButton.style.width = '100px'; 
-        pptButton.style.height = '30px';
-        pptButton.style.lineHeight = '18px';
-        pptButton.style.textAlign = 'center'; 
-        
-        // PPTボタンのクリックイベント
-        pptButton.addEventListener('click', async () => {
-            if (!currentPersonaResult) {
-                alert('ペルソナがまだ生成されていません。');
-                return;
-            }
-            pptButton.textContent = '生成中...';
-            pptButton.disabled = true;
-            pptButton.style.opacity = '0.7';
-            try {
-                const response = await fetch('/api/download/ppt', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(currentPersonaResult)
-                });
-                if (!response.ok) throw new Error(`サーバーエラー ${response.status}`);
-                const blob = await response.blob();
-                let filename = `${currentPersonaResult.profile.name || 'persona'}_persona.pptx`;
-                const contentDisposition = response.headers.get('content-disposition');
-                if (contentDisposition) {
-                    const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
-                    if (filenameMatch && filenameMatch.length > 1) filename = filenameMatch[1];
-                }
-                triggerDownload(blob, filename);
-            } catch (error) {
-                console.error('PPT Download Error:', error);
-                alert(`エラーが発生しました: ${error.message}`);
-            } finally {
-                pptButton.textContent = 'PPT';
-                pptButton.disabled = false;
-                pptButton.style.opacity = '1';
-            }
-        });
-        
-        // ボタンをコンテナに追加（PPTが左、PDFが右）
-        floatingContainer.appendChild(pptButton);
+        // ボタンをコンテナに追加
         floatingContainer.appendChild(pdfButton);
         
         const resultContainer = document.querySelector('.result-step');
@@ -1893,12 +1834,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- Download Functionality ---
-    // The event listeners for download-pdf-result and download-ppt-result that were
-    // defined outside populateResults (around line 1895 and 2018) might now be redundant 
-    // if we are creating and attaching listeners to buttons with these IDs *inside* populateResults.
-    // We should ensure only one set of listeners is active for these IDs.
-    // For now, the listeners inside populateResults will take precedence if the buttons are recreated each time.
 
     // Helper function to trigger browser download
     function triggerDownload(blob, filename) {
@@ -2094,94 +2029,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             // } <--- この行をコメントアウトまたは削除
         });
-    }
-
-    // Placeholder for PPT download button
-    const pptDownloadBtn = document.getElementById('download-ppt-result');
-    if (pptDownloadBtn) {
-        // あらかじめ幅を固定
-        pptDownloadBtn.style.width = '80px';
-        pptDownloadBtn.style.height = '30px';
-        pptDownloadBtn.style.lineHeight = '18px';
-        pptDownloadBtn.style.textAlign = 'center';
-        
-        pptDownloadBtn.addEventListener('click', async () => {
-            if (!currentPersonaResult) {
-                alert('ペルソナがまだ生成されていません。');
-                return;
-            }
-            if (!currentPersonaResult.profile || !currentPersonaResult.details) {
-                 alert('ペルソナデータが不完全です。');
-                 console.error("Incomplete persona data for download:", currentPersonaResult);
-                 return;
-            }
-
-            // Add loading indicator
-            const originalText = pptDownloadBtn.textContent;
-            pptDownloadBtn.textContent = '生成中...';
-            pptDownloadBtn.disabled = true;
-
-            try {
-                const response = await fetch('/api/download/ppt', { // Changed to relative path
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(currentPersonaResult),
-                });
-
-                if (!response.ok) {
-                    let errorMsg = 'PPTの生成に失敗しました。';
-                    try {
-                        const errorData = await response.json();
-                        errorMsg = errorData.error || errorMsg;
-                    } catch (e) { /* Ignore */ }
-                    throw new Error(errorMsg + ` (Status: ${response.status})`);
-                }
-
-                const blob = await response.blob();
-                const contentDisposition = response.headers.get('content-disposition');
-                let filename = `${currentPersonaResult.profile.name || 'persona'}_persona.pptx`; // Default .pptx
-                if (contentDisposition) {
-                    const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
-                    if (filenameMatch && filenameMatch.length > 1) {
-                        filename = filenameMatch[1];
-                    }
-                }
-                triggerDownload(blob, filename);
-
-            } catch (error) {
-                console.error('PPT Download Error:', error);
-                alert(`エラーが発生しました: ${error.message}`);
-            } finally {
-                // Restore button
-                pptDownloadBtn.textContent = originalText;
-                pptDownloadBtn.disabled = false;
-            }
-        });
-    }
-
-    // --- Function to control button visibility ---
-    function updateDownloadButtonVisibility(settings) {
-        console.log("Updating download button visibility with settings:", settings);
-        const pdfBtn = document.getElementById('download-pdf-result');
-        const pptBtn = document.getElementById('download-ppt-result');
-        // const gslideBtn = document.getElementById('download-gslide-result'); // Removed Googleスライド button
-
-        // Always force PDF and PPT buttons to be visible regardless of settings
-        if (pdfBtn) pdfBtn.style.display = 'inline-block';
-        if (pptBtn) pptBtn.style.display = 'inline-block';
-
-        // Googleスライドは設定に基づいて表示/非表示 - このセクションを削除
-        /*
-        if (gslideBtn) {
-            if (settings && settings.output_gslide_enabled) {
-                gslideBtn.style.display = 'inline-block';
-            } else {
-                gslideBtn.style.display = 'none';
-            }
-        }
-        */
     }
 
     // Function to update the .selected class on labels

@@ -946,20 +946,6 @@ Styling for the dynamic fields container if it uses .additional-info-column
     font-size: 14px !important; /* フォントサイズを調整 */
 }
 
-#download-ppt-result {
-    background-color: #ff8431 !important; /* オレンジ色 */
-    display: inline-block !important; /* 強制表示 */
-    height: 40px !important; /* 高さを固定 */
-    padding: 10px 16px !important; /* パディングを調整 */
-    font-size: 14px !important; /* フォントサイズを調整 */
-}
-
-#download-gslide-result {
-    background-color: #6c757d; /* Grey color for disabled look */
-    cursor: not-allowed;
-    /* display: none; */ /* こちらは非表示のままにするか、必要なら inline-block !important に変更 */
-}
-
 /* General Button Styles - Ensure these don't conflict badly */
 
 .result-step .prev-step-btn {
@@ -1449,14 +1435,6 @@ footer {
     background-color: #D32F2F; /* Red for PDF */
 }
 
-.download-options .download-btn.ppt {
-    background-color: #FF8F00; /* Orange for PPT */
-}
-
-.download-options .download-btn.gslide {
-    background-color: #FBC02D; /* Yellow for Google Slides */
-}
-
 /* 市区町村の入力フィールドの調整 */
 #preview-municipality.editable-field {
     width: 100px; /* 幅を固定 */
@@ -1514,15 +1492,6 @@ footer {
 /* PDFダウンロードボタン */
 #download-pdf-result {
     background-color: #ff0000 !important; /* 赤色 */
-    display: inline-block !important; /* 強制表示 */
-    height: 40px !important; /* 高さを固定 */
-    padding: 10px 16px !important; /* パディングを調整 */
-    font-size: 14px !important; /* フォントサイズを調整 */
-}
-
-/* PPTダウンロードボタン */
-#download-ppt-result {
-    background-color: #ff8431 !important; /* オレンジ色 */
     display: inline-block !important; /* 強制表示 */
     height: 40px !important; /* 高さを固定 */
     padding: 10px 16px !important; /* パディングを調整 */
