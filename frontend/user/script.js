@@ -1649,6 +1649,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 pdfButton.textContent = 'PDF';
                 pdfButton.disabled = false;
                 pdfButton.style.opacity = '1';
+                pdfButton.style.display = 'inline-flex';
             }
         });
         
@@ -1689,6 +1690,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 pptButton.textContent = 'PPT';
                 pptButton.disabled = false;
                 pptButton.style.opacity = '1';
+                pptButton.style.display = 'inline-flex';
             }
         });
         
@@ -1876,7 +1878,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Ensure buttons are visible (redundant if styles are correct, but for safety)
         if (pdfButton) { // Use the direct reference to the created button
-            pdfButton.style.display = 'inline-block';
+            pdfButton.style.display = 'inline-flex';
             pdfButton.style.visibility = 'visible';
             console.log('Ensured dynamically created PDF button is visible');
         }
