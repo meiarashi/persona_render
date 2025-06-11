@@ -1596,20 +1596,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // 共通のボタンスタイル関数
         const applyButtonStyle = (button, bgColor) => {
-            button.style.color = 'white';
-            button.style.border = 'none';
-            button.style.borderRadius = '4px';
-            button.style.padding = '8px 16px';
-            button.style.cursor = 'pointer';
-            button.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
-            button.style.fontSize = '14px';
-            button.style.fontWeight = 'bold';
-            button.style.width = '80px';
-            button.style.height = '36px';
-            button.style.display = 'inline-flex';
-            button.style.alignItems = 'center';
-            button.style.justifyContent = 'center';
-            button.style.backgroundColor = bgColor;
+            // すべてのスタイルをリセット
+            button.style.cssText = '';
+            // 新しいスタイルを適用
+            button.style.cssText = `
+                color: white !important;
+                border: none !important;
+                border-radius: 4px !important;
+                padding: 8px 16px !important;
+                cursor: pointer !important;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+                font-size: 14px !important;
+                font-weight: bold !important;
+                width: 80px !important;
+                height: 36px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                background-color: ${bgColor} !important;
+            `;
         };
 
         // PDFボタン (IDを download-pdf-result に統一)
@@ -1627,6 +1632,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             pdfButton.textContent = '生成中...';
             pdfButton.disabled = true;
             pdfButton.style.opacity = '0.7';
+            pdfButton.style.fontSize = '12px';  // 文字サイズを小さくする
             try {
                 const response = await fetch('/api/download/pdf', {
                     method: 'POST',
@@ -1648,8 +1654,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             } finally {
                 pdfButton.textContent = 'PDF';
                 pdfButton.disabled = false;
-                pdfButton.style.opacity = '1';
-                pdfButton.style.display = 'inline-flex';
+                // スタイルを再適用
+                applyButtonStyle(pdfButton, '#ff0000');
             }
         });
         
@@ -1668,6 +1674,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             pptButton.textContent = '生成中...';
             pptButton.disabled = true;
             pptButton.style.opacity = '0.7';
+            pptButton.style.fontSize = '12px';  // 文字サイズを小さくする
             try {
                 const response = await fetch('/api/download/ppt', {
                     method: 'POST',
@@ -1689,8 +1696,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             } finally {
                 pptButton.textContent = 'PPT';
                 pptButton.disabled = false;
-                pptButton.style.opacity = '1';
-                pptButton.style.display = 'inline-flex';
+                // スタイルを再適用
+                applyButtonStyle(pptButton, '#ff6600');
             }
         });
         
@@ -1876,12 +1883,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         // DEBUG: Final check of download buttons after population
         console.log('After dynamic population - PDF Button by ID:', document.getElementById('download-pdf-result'));
         
-        // Ensure buttons are visible (redundant if styles are correct, but for safety)
-        if (pdfButton) { // Use the direct reference to the created button
+        // Ensure buttons are visible - 削除（スタイルが!importantで固定されているため不要）
+        // この処理は不要になったのでコメントアウト
+        /*
+        if (pdfButton) {
             pdfButton.style.display = 'inline-flex';
             pdfButton.style.visibility = 'visible';
             console.log('Ensured dynamically created PDF button is visible');
         }
+        */
     }
 
 
