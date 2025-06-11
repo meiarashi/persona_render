@@ -1594,22 +1594,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         floatingContainer.style.flexDirection = 'row'; 
         floatingContainer.style.gap = '10px';
 
+        // 共通のボタンスタイル
+        const buttonStyle = {
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            padding: '8px 16px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            width: '80px',
+            height: '36px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+        };
+
         // PDFボタン (IDを download-pdf-result に統一)
         const pdfButton = document.createElement('button');
         pdfButton.id = 'download-pdf-result';
-        pdfButton.textContent = 'PDF'; 
-        pdfButton.style.backgroundColor = '#ff0000';
-        pdfButton.style.color = 'white';
-        pdfButton.style.border = 'none';
-        pdfButton.style.borderRadius = '4px';
-        pdfButton.style.padding = '6px 12px';
-        pdfButton.style.cursor = 'pointer';
-        pdfButton.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)';
-        pdfButton.style.fontSize = '13px';
-        pdfButton.style.width = '100px';
-        pdfButton.style.height = '30px';
-        pdfButton.style.lineHeight = '18px';
-        pdfButton.style.textAlign = 'center'; 
+        pdfButton.textContent = 'PDF';
+        Object.assign(pdfButton.style, buttonStyle);
+        pdfButton.style.backgroundColor = '#ff0000'; 
         
         // PDFボタンのクリックイベント (既存のものを再利用できるようにする)
         pdfButton.addEventListener('click', async () => {
@@ -1649,18 +1656,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const pptButton = document.createElement('button');
         pptButton.id = 'download-ppt-result';
         pptButton.textContent = 'PPT';
+        Object.assign(pptButton.style, buttonStyle);
         pptButton.style.backgroundColor = '#ff6600';
-        pptButton.style.color = 'white';
-        pptButton.style.border = 'none';
-        pptButton.style.borderRadius = '4px';
-        pptButton.style.padding = '6px 12px';
-        pptButton.style.cursor = 'pointer';
-        pptButton.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)';
-        pptButton.style.fontSize = '13px';
-        pptButton.style.width = '100px';
-        pptButton.style.height = '30px';
-        pptButton.style.lineHeight = '18px';
-        pptButton.style.textAlign = 'center';
         
         // PPTボタンのクリックイベント
         pptButton.addEventListener('click', async () => {

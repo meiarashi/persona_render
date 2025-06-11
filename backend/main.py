@@ -839,10 +839,20 @@ async def download_ppt(request: Request):
         
         # 診療科と目的の取得
         department_val = persona_data.get('department', '-')
-        department_text = DEPARTMENT_MAP.get(department_val.lower(), department_val) if department_val else '-'
+        print(f"[DEBUG] Department value: {department_val}, type: {type(department_val)}")
+        # department_valが文字列でない場合も考慮
+        if department_val and department_val != '-':
+            department_text = DEPARTMENT_MAP.get(str(department_val).lower(), str(department_val))
+            print(f"[DEBUG] Department text: {department_text}")
+        else:
+            department_text = '-'
         
         purpose_val = persona_data.get('purpose', '-')
-        purpose_text = PURPOSE_MAP.get(purpose_val.lower(), purpose_val) if purpose_val else '-'
+        # purpose_valが文字列でない場合も考慮
+        if purpose_val and purpose_val != '-':
+            purpose_text = PURPOSE_MAP.get(str(purpose_val).lower(), str(purpose_val))
+        else:
+            purpose_text = '-'
         
         # 画像があれば一時ファイルに保存
         if image_url:
@@ -1047,19 +1057,19 @@ def sanitize_for_ppt(text):
 
 # Helper function to generate PPT
 def add_text_to_shape(shape, text, font_size=Pt(9), is_bold=False, alignment=PP_ALIGN.LEFT, font_name='Meiryo UI', fill_color=None, add_border=False):
+    # テキストフレームの処理を先に行う
+    text_frame = shape.text_frame
+    text_frame.word_wrap = True
+    
     # 背景色を設定（fillColorが指定されている場合）
-    if fill_color and hasattr(shape, 'fill'):
+    if fill_color:
         shape.fill.solid()
         shape.fill.fore_color.rgb = fill_color
     
     # 枠線を追加（必要な場合）
-    if add_border and hasattr(shape, 'line'):
+    if add_border:
         shape.line.color.rgb = RGBColor(200, 200, 200)  # 薄いグレーの枠線
         shape.line.width = Pt(0.5)
-    
-    text_frame = shape.text_frame
-    # text_frame.clear()を削除して、段落をより慎重に処理
-    text_frame.word_wrap = True
     # テキストが長い場合は、テキストサイズを自動調整するのではなく、形状を固定
     if len(text) > 100:
         text_frame.auto_size = MSO_AUTO_SIZE.NONE
@@ -1378,6 +1388,12 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
     prs.slide_height = Inches(8.27) # A4 Landscape height
     slide_layout = prs.slide_layouts[5]  # Blank layout
     slide = prs.slides.add_slide(slide_layout)
+    
+    # スライド上のすべてのプレースホルダーを削除
+    for shape in slide.shapes:
+        if shape.is_placeholder:
+            sp = shape.element
+            sp.getparent().remove(sp)
 
     # Margins (approximated from PDF's 8mm)
     left_margin_ppt = Cm(0.8)
