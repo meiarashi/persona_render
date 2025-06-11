@@ -2172,7 +2172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 if (iconDiv) {
                     // 各タイプのアイコンを設定
-                    iconDiv.style.backgroundImage = `url('/images/${typeName}.png')`;
+                    iconDiv.style.backgroundImage = `url('/assets/images/${typeName}.png')`;
                     iconDiv.style.backgroundSize = 'contain';
                     iconDiv.style.backgroundPosition = 'center';
                     iconDiv.style.backgroundRepeat = 'no-repeat';
@@ -2230,14 +2230,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                         // 新しいimg要素を作成
                         const img = document.createElement('img');
                         // WebPを優先的に読み込み、非対応ブラウザの場合はPNGにフォールバック
-                        img.src = `/images/${typeName}.webp`;
+                        img.src = `/assets/images/${typeName}.webp`;
                         img.alt = typeName;
                         img.loading = 'eager'; // 即時読み込み
                         
                         // シンプルなエラーハンドリング
                         img.onerror = function() {
                             // WebPが読み込めない場合はPNGを試す
-                            this.src = `/images/${typeName}.png`;
+                            this.src = `/assets/images/${typeName}.png`;
                             this.onerror = function() {
                                 console.warn(`Failed to load image: ${typeName}`);
                                 this.style.display = 'none';

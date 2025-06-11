@@ -109,6 +109,28 @@ if frontend_dir.exists() and frontend_dir.is_dir():
 else:
     print(f"Frontend directory not found at {frontend_dir}. Static file serving skipped.")
 
+# Helper function to find font file
+def find_font_file():
+    """Search for the Japanese font file in various locations"""
+    possible_paths = [
+        project_root_dir / "assets" / "fonts" / "ipaexg.ttf",  # New structure
+        project_root_dir / "ipaexg.ttf",  # Legacy location
+        current_file_dir / "ipaexg.ttf",
+        Path("/usr/share/fonts/truetype/fonts-japanese-gothic.ttf"),
+        Path("/usr/share/fonts/truetype/fonts-japanese-mincho.ttf"),
+    ]
+    
+    for path in possible_paths:
+        if path.exists():
+            return str(path)
+    
+    # Default fallback
+    return str(project_root_dir / "assets" / "fonts" / "ipaexg.ttf")
+
+# Get font path
+FONT_PATH = find_font_file()
+print(f"Using font from: {FONT_PATH}")
+
 # --- Settings Migration ---
 def migrate_image_model_settings():
     """Migrates old Gemini image model name in settings to the new one."""
@@ -975,13 +997,17 @@ def generate_pdf(data):
     
     # フォント設定
     try:
+        # フォントファイルのパスを取得
+        font_path = find_font_file()
+        print(f"PDF generation using font from: {font_path}")
+        
         # Register Regular font
-        pdf.add_font("ipa", "", "ipaexg.ttf", uni=True)
+        pdf.add_font("ipa", "", font_path, uni=True)
         # Register Bold style using the same file
-        pdf.add_font("ipa", "B", "ipaexg.ttf", uni=True)
+        pdf.add_font("ipa", "B", font_path, uni=True)
         pdf.set_font("ipa", size=10) # 全体的に小さいフォントサイズをデフォルトに
     except RuntimeError as e:
-        print(f"WARNING: Could not load/register font 'ipaexg.ttf'. Error: {e}. Using default font.")
+        print(f"WARNING: Could not load/register font from '{font_path}'. Error: {e}. Using default font.")
         pdf.set_font("Arial", size=10) # フォールバックフォントも小さく
 
     profile = data.get('profile', {})

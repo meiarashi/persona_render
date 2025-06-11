@@ -64,10 +64,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!ragDataList) return;
         
         try {
-            const response = await fetch('/api/admin/rag/list');
+            const response = await fetch('/api/admin/rag/tables');
             if (response.ok) {
                 const data = await response.json();
-                displayRAGDataList(data.rag_data);
+                displayRAGDataList(data);
             } else {
                 console.error('Failed to load RAG data list');
             }
@@ -90,12 +90,12 @@ document.addEventListener('DOMContentLoaded', () => {
         ragData.forEach(item => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${escapeHTML(item.specialty)}</td>
-                <td>${escapeHTML(item.filename)}</td>
-                <td>${item.current_records}</td>
-                <td>${new Date(item.uploaded_at).toLocaleString('ja-JP')}</td>
+                <td>${escapeHTML(item.table_name)}</td>
+                <td>-</td>
+                <td>${item.row_count}</td>
+                <td>${item.created_at ? new Date(item.created_at).toLocaleString('ja-JP') : '-'}</td>
                 <td>
-                    <button class="delete-rag-btn" data-specialty="${escapeHTML(item.specialty_code || item.specialty)}">削除</button>
+                    <button class="delete-rag-btn" data-table="${escapeHTML(item.table_name)}">削除</button>
                 </td>
             `;
             ragDataList.appendChild(row);
@@ -104,18 +104,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // 削除ボタンのイベントリスナー追加
         document.querySelectorAll('.delete-rag-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
-                const specialty = e.target.dataset.specialty;
-                if (confirm(`${specialty}のRAGデータを削除しますか？`)) {
-                    await deleteRAGData(specialty);
+                const tableName = e.target.dataset.table;
+                if (confirm(`テーブル「${tableName}」を削除しますか？`)) {
+                    await deleteRAGData(tableName);
                 }
             });
         });
     }
     
     // RAGデータの削除
-    async function deleteRAGData(specialty) {
+    async function deleteRAGData(tableName) {
         try {
-            const response = await fetch(`/api/admin/rag/${encodeURIComponent(specialty)}`, {
+            const response = await fetch(`/api/admin/rag/tables/${encodeURIComponent(tableName)}`, {
                 method: 'DELETE'
             });
             
@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('JSON stringified:', JSON.stringify({ limits: limits }));
 
             try {
-                 const apiUrl = '/api/admin/settings/limits'; // Use relative URL
+                 const apiUrl = '/api/admin/settings/char-limits'; // Use relative URL
                  const response = await fetch(apiUrl, {
                      method: 'POST',
                      headers: { 'Content-Type': 'application/json', },
