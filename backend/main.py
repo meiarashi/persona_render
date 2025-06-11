@@ -1058,7 +1058,7 @@ def add_text_to_shape(shape, text, font_size=Pt(9), is_bold=False, alignment=PP_
         shape.line.width = Pt(0.5)
     
     text_frame = shape.text_frame
-    text_frame.clear() # Clear existing text and formatting
+    # text_frame.clear()を削除して、段落をより慎重に処理
     text_frame.word_wrap = True
     # テキストが長い場合は、テキストサイズを自動調整するのではなく、形状を固定
     if len(text) > 100:
@@ -1071,8 +1071,12 @@ def add_text_to_shape(shape, text, font_size=Pt(9), is_bold=False, alignment=PP_
     text_frame.margin_top = Cm(0.05)
     text_frame.margin_bottom = Cm(0.05)
 
-    p = text_frame.paragraphs[0] if text_frame.paragraphs else text_frame.add_paragraph()
-    p.clear() # Clear existing runs in the paragraph
+    # 既存の段落をクリアして新しいテキストを設定
+    if text_frame.paragraphs:
+        p = text_frame.paragraphs[0]
+        p.clear()
+    else:
+        p = text_frame.add_paragraph()
 
     run = p.add_run()
     run.text = sanitize_for_ppt(text)
@@ -1388,7 +1392,8 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
     # Title
     title_shape = slide.shapes.add_textbox(left=Cm(0.5), top=Cm(0.2), width=prs.slide_width - Cm(1.0), height=Cm(1.0))
     text_frame = title_shape.text_frame
-    p = text_frame.add_paragraph()
+    text_frame.clear()  # 既存のテキストをクリア
+    p = text_frame.paragraphs[0] if text_frame.paragraphs else text_frame.add_paragraph()
     p.text = "生成されたペルソナ"
     p.alignment = PP_ALIGN.CENTER
     p.font.bold = True
@@ -1449,8 +1454,12 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
         ("作成目的", purpose_text)
     ]
     for i, (label, value) in enumerate(header_items):
-        item_p = text_frame.add_paragraph() if i > 0 else text_frame.paragraphs[0]
-        if i == 0 and not text_frame.paragraphs: item_p = text_frame.add_paragraph()
+        if i == 0:
+            # 最初の段落を使用
+            item_p = text_frame.paragraphs[0]
+        else:
+            # 2番目以降は新しい段落を追加
+            item_p = text_frame.add_paragraph()
         
         run_label = item_p.add_run()
         run_label.text = f"{label}: "
@@ -1460,13 +1469,11 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
         font_label.bold = True
 
         run_value = item_p.add_run()
-        run_value.text = value
+        run_value.text = sanitize_for_ppt(value)
         font_value = run_value.font
         font_value.name = 'Meiryo UI'
         font_value.size = Pt(9)
         item_p.alignment = PP_ALIGN.LEFT
-        if i < len(header_items) -1: # Add line break except for last item
-             item_p.add_run().text = '\\n'
 
     y_position_left = header_info_top + Cm(1.0) + Cm(0.3) # Start Y for left column content
     y_position_right = icon_top # Start Y for right column content (aligned with icon top)
@@ -1573,7 +1580,7 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
         current_y_right += Cm(0.8)
 
         content_shape = slide.shapes.add_textbox(right_column_x, current_y_right, right_width, Cm(2.5))
-        add_text_to_shape(content_shape, value, font_size=Pt(9), font_name='Meiryo UI')
+        add_text_to_shape(content_shape, value, font_size=Pt(10.5), font_name='Meiryo UI')
         current_y_right += Cm(2.5) + item_spacing_ppt * 2
         
     # Other detailed sections
@@ -1588,7 +1595,7 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
             current_y_right += Cm(0.8)
 
             content_shape = slide.shapes.add_textbox(right_column_x, current_y_right, right_width, Cm(2.0))
-            add_text_to_shape(content_shape, value, font_size=Pt(9), font_name='Meiryo UI')
+            add_text_to_shape(content_shape, value, font_size=Pt(10.5), font_name='Meiryo UI')
             current_y_right += Cm(2.0) + item_spacing_ppt * 2
     
     # Save to memory stream
