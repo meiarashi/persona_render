@@ -48,9 +48,9 @@ except ImportError:
     Anthropic = None
 
 # Import from new structure
-from api import admin_settings
-from services import crud, rag_processor
-from models import schemas as models
+from .api import admin_settings
+from .services import crud, rag_processor
+from .models import schemas as models
 
 # Create a FastAPI app instance
 app = FastAPI(
