@@ -78,7 +78,14 @@ if frontend_dir.exists() and frontend_dir.is_dir():
     print(f"Serving static files from: {frontend_dir}")
     app.mount("/static/user", StaticFiles(directory=frontend_dir / "user"), name="user_static_assets")
     app.mount("/static/admin", StaticFiles(directory=frontend_dir / "admin"), name="admin_static_assets")
-    # Mount assets directory (new structure)
+    
+    # Mount images from frontend directory
+    frontend_images_dir = frontend_dir / "images"
+    if frontend_images_dir.exists() and frontend_images_dir.is_dir():
+        app.mount("/assets/images", StaticFiles(directory=frontend_images_dir), name="frontend_images")
+        print(f"Serving images from: {frontend_images_dir}")
+    
+    # Mount assets directory (new structure) as fallback
     assets_dir = project_root_dir / "assets"
     if assets_dir.exists() and assets_dir.is_dir():
         app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
