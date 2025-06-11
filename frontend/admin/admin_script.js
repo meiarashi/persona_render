@@ -91,11 +91,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${escapeHTML(item.table_name)}</td>
-                <td>-</td>
+                <td>${escapeHTML(item.filename || '-')}</td>
                 <td>${item.row_count}</td>
                 <td>${item.created_at ? new Date(item.created_at).toLocaleString('ja-JP') : '-'}</td>
                 <td>
-                    <button class="delete-rag-btn" data-table="${escapeHTML(item.table_name)}">削除</button>
+                    <button class="delete-rag-btn" data-table="${escapeHTML(item.specialty_code || item.table_name)}">削除</button>
                 </td>
             `;
             ragDataList.appendChild(row);

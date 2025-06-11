@@ -132,15 +132,27 @@ async def upload_rag_data(
 
 @router.get(
     "/api/admin/rag/tables",
-    response_model=List[schemas.RAGTableInfo],
     summary="List all RAG tables",
     tags=["RAG Settings"]
 )
 async def list_rag_tables():
-    """Get a list of all tables in the RAG database with their metadata."""
+    """Get a list of all uploaded RAG data with their metadata."""
     try:
-        tables = rag_processor.list_tables()
-        return tables
+        # 既存のRAGデータを取得
+        rag_data = rag_processor.get_uploaded_rag_data()
+        
+        # RAGTableInfoフォーマットに変換
+        table_info = []
+        for item in rag_data:
+            table_info.append({
+                "table_name": item.get("specialty", ""),
+                "row_count": item.get("current_records", 0),
+                "created_at": item.get("uploaded_at", None),
+                "filename": item.get("filename", ""),
+                "specialty_code": item.get("specialty_code", "")
+            })
+        
+        return table_info
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -149,23 +161,24 @@ async def list_rag_tables():
 
 @router.delete(
     "/api/admin/rag/tables/{table_name}",
-    response_model=Dict[str, bool],
-    summary="Delete a RAG table",
+    response_model=Dict[str, str],
+    summary="Delete RAG data",
     tags=["RAG Settings"]
 )
 async def delete_rag_table(table_name: str):
-    """Delete a specific table from the RAG database."""
+    """Delete RAG data for a specific specialty."""
     try:
-        success = rag_processor.delete_table(table_name)
+        # table_nameは実際にはspecialty_codeとして使用
+        success = rag_processor.delete_rag_data(table_name)
         if success:
-            return {"success": True}
+            return {"success": "true", "message": f"RAGデータ（{table_name}）を削除しました"}
         else:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Table '{table_name}' not found"
+                detail=f"RAGデータ '{table_name}' が見つかりません"
             )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete table: {str(e)}"
+            detail=f"Failed to delete RAG data: {str(e)}"
         )
