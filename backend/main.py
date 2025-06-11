@@ -48,9 +48,10 @@ except ImportError:
     Anthropic = None
 
 # Import from new structure
-from .api import admin_settings
+from .api import admin_settings, config
 from .services import crud, rag_processor
 from .models import schemas as models
+from .utils import config_loader, prompt_builder
 
 # Create a FastAPI app instance
 app = FastAPI(
@@ -61,6 +62,8 @@ app = FastAPI(
 
 # Mount the admin_settings router
 app.include_router(admin_settings.router)
+# Mount the config router
+app.include_router(config.router)
 
 # --- Static files hosting ---
 current_file_dir = Path(__file__).resolve().parent  # backend/
@@ -505,8 +508,15 @@ async def generate_persona(request: Request):
                     # カテゴリーフィールドは削除（CSVに存在しないため）
         
         # プロンプト構築（RAGコンテキストを含む）
-        prompt_text = build_prompt(data, limit_personality, limit_reason, limit_behavior, 
-                                  limit_reviews, limit_values, limit_demands) + rag_context
+        char_limits = {
+            "personality": limit_personality,
+            "reason": limit_reason,
+            "behavior": limit_behavior,
+            "reviews": limit_reviews,
+            "values": limit_values,
+            "demands": limit_demands
+        }
+        prompt_text = prompt_builder.build_persona_prompt(data, char_limits, rag_context)
         
         # 生成情報をログ出力
         print(f"[INFO] Generating persona with model: {selected_text_model}")

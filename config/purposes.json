@@ -1,0 +1,28 @@
+{
+  "purposes": [
+    {
+      "id": "increase_patients",
+      "name_ja": "患者数を増やす",
+      "icon": "患者数を増やす.png",
+      "order": 1,
+      "enabled": true,
+      "description": "新規患者の獲得を目的としたペルソナ作成"
+    },
+    {
+      "id": "increase_frequency",
+      "name_ja": "来院頻度を増やす",
+      "icon": "来院頻度を増やす.png",
+      "order": 2,
+      "enabled": true,
+      "description": "既存患者のリピート率向上を目的としたペルソナ作成"
+    },
+    {
+      "id": "increase_spend",
+      "name_ja": "客単価を増やす",
+      "icon": "客単価を増やす.png",
+      "order": 3,
+      "enabled": true,
+      "description": "一回あたりの診療価値向上を目的としたペルソナ作成"
+    }
+  ]
+}

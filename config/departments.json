@@ -1,0 +1,222 @@
+{
+  "departments": [
+    {
+      "id": "internal_medicine",
+      "name_ja": "内科",
+      "icon": "内科.png",
+      "order": 1,
+      "enabled": true
+    },
+    {
+      "id": "surgery",
+      "name_ja": "外科", 
+      "icon": "外科.png",
+      "order": 2,
+      "enabled": true
+    },
+    {
+      "id": "pediatrics",
+      "name_ja": "小児科",
+      "icon": "小児科.png", 
+      "order": 3,
+      "enabled": true
+    },
+    {
+      "id": "orthopedics",
+      "name_ja": "整形外科",
+      "icon": "整形外科.png",
+      "order": 4,
+      "enabled": true
+    },
+    {
+      "id": "dermatology",
+      "name_ja": "皮膚科",
+      "icon": "皮膚科.png",
+      "order": 5,
+      "enabled": true
+    },
+    {
+      "id": "ophthalmology",
+      "name_ja": "眼科",
+      "icon": "眼科.png",
+      "order": 6,
+      "enabled": true
+    },
+    {
+      "id": "cardiology",
+      "name_ja": "循環器内科",
+      "icon": "循環器内科.png",
+      "order": 7,
+      "enabled": true
+    },
+    {
+      "id": "psychiatry",
+      "name_ja": "精神科",
+      "icon": "精神科.png",
+      "order": 8,
+      "enabled": true
+    },
+    {
+      "id": "dentistry",
+      "name_ja": "歯科",
+      "icon": "歯科.png",
+      "order": 9,
+      "enabled": true
+    },
+    {
+      "id": "pediatric_dentistry",
+      "name_ja": "小児歯科",
+      "icon": "小児歯科.png",
+      "order": 10,
+      "enabled": true
+    },
+    {
+      "id": "otorhinolaryngology",
+      "name_ja": "耳鼻咽喉科",
+      "icon": "耳鼻咽喉科.png",
+      "order": 11,
+      "enabled": true
+    },
+    {
+      "id": "ent",
+      "name_ja": "耳鼻咽喉科",
+      "icon": "耳鼻咽喉科.png",
+      "order": 11,
+      "enabled": true,
+      "alias_of": "otorhinolaryngology"
+    },
+    {
+      "id": "gynecology",
+      "name_ja": "婦人科",
+      "icon": "婦人科.png",
+      "order": 12,
+      "enabled": true
+    },
+    {
+      "id": "urology",
+      "name_ja": "泌尿器科",
+      "icon": "泌尿器科.png",
+      "order": 13,
+      "enabled": true
+    },
+    {
+      "id": "neurosurgery",
+      "name_ja": "脳神経外科",
+      "icon": "脳神経外科.png",
+      "order": 14,
+      "enabled": true
+    },
+    {
+      "id": "general_dentistry",
+      "name_ja": "一般歯科",
+      "icon": "一般歯科.png",
+      "order": 15,
+      "enabled": true
+    },
+    {
+      "id": "orthodontics",
+      "name_ja": "矯正歯科",
+      "icon": "矯正歯科.png",
+      "order": 16,
+      "enabled": true
+    },
+    {
+      "id": "cosmetic_dentistry",
+      "name_ja": "審美歯科",
+      "icon": "審美歯科.png",
+      "order": 17,
+      "enabled": true
+    },
+    {
+      "id": "oral_surgery",
+      "name_ja": "口腔外科",
+      "icon": "口腔外科.png",
+      "order": 18,
+      "enabled": true
+    },
+    {
+      "id": "anesthesiology",
+      "name_ja": "麻酔科",
+      "icon": "麻酔科.png",
+      "order": 19,
+      "enabled": true
+    },
+    {
+      "id": "radiology",
+      "name_ja": "放射線科",
+      "icon": "放射線科.png",
+      "order": 20,
+      "enabled": true
+    },
+    {
+      "id": "rehabilitation",
+      "name_ja": "リハビリテーション科",
+      "icon": "リハビリテーション科.png",
+      "order": 21,
+      "enabled": true
+    },
+    {
+      "id": "allergy",
+      "name_ja": "アレルギー科",
+      "icon": "アレルギー科.png",
+      "order": 22,
+      "enabled": true
+    },
+    {
+      "id": "gastroenterology",
+      "name_ja": "消化器内科",
+      "icon": "消化器科.png",
+      "order": 23,
+      "enabled": true
+    },
+    {
+      "id": "respiratory_medicine",
+      "name_ja": "呼吸器内科",
+      "icon": "呼吸器内科.png",
+      "order": 24,
+      "enabled": true
+    },
+    {
+      "id": "diabetes_medicine",
+      "name_ja": "糖尿病内科",
+      "icon": "糖尿病内科.png",
+      "order": 25,
+      "enabled": true
+    },
+    {
+      "id": "nephrology",
+      "name_ja": "腎臓内科",
+      "icon": "腎臓内科.png",
+      "order": 26,
+      "enabled": true
+    },
+    {
+      "id": "neurology",
+      "name_ja": "神経内科",
+      "icon": "神経内科.png",
+      "order": 27,
+      "enabled": true
+    },
+    {
+      "id": "hematology",
+      "name_ja": "血液内科",
+      "icon": "血液内科.png",
+      "order": 28,
+      "enabled": true
+    },
+    {
+      "id": "plastic_surgery",
+      "name_ja": "形成外科",
+      "icon": "形成外科.png",
+      "order": 29,
+      "enabled": true
+    },
+    {
+      "id": "beauty_surgery",
+      "name_ja": "美容外科",
+      "icon": "美容外科.png",
+      "order": 30,
+      "enabled": true
+    }
+  ]
+}

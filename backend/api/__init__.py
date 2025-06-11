@@ -1,3 +1,3 @@
-from . import admin_settings
+from . import admin_settings, config
 
-__all__ = ['admin_settings']
+__all__ = ['admin_settings', 'config']

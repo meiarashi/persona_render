@@ -347,6 +347,67 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Load AI models from config
+    async function loadAIModels() {
+        try {
+            const response = await fetch('/api/config/ai-models');
+            if (response.ok) {
+                const models = await response.json();
+                
+                // Populate text model dropdown
+                const textSelect = document.getElementById('text-api-model-select');
+                textSelect.innerHTML = '';
+                models.text_models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.id;
+                    option.textContent = model.name;
+                    textSelect.appendChild(option);
+                });
+                
+                // Populate image model dropdown
+                const imageSelect = document.getElementById('image-api-model-select');
+                imageSelect.innerHTML = '';
+                models.image_models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.id;
+                    option.textContent = model.name;
+                    imageSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading AI models:', error);
+        }
+    }
+
+    // Load departments from config
+    async function loadDepartments() {
+        try {
+            const response = await fetch('/api/config/departments');
+            if (response.ok) {
+                const departments = await response.json();
+                
+                // Populate specialty dropdown for RAG upload
+                const specialtySelect = document.getElementById('specialty-select');
+                if (specialtySelect) {
+                    // Keep the first option
+                    const firstOption = specialtySelect.options[0];
+                    specialtySelect.innerHTML = '';
+                    specialtySelect.appendChild(firstOption);
+                    
+                    // Add departments
+                    departments.forEach(dept => {
+                        const option = document.createElement('option');
+                        option.value = dept.id;
+                        option.textContent = dept.name_ja;
+                        specialtySelect.appendChild(option);
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error loading departments:', error);
+        }
+    }
+
     // Load settings function definition
     async function loadAllSettings() {
         console.log("Loading settings from backend...");
@@ -387,8 +448,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Call load settings function
-    loadAllSettings();
+    // Load configurations first, then settings
+    Promise.all([
+        loadAIModels(),
+        loadDepartments()
+    ]).then(() => {
+        // Call load settings function after configs are loaded
+        loadAllSettings();
+    });
     
     // Load RAG data list on page load
     loadRAGDataList();

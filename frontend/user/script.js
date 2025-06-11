@@ -2252,10 +2252,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // DOMContentLoadedイベントリスナーを追加して確実に実行
-    document.addEventListener('DOMContentLoaded', function() {
-        // 既存のイベントリスナーに加えて
-        initializePatientTypeIcons();
+    // WebP support detection and image loading helper
+function loadImageWithFallback(element, imageName) {
+    const img = new Image();
+    img.onload = function() {
+        element.style.backgroundImage = `url('${img.src}')`;
+    };
+    img.onerror = function() {
+        // WebP failed, try PNG
+        img.src = `/images/${imageName}.png`;
+    };
+    // Try WebP first
+    img.src = `/images/${imageName}.webp`;
+}
+
+// Apply WebP with fallback to all department icons on page load
+function applyWebPFallback() {
+    const departmentIcons = document.querySelectorAll('.department-icon');
+    departmentIcons.forEach(icon => {
+        const style = icon.getAttribute('style');
+        if (style && style.includes('background-image')) {
+            const match = style.match(/url\(['"]?\/images\/([^'"]+)\.png['"]?\)/);
+            if (match && match[1]) {
+                loadImageWithFallback(icon, match[1]);
+            }
+        }
     });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Apply WebP fallback to all images
+    applyWebPFallback();
+    
+    // Apply WebP fallback to owl images
+    const owlImages = document.querySelectorAll('img[src*="owl.png"]');
+    owlImages.forEach(img => {
+        const originalSrc = img.src;
+        img.src = originalSrc.replace('.png', '.webp');
+        img.onerror = function() {
+            this.src = originalSrc;
+        };
+    });
+    
+    // 既存のイベントリスナーに加えて
+    initializePatientTypeIcons();
+});
 
 });
 

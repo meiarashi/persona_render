@@ -1,0 +1,70 @@
+{
+  "prompts": {
+    "persona_generation": {
+      "system": "あなたは医療系のペルソナ作成専門家です。",
+      "base_template": "以下の情報に基づいて、医療系のペルソナを作成してください。\n各項目は自然な文章で記述し、**日本語で、指定されたおおよその文字数制限に従ってください**。",
+      "sections": {
+        "basic_info": {
+          "label": "利用者からの入力情報",
+          "order": 1
+        },
+        "additional_info_fixed": {
+          "label": "追加情報（固定項目）",
+          "order": 2
+        },
+        "additional_info_dynamic": {
+          "label": "追加情報（自由入力項目）",
+          "order": 3
+        },
+        "rag_context": {
+          "label": "参考情報（この診療科の患者が検索するキーワード）",
+          "template": "以下は、同じ診療科・年代・性別の患者がよく検索するキーワードです。ペルソナ作成の参考にしてください：",
+          "order": 4
+        },
+        "generation_items": {
+          "label": "生成項目",
+          "template": "以下の項目について、上記情報に基づいた自然な文章を生成してください。各項目は指定された文字数の目安で記述してください。\n\n重要: 出力には項目名と内容のみを含め、文字数の指定（例：「(100文字程度)」）は出力に含めないでください。",
+          "order": 5
+        }
+      }
+    },
+    "output_fields": [
+      {
+        "id": "personality",
+        "label": "性格（価値観・人生観）",
+        "order": 1,
+        "default_limit": 100
+      },
+      {
+        "id": "reason",
+        "label": "通院理由",
+        "order": 2,
+        "default_limit": 100
+      },
+      {
+        "id": "behavior",
+        "label": "症状通院頻度・行動パターン",
+        "order": 3,
+        "default_limit": 100
+      },
+      {
+        "id": "reviews",
+        "label": "口コミの重視ポイント",
+        "order": 4,
+        "default_limit": 100
+      },
+      {
+        "id": "values",
+        "label": "医療機関への価値観・行動傾向",
+        "order": 5,
+        "default_limit": 100
+      },
+      {
+        "id": "demands",
+        "label": "医療機関に求めるもの",
+        "order": 6,
+        "default_limit": 100
+      }
+    ]
+  }
+}
