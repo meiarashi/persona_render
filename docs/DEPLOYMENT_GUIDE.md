@@ -129,7 +129,7 @@ RAGデータやアップロードファイルを保存するため：
 
 ### 診療科・患者タイプ・AIモデルの追加
 
-`/config/`ディレクトリ内のJSONファイルを編集：
+`backend/config/`ディレクトリ内のJSONファイルを編集：
 
 - `departments.json` - 診療科の追加・編集
 - `patient_types.json` - 患者タイプの追加・編集

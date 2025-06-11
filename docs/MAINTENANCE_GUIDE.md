@@ -7,18 +7,27 @@
 
 ```
 persona_render/
-├── config/                    # 設定ファイル（JSONフォーマット）
-│   ├── departments.json       # 診療科設定
-│   ├── purposes.json          # 目的設定  
-│   ├── patient_types.json     # 患者タイプ設定
-│   ├── ai_models.json         # AIモデル設定
-│   ├── prompt_templates.json  # プロンプトテンプレート
-│   └── backups/              # 設定ファイルの自動バックアップ
-│
 ├── backend/
 │   ├── api/                  # APIエンドポイント
 │   │   ├── admin_settings.py # 管理設定API
 │   │   └── config.py         # 設定読み込みAPI
+│   │
+│   ├── models/               # データモデル
+│   │   ├── __init__.py
+│   │   └── schemas.py        # Pydanticスキーマ
+│   │
+│   ├── services/             # ビジネスロジック
+│   │   ├── __init__.py
+│   │   ├── crud.py           # データベース操作
+│   │   └── rag_processor.py  # RAG処理
+│   │
+│   ├── config/               # 設定ファイル（JSONフォーマット）
+│   │   ├── departments.json   # 診療科設定
+│   │   ├── purposes.json      # 目的設定  
+│   │   ├── patient_types.json # 患者タイプ設定
+│   │   ├── ai_models.json     # AIモデル設定
+│   │   ├── prompt_templates.json  # プロンプトテンプレート
+│   │   └── backups/          # 設定ファイルの自動バックアップ
 │   │
 │   ├── utils/                # ユーティリティ
 │   │   ├── config_loader.py  # 設定ファイル読み込み
@@ -32,7 +41,7 @@ persona_render/
 
 ### 1. 診療科の追加
 
-`config/departments.json`を編集：
+`backend/config/departments.json`を編集：
 
 ```json
 {
@@ -49,9 +58,27 @@ persona_render/
 - `icon`ファイルを`/images/`に配置すること
 - `order`で表示順序を制御
 
+#### アイコン画像の形式について
+
+新しいアイコンを追加する際は、以下の形式で用意してください：
+
+1. **必須**: PNG形式（`.png`）
+   - 透過背景推奨
+   - サイズ: 100x100px 以上推奨
+   - ファイル名: 日本語可（例: `新診療科.png`）
+
+2. **推奨**: WebP形式（`.webp`）も同時に用意
+   - PNG版と同じファイル名で拡張子のみ変更
+   - 例: `新診療科.png` と `新診療科.webp`
+   - WebP形式の作成方法は `WEBP_CONVERSION.md` を参照
+
+3. **配置場所**: 
+   - 両形式とも `/images/` ディレクトリに配置
+   - WebP版がある場合は自動的に優先使用され、非対応ブラウザではPNGにフォールバック
+
 ### 2. 患者タイプの追加
 
-`config/patient_types.json`を編集：
+`backend/config/patient_types.json`を編集：
 
 ```json
 {
@@ -66,7 +93,7 @@ persona_render/
 
 ### 3. プロンプトの変更
 
-`config/prompt_templates.json`を編集：
+`backend/config/prompt_templates.json`を編集：
 
 - 基本テンプレートの変更
 - 出力項目の追加・削除
@@ -74,7 +101,7 @@ persona_render/
 
 ### 4. AIモデルの追加
 
-`config/ai_models.json`を編集：
+`backend/config/ai_models.json`を編集：
 
 ```json
 {
@@ -126,7 +153,7 @@ prompt = prompt_builder.build_persona_prompt(data, char_limits, rag_context)
 
 1. **JSON形式の維持**: 編集時は必ず有効なJSONフォーマットを維持してください
 2. **文字エンコーディング**: UTF-8で保存してください
-3. **バックアップ**: 自動的に`backups/`に保存されますが、大きな変更前は手動バックアップも推奨
+3. **バックアップ**: 自動的に`backend/config/backups/`に保存されますが、大きな変更前は手動バックアップも推奨
 4. **キャッシュ**: 設定は起動時に読み込まれキャッシュされます。変更後はアプリケーションの再起動が必要です
 
 ## トラブルシューティング
@@ -140,5 +167,5 @@ prompt = prompt_builder.build_persona_prompt(data, char_limits, rag_context)
 - ファイル名が設定と一致しているか確認
 
 ### エラーが発生する
-- `config/backups/`から最新のバックアップを復元
+- `backend/config/backups/`から最新のバックアップを復元
 - JSONの構文エラーをチェック

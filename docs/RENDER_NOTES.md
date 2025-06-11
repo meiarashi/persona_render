@@ -15,15 +15,24 @@ Renderでは、FastAPIアプリケーションが静的ファイル（画像、C
 
 ```
 persona_render/
-├── images/           # すべての画像ファイル（フラット構造）
+├── images/           # すべての画像ファイル（レガシー配置）
 │   ├── owl.png
 │   ├── 内科.png
 │   ├── 外科.png
 │   └── ...
+├── assets/
+│   ├── fonts/        # フォントファイル
+│   │   └── ipaexg.ttf
+│   └── images/       # 画像ファイル（新配置、現在未使用）
 ├── frontend/
 │   ├── user/        # ユーザー画面のHTML/CSS/JS
 │   └── admin/       # 管理画面のHTML/CSS/JS
 └── backend/         # FastAPIアプリケーション
+    ├── api/          # APIルーター
+    ├── models/       # データモデル
+    ├── services/     # ビジネスロジック
+    ├── config/       # 設定ファイル
+    └── utils/        # ユーティリティ
 ```
 
 ## パフォーマンスの最適化
