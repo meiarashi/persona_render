@@ -23,6 +23,9 @@ pandas>=2.0.0,<3.0.0
 # Form handling for FastAPI
 python-multipart>=0.0.5
 
+# HTTP requests
+requests>=2.31.0
+
 # --- Dependencies ---
 
 # Flask & Werkzeug

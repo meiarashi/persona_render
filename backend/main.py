@@ -8,6 +8,8 @@ import random
 import traceback
 import io
 import re
+import tempfile
+import requests
 from urllib.parse import quote
 from urllib.request import urlopen
 import base64
@@ -845,10 +847,55 @@ async def download_ppt(request: Request):
         # 画像があれば一時ファイルに保存
         if image_url:
             try:
-                # 一時画像ファイルの処理ここでは省略
-                pass
+                import tempfile
+                import requests
+                from PIL import Image
+                
+                # Data URLの場合
+                if image_url.startswith('data:'):
+                    # data:image/png;base64,xxxxx の形式から画像データを抽出
+                    try:
+                        header, base64_data = image_url.split(',', 1)
+                        image_data = base64.b64decode(base64_data)
+                        
+                        # MIME typeから拡張子を判定
+                        if 'jpeg' in header or 'jpg' in header:
+                            suffix = '.jpg'
+                        elif 'webp' in header:
+                            suffix = '.webp'
+                        else:
+                            suffix = '.png'
+                        
+                        # 一時ファイルに保存
+                        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
+                            temp_file.write(image_data)
+                            image_path = temp_file.name
+                    except (ValueError, base64.binascii.Error) as e:
+                        print(f"Error decoding base64 image: {e}")
+                        image_path = None
+                        
+                # HTTPSやHTTPのURLの場合
+                elif image_url.startswith(('http://', 'https://')):
+                    response = requests.get(image_url, timeout=10, headers={'User-Agent': 'Mozilla/5.0'})
+                    response.raise_for_status()
+                    
+                    # Content-Typeから拡張子を判定
+                    content_type = response.headers.get('content-type', '').lower()
+                    if 'jpeg' in content_type or 'jpg' in content_type:
+                        suffix = '.jpg'
+                    elif 'webp' in content_type:
+                        suffix = '.webp'
+                    else:
+                        suffix = '.png'
+                    
+                    # 一時ファイルに保存
+                    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
+                        temp_file.write(response.content)
+                        image_path = temp_file.name
+                
             except Exception as e:
                 print(f"Error downloading image: {e}")
+                image_path = None
         
         # PPTX生成
         pptx_buffer = generate_ppt(persona_data, image_path, department_text, purpose_text)
@@ -875,6 +922,14 @@ async def download_ppt(request: Request):
             status_code=500,
             content={"error": f"Failed to generate PPTX: {str(e)}"}
         )
+    finally:
+        # 一時ファイルのクリーンアップ（エラーが発生しても必ず実行）
+        if 'image_path' in locals() and image_path and os.path.exists(image_path):
+            try:
+                os.unlink(image_path)
+                print(f"Cleaned up temporary file: {image_path}")
+            except Exception as e:
+                print(f"Error removing temporary file: {e}")
 
 @app.get("/health", summary="Health check endpoint", tags=["Health"])
 async def health_check():
@@ -978,18 +1033,49 @@ def format_age_for_pdf_ppt(age_value):
     except Exception:
         return str(age_value) 
 
+def sanitize_for_ppt(text):
+    """PPT用にテキストをサニタイズ"""
+    if not text:
+        return ''
+    # 文字列に変換
+    text = str(text)
+    # 制御文字を除去（タブと改行は保持）
+    text = re.sub(r'[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]', '', text)
+    # XMLで問題になる文字をエスケープ
+    text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    return text
+
 # Helper function to generate PPT
-def add_text_to_shape(shape, text, font_size=Pt(9), is_bold=False, alignment=PP_ALIGN.LEFT, font_name='Meiryo UI'):
+def add_text_to_shape(shape, text, font_size=Pt(9), is_bold=False, alignment=PP_ALIGN.LEFT, font_name='Meiryo UI', fill_color=None, add_border=False):
+    # 背景色を設定（fillColorが指定されている場合）
+    if fill_color and hasattr(shape, 'fill'):
+        shape.fill.solid()
+        shape.fill.fore_color.rgb = fill_color
+    
+    # 枠線を追加（必要な場合）
+    if add_border and hasattr(shape, 'line'):
+        shape.line.color.rgb = RGBColor(200, 200, 200)  # 薄いグレーの枠線
+        shape.line.width = Pt(0.5)
+    
     text_frame = shape.text_frame
     text_frame.clear() # Clear existing text and formatting
     text_frame.word_wrap = True
-    text_frame.auto_size = MSO_AUTO_SIZE.SHAPE_TO_FIT_TEXT
+    # テキストが長い場合は、テキストサイズを自動調整するのではなく、形状を固定
+    if len(text) > 100:
+        text_frame.auto_size = MSO_AUTO_SIZE.NONE
+    else:
+        text_frame.auto_size = MSO_AUTO_SIZE.SHAPE_TO_FIT_TEXT
+    # 余白を設定
+    text_frame.margin_left = Cm(0.1)
+    text_frame.margin_right = Cm(0.1)
+    text_frame.margin_top = Cm(0.05)
+    text_frame.margin_bottom = Cm(0.05)
 
     p = text_frame.paragraphs[0] if text_frame.paragraphs else text_frame.add_paragraph()
     p.clear() # Clear existing runs in the paragraph
 
     run = p.add_run()
-    run.text = text
+    run.text = sanitize_for_ppt(text)
     font = run.font
     font.name = font_name
     font.size = font_size
@@ -1403,7 +1489,7 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
         "life_events": "ライフイベント", "patient_type": "患者タイプ"
     }
 
-    for key in basic_info_keys:
+    for idx, key in enumerate(basic_info_keys):
         value = persona_data.get(key, "-")
         if key == "gender": value = GENDER_MAP.get(value, value)
         elif key == "age": value = format_age_for_pdf_ppt(value)
@@ -1411,7 +1497,9 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
         
         item_text = f"{basic_info_labels.get(key, key)}: {value}"
         item_shape = slide.shapes.add_textbox(left_column_x, current_y_left, left_width, Cm(0.5))
-        add_text_to_shape(item_shape, item_text, font_size=Pt(9), font_name='Meiryo UI')
+        # 偶数行に薄いグレーの背景色を設定
+        fill_color = RGBColor(245, 245, 245) if idx % 2 == 0 else None
+        add_text_to_shape(item_shape, item_text, font_size=Pt(9), font_name='Meiryo UI', fill_color=fill_color)
         current_y_left += Cm(0.5) + item_spacing_ppt
 
     # Additional Fixed Fields (Left Column)
@@ -1427,17 +1515,20 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
     add_text_to_shape(shape_title_add_fixed, "追加情報", font_size=Pt(11), is_bold=True, font_name='Meiryo UI')
     current_y_left += Cm(0.6) + item_spacing_ppt
 
-    for key, label in additional_fixed_keys_labels.items():
+    for idx, (key, label) in enumerate(additional_fixed_keys_labels.items()):
         value = persona_data.get(key, persona_data.get(key.replace('_input', ''), "-"))
         item_text = f"{label}: {value}"
         item_shape = slide.shapes.add_textbox(left_column_x, current_y_left, left_width, Cm(0.5))
-        add_text_to_shape(item_shape, item_text, font_size=Pt(9), font_name='Meiryo UI')
+        # 偶数行に薄いグレーの背景色を設定
+        fill_color = RGBColor(245, 245, 245) if idx % 2 == 0 else None
+        add_text_to_shape(item_shape, item_text, font_size=Pt(9), font_name='Meiryo UI', fill_color=fill_color)
         current_y_left += Cm(0.5) + item_spacing_ppt
         
     # Dynamic Additional Fields (Left Column)
     if persona_data.get("additional_field_name") and persona_data.get("additional_field_value"):
-        fields = zip(persona_data.get("additional_field_name"), persona_data.get("additional_field_value"))
+        fields = list(zip(persona_data.get("additional_field_name"), persona_data.get("additional_field_value")))
         has_fields = False
+        field_idx = 0
         for field_name, field_value in fields:
             if field_name and field_value:
                 if not has_fields:
@@ -1450,8 +1541,11 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
                 
                 item_text = f"{field_name}: {field_value}"
                 item_shape = slide.shapes.add_textbox(left_column_x, current_y_left, left_width, Cm(0.5))
-                add_text_to_shape(item_shape, item_text, font_size=Pt(9), font_name='Meiryo UI')
+                # 偶数行に薄いグレーの背景色を設定
+                fill_color = RGBColor(245, 245, 245) if field_idx % 2 == 0 else None
+                add_text_to_shape(item_shape, item_text, font_size=Pt(9), font_name='Meiryo UI', fill_color=fill_color)
                 current_y_left += Cm(0.5) + item_spacing_ppt
+                field_idx += 1
 
     # Right Column (Detailed Information)
     right_column_x = left_margin_ppt + content_width * 0.35 + Cm(0.3) # Start after left column + gap
@@ -1473,9 +1567,10 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
         section_title = detail_key_map['personality']
         value = persona_data['personality']
         
-        title_shape = slide.shapes.add_textbox(right_column_x, current_y_right, right_width, Cm(0.6))
-        add_text_to_shape(title_shape, section_title, font_size=Pt(11), is_bold=True, font_name='Meiryo UI')
-        current_y_right += Cm(0.6)
+        title_shape = slide.shapes.add_textbox(right_column_x, current_y_right, right_width, Cm(0.8))
+        # セクションヘッダーに薄い緑色の背景を設定
+        add_text_to_shape(title_shape, section_title, font_size=Pt(12), is_bold=True, font_name='Meiryo UI', fill_color=RGBColor(200, 230, 200))
+        current_y_right += Cm(0.8)
 
         content_shape = slide.shapes.add_textbox(right_column_x, current_y_right, right_width, Cm(2.5))
         add_text_to_shape(content_shape, value, font_size=Pt(9), font_name='Meiryo UI')
@@ -1487,9 +1582,10 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
             section_title = detail_key_map.get(key, key)
             value = persona_data[key]
             
-            title_shape = slide.shapes.add_textbox(right_column_x, current_y_right, right_width, Cm(0.6))
-            add_text_to_shape(title_shape, section_title, font_size=Pt(11), is_bold=True, font_name='Meiryo UI')
-            current_y_right += Cm(0.6)
+            title_shape = slide.shapes.add_textbox(right_column_x, current_y_right, right_width, Cm(0.8))
+            # セクションヘッダーに薄い緑色の背景を設定
+            add_text_to_shape(title_shape, section_title, font_size=Pt(12), is_bold=True, font_name='Meiryo UI', fill_color=RGBColor(200, 230, 200))
+            current_y_right += Cm(0.8)
 
             content_shape = slide.shapes.add_textbox(right_column_x, current_y_right, right_width, Cm(2.0))
             add_text_to_shape(content_shape, value, font_size=Pt(9), font_name='Meiryo UI')
