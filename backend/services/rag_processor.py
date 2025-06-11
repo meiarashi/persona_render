@@ -303,6 +303,76 @@ def delete_rag_data(specialty: str) -> bool:
         print(f"Error deleting RAG data: {e}")
         return False
 
+def upload_csv_to_db(df, table_name: str) -> bool:
+    """CSVデータをRAGデータベースにアップロード"""
+    try:
+        conn = sqlite3.connect(str(RAG_DB_PATH))
+        
+        # データフレームをSQLiteテーブルに保存
+        df.to_sql(table_name, conn, if_exists='replace', index=False)
+        
+        conn.close()
+        print(f"Successfully uploaded data to table '{table_name}'")
+        return True
+    except Exception as e:
+        print(f"Error uploading CSV to database: {e}")
+        return False
+
+def list_tables():
+    """RAGデータベース内のすべてのテーブル情報を取得"""
+    conn = sqlite3.connect(str(RAG_DB_PATH))
+    cursor = conn.cursor()
+    
+    try:
+        # SQLiteのマスターテーブルからテーブル一覧を取得
+        cursor.execute("""
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name NOT LIKE 'sqlite_%'
+        """)
+        tables = cursor.fetchall()
+        
+        table_info = []
+        for (table_name,) in tables:
+            # 各テーブルの行数を取得
+            cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+            row_count = cursor.fetchone()[0]
+            
+            table_info.append({
+                "table_name": table_name,
+                "row_count": row_count,
+                "created_at": None  # SQLiteには作成日時の情報がないため
+            })
+        
+        return table_info
+    finally:
+        conn.close()
+
+def delete_table(table_name: str) -> bool:
+    """指定されたテーブルを削除"""
+    conn = sqlite3.connect(str(RAG_DB_PATH))
+    cursor = conn.cursor()
+    
+    try:
+        # テーブルが存在するか確認
+        cursor.execute("""
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name=?
+        """, (table_name,))
+        
+        if cursor.fetchone():
+            cursor.execute(f"DROP TABLE {table_name}")
+            conn.commit()
+            print(f"Table '{table_name}' deleted successfully")
+            return True
+        else:
+            print(f"Table '{table_name}' not found")
+            return False
+    except Exception as e:
+        print(f"Error deleting table: {e}")
+        return False
+    finally:
+        conn.close()
+
 # テスト用関数
 if __name__ == "__main__":
     print("RAG Manager Test")

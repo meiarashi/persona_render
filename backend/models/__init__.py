@@ -2,20 +2,16 @@ from .schemas import (
     AdminSettings,
     ModelSettings,
     ModelSettingsUpdate,
-    CharLimitUpdate,
+    CharLimitsUpdate,
     RAGUploadResponse,
-    RAGTableInfo,
-    PersonaRequest,
-    PersonaResponse
+    RAGTableInfo
 )
 
 __all__ = [
     'AdminSettings',
     'ModelSettings', 
     'ModelSettingsUpdate',
-    'CharLimitUpdate',
+    'CharLimitsUpdate',
     'RAGUploadResponse',
-    'RAGTableInfo',
-    'PersonaRequest',
-    'PersonaResponse'
+    'RAGTableInfo'
 ]

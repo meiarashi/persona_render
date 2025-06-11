@@ -56,7 +56,7 @@ async def update_model_settings_endpoint(
     tags=["Admin Settings"]
 )
 async def update_char_limits_endpoint(
-    char_limit_update: schemas.CharLimitUpdate = Body(...)
+    char_limit_update: schemas.CharLimitsUpdate = Body(...)
 ):
     try:
         new_limits = char_limit_update.limits
