@@ -1631,8 +1631,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
             pdfButton.textContent = '生成中...';
             pdfButton.disabled = true;
+            // スタイルを一時的に変更（!importantを上書き）
+            pdfButton.style.cssText = pdfButton.style.cssText.replace('font-size: 14px !important;', 'font-size: 12px !important;');
             pdfButton.style.opacity = '0.7';
-            pdfButton.style.fontSize = '12px';  // 文字サイズを小さくする
             try {
                 const response = await fetch('/api/download/pdf', {
                     method: 'POST',
@@ -1673,8 +1674,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             pptButton.textContent = '生成中...';
             pptButton.disabled = true;
+            // スタイルを一時的に変更（!importantを上書き）
+            pptButton.style.cssText = pptButton.style.cssText.replace('font-size: 14px !important;', 'font-size: 12px !important;');
             pptButton.style.opacity = '0.7';
-            pptButton.style.fontSize = '12px';  // 文字サイズを小さくする
             try {
                 const response = await fetch('/api/download/ppt', {
                     method: 'POST',
