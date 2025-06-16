@@ -70,7 +70,6 @@ persona_render/
 2. **推奨**: WebP形式（`.webp`）も同時に用意
    - PNG版と同じファイル名で拡張子のみ変更
    - 例: `新診療科.png` と `新診療科.webp`
-   - WebP形式の作成方法は `WEBP_CONVERSION.md` を参照
 
 3. **配置場所**: 
    - 両形式とも `/images/` ディレクトリに配置

@@ -17,14 +17,8 @@
 
 1. GitHubにログイン
 2. 新しいリポジトリを作成（例：`persona-render`）
-3. このプロジェクトのファイルをすべてアップロード
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git remote add origin https://github.com/[あなたのユーザー名]/persona-render.git
-   git push -u origin main
-   ```
+3. このプロジェクトのファイルをすべてアップロード(コミット)
+
 
 ### 2. Renderアカウントの設定
 
@@ -56,19 +50,9 @@ OPENAI_API_KEY=sk-xxxxxxxxxxxxx
 ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxx
 GOOGLE_API_KEY=AIzaxxxxxxxxxxxxx
 
-# データ保存用ディレクトリ
-PERSISTENT_DISK_PATH=/var/app_settings
-
-# その他の設定（オプション）
-LIMIT_PERSONALITY=100
-LIMIT_REASON=100
-LIMIT_BEHAVIOR=100
-LIMIT_REVIEWS=100
-LIMIT_VALUES=100
-LIMIT_DEMANDS=100
 ```
 
-### 4. 永続ディスクの設定（重要）
+### 4. 永続ディスクの設定
 
 RAGデータやアップロードファイルを保存するため：
 
@@ -90,7 +74,7 @@ RAGデータやアップロードファイルを保存するため：
 
 1. デプロイ完了後、提供されたURL（例：`https://persona-render.onrender.com`）にアクセス
 2. ユーザー画面が表示されることを確認
-3. `/admin`にアクセスして管理画面を確認
+3. `https://persona-render.onrender.com/admin`にアクセスして管理画面を確認
 
 ## トラブルシューティング
 
@@ -116,7 +100,7 @@ RAGデータやアップロードファイルを保存するため：
 ### RAGデータが保存されない場合
 
 1. 永続ディスクが正しくマウントされているか確認
-2. 環境変数`PERSISTENT_DISK_PATH`が設定されているか確認
+2. 管理画面でRAGデータがアップロードされているか確認
 3. Renderのログでエラーメッセージを確認
 
 ### 500エラーが発生する場合
