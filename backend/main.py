@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, Response, FileResponse
 from pathlib import Path
@@ -52,6 +52,7 @@ except ImportError:
 # Import from new structure
 from .api import admin_settings, config
 from .services import crud, rag_processor
+from .middleware.auth import verify_admin_credentials
 from .models import schemas as models
 from .utils import config_loader, prompt_builder
 
@@ -103,7 +104,7 @@ if frontend_dir.exists() and frontend_dir.is_dir():
         print(f"Serving image files from: {images_dir}")
 
     @app.get("/admin", include_in_schema=False)
-    async def serve_admin_html():
+    async def serve_admin_html(username: str = Depends(verify_admin_credentials)):
         admin_html_path = frontend_dir / "admin/admin.html"
         if admin_html_path.exists(): return FileResponse(admin_html_path)
         fallback_html_path = project_root_dir / "frontend/admin/admin.html"
@@ -161,6 +162,14 @@ def migrate_image_model_settings():
 async def startup_event():
     print("Running startup migration...")
     migrate_image_model_settings()
+    
+    # RAGデータベースの初期化
+    print("Initializing RAG database...")
+    try:
+        rag_processor.init_rag_database()
+        print("RAG database initialized successfully")
+    except Exception as e:
+        print(f"Warning: Failed to initialize RAG database: {e}")
 
 # --- AI Client Initialization Helper --- 
 def get_ai_client(model_name, api_key):
@@ -171,23 +180,31 @@ def get_ai_client(model_name, api_key):
         try: return OpenAI(api_key=api_key)
         except Exception as e: raise ValueError(f"OpenAI Client Error: {e}")
     elif model_name.startswith("claude"):
-        if not Anthropic: raise ValueError("Anthropic library not loaded.")
-        if not api_key: raise ValueError("Anthropic APIキーが設定されていません。")
-        try: return Anthropic(api_key=api_key)
-        except Exception as e: raise ValueError(f"Anthropic Client Error: {e}")
+        if not Anthropic: 
+            raise ValueError("Anthropic library not loaded.")
+        if not api_key: 
+            raise ValueError("Anthropic APIキーが設定されていません。")
+        try: 
+            import httpx
+            
+            client = Anthropic(
+                api_key=api_key,
+                max_retries=2,  # SDK レベルでのリトライ
+            )
+            return client
+        except Exception as e: 
+            raise ValueError(f"Anthropic Client Error: {e}")
     elif model_name.startswith("gemini"):
         if not api_key: raise ValueError("Google APIキーが設定されていません。")
         # Prefer new SDK
         if google_genai_sdk:
             try:
-                print("[DEBUG] Using new google-genai SDK for client initialization.")
                 return google_genai_sdk.Client(api_key=api_key)
             except Exception as e:
-                print(f"[WARNING] New google-genai SDK client init failed: {e}. Trying old SDK.")
+                pass  # エラーが発生した場合は古いSDKにフォールバック
         # Fallback to old SDK
         if old_gemini_sdk:
             try:
-                print("[DEBUG] Using old google.generativeai SDK for client initialization (fallback).")
                 old_gemini_sdk.configure(api_key=api_key)
                 # For the old SDK, GenerativeModel is returned, not a 'Client' instance
                 return old_gemini_sdk.GenerativeModel(model_name) 
@@ -292,14 +309,21 @@ def build_prompt(data, limit_personality="100", limit_reason="100", limit_behavi
         prompt_parts.extend(dynamic_additional_info)
 
     prompt_parts.append("\n# 生成項目")
-    prompt_parts.append("以下の項目について、上記情報に基づいた自然な文章を生成してください。各項目は指定された文字数の目安で記述してください。")
-    prompt_parts.append("\n重要: 出力には項目名と内容のみを含め、文字数の指定（例：「(100文字程度)」）は出力に含めないでください。")
-    prompt_parts.append(f"\n1. **性格（価値観・人生観）**: {limit_personality}文字程度で記述")
-    prompt_parts.append(f"2. **通院理由**: {limit_reason}文字程度で記述")
-    prompt_parts.append(f"3. **症状通院頻度・行動パターン**: {limit_behavior}文字程度で記述")
-    prompt_parts.append(f"4. **口コミの重視ポイント**: {limit_reviews}文字程度で記述")
-    prompt_parts.append(f"5. **医療機関への価値観・行動傾向**: {limit_values}文字程度で記述")
-    prompt_parts.append(f"6. **医療機関に求めるもの**: {limit_demands}文字程度で記述")
+    prompt_parts.append("以下の項目について、上記情報に基づいた自然な文章を生成してください。")
+    prompt_parts.append("\n## 出力形式の重要な指示:")
+    prompt_parts.append("- 必ず以下の形式で出力してください")
+    prompt_parts.append("- 各項目は「番号. **項目名**: 内容」の形式で記述")
+    prompt_parts.append("- 内容は項目名の後のコロン（:）の直後に続けて記述")
+    prompt_parts.append("- 文字数の指定（例：「100文字程度」）は出力に含めない")
+    prompt_parts.append("- ペルソナ名などの余分なヘッダーは含めない")
+    prompt_parts.append("")
+    prompt_parts.append("## 生成する項目（各項目を指定文字数で）:")
+    prompt_parts.append(f"1. **性格（価値観・人生観）**: {limit_personality}文字程度の内容をここに記述")
+    prompt_parts.append(f"2. **通院理由**: {limit_reason}文字程度の内容をここに記述")
+    prompt_parts.append(f"3. **症状通院頻度・行動パターン**: {limit_behavior}文字程度の内容をここに記述")
+    prompt_parts.append(f"4. **口コミの重視ポイント**: {limit_reviews}文字程度の内容をここに記述")
+    prompt_parts.append(f"5. **医療機関への価値観・行動傾向**: {limit_values}文字程度の内容をここに記述")
+    prompt_parts.append(f"6. **医療機関に求めるもの**: {limit_demands}文字程度の内容をここに記述")
     
     return "\n".join(prompt_parts)
 
@@ -315,20 +339,30 @@ def parse_ai_response(text):
         "demands": ""
     }
     
+    if not text:
+        return sections
+    
     # Try to parse structured output
     try:
         lines = text.strip().split('\n')
         current_section = None
         
-        for line in lines:
+        
+        for i, line in enumerate(lines):
             line = line.strip()
             if not line:
                 continue
                 
+            # Skip persona name headers (e.g., **ペルソナ：本田 瑞季**)
+            if line.startswith("**") and "ペルソナ" in line and line.endswith("**"):
+                continue
+                
             # Check if this is a section header for personality section
-            if line.startswith("1.") and ("性格" in line or "価値観" in line or "人生観" in line):
+            # Support both numbered format and **header** format
+            if (line.startswith("1.") and ("性格" in line or "価値観" in line or "人生観" in line)) or \
+               (line.startswith("**") and ("性格" in line or "価値観" in line or "人生観" in line) and line.endswith("**")):
                 current_section = "personality"
-                # Remove the header and keep only content
+                # Check if content is on the same line after colon
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
                 if content:
                     # 「(100文字程度)」のような文字数指定を削除
@@ -338,7 +372,8 @@ def parse_ai_response(text):
                 continue
                 
             # Check for reason section
-            elif line.startswith("2.") and "通院理由" in line:
+            elif (line.startswith("2.") and "通院理由" in line) or \
+                 (line.startswith("**") and "通院理由" in line and line.endswith("**")):
                 current_section = "reason"
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
                 if content:
@@ -347,7 +382,8 @@ def parse_ai_response(text):
                 continue
                 
             # Check for behavior section
-            elif line.startswith("3.") and ("症状" in line or "通院頻度" in line or "行動パターン" in line):
+            elif (line.startswith("3.") and ("症状" in line or "通院頻度" in line or "行動パターン" in line)) or \
+                 (line.startswith("**") and ("症状" in line or "通院頻度" in line or "行動パターン" in line) and line.endswith("**")):
                 current_section = "behavior"
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
                 if content:
@@ -356,7 +392,8 @@ def parse_ai_response(text):
                 continue
                 
             # Check for reviews section
-            elif line.startswith("4.") and ("口コミ" in line or "重視ポイント" in line):
+            elif (line.startswith("4.") and ("口コミ" in line or "重視ポイント" in line)) or \
+                 (line.startswith("**") and ("口コミ" in line or "重視ポイント" in line) and line.endswith("**")):
                 current_section = "reviews"
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
                 if content:
@@ -365,7 +402,8 @@ def parse_ai_response(text):
                 continue
                 
             # Check for values section
-            elif line.startswith("5.") and ("医療機関" in line or "価値観" in line or "行動傾向" in line):
+            elif (line.startswith("5.") and ("医療機関" in line or "価値観" in line or "行動傾向" in line)) or \
+                 (line.startswith("**") and ("医療機関" in line and ("価値観" in line or "行動傾向" in line)) and line.endswith("**")):
                 current_section = "values"
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
                 if content:
@@ -374,7 +412,8 @@ def parse_ai_response(text):
                 continue
                 
             # Check for demands section
-            elif line.startswith("6.") and ("医療機関" in line or "求めるもの" in line):
+            elif (line.startswith("6.") and ("医療機関" in line or "求めるもの" in line)) or \
+                 (line.startswith("**") and ("医療機関" in line and "求めるもの" in line) and line.endswith("**")):
                 current_section = "demands"
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
                 if content:
@@ -382,8 +421,8 @@ def parse_ai_response(text):
                     sections[current_section] = content
                 continue
                 
-            # If we're in a section, append text
-            if current_section and not line.startswith(("#", "##")):
+            # If we're in a section, append text (skip headers and numbered lines)
+            if current_section and not line.startswith(("#", "##", "**")) and not re.match(r'^\d+\.', line):
                 # 「(100文字程度)」のような文字数指定を削除
                 cleaned_line = re.sub(r'[（(]\d+文字程度[）)]\s*', '', line)
                 cleaned_line = re.sub(r'\d+文字程度\s*', '', cleaned_line)
@@ -396,6 +435,11 @@ def parse_ai_response(text):
         print(f"Error parsing AI response: {e}")
         traceback.print_exc()
     
+    # Debug output
+    print(f"[DEBUG] Parsed sections:")
+    for key, value in sections.items():
+        print(f"  {key}: {value[:50]}..." if value else f"  {key}: (empty)")
+    
     return sections
 
 @app.post("/api/generate")
@@ -406,13 +450,13 @@ async def generate_persona(request: Request):
         # --- 設定をcrudから読み込む ---
         app_settings = crud.read_settings() # AdminSettings インスタンスが返る
         
-        selected_text_model = app_settings.models.text_api_model if app_settings.models else "gpt-3.5-turbo" # デフォルト値
-        selected_image_model = app_settings.models.image_api_model if app_settings.models else "none" # デフォルト値
+        selected_text_model = app_settings.models.text_api_model if app_settings.models else "gpt-4.1-2025-04-14" # デフォルト値
+        selected_image_model = app_settings.models.image_api_model if app_settings.models else "dall-e-3" # デフォルト値
 
         # --- APIキーの取得 ---
-        openai_api_key = os.environ.get("OPENAI_API_KEY")
-        anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
-        google_api_key = os.environ.get("GOOGLE_API_KEY")
+        openai_api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+        anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+        google_api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
 
         # テキスト生成用APIキーの選択
         text_api_key_to_use = None
@@ -509,6 +553,13 @@ async def generate_persona(request: Request):
                     rag_context += f"{i}. {result['keyword']} (検索数: {result['search_volume']}人)\n"
                     # カテゴリーフィールドは削除（CSVに存在しないため）
         
+        # 入力データの内容をログ出力
+        print(f"[DEBUG] Input data keys: {list(data.keys())}")
+        print(f"[DEBUG] Input data sample:")
+        for key in ['department', 'purpose', 'name', 'gender', 'age', 'occupation']:
+            if key in data:
+                print(f"  - {key}: {data[key]}")
+        
         # プロンプト構築（RAGコンテキストを含む）
         char_limits = {
             "personality": limit_personality,
@@ -520,21 +571,6 @@ async def generate_persona(request: Request):
         }
         prompt_text = prompt_builder.build_persona_prompt(data, char_limits, rag_context)
         
-        # 生成情報をログ出力
-        print(f"[INFO] Generating persona with model: {selected_text_model}")
-        print(f"[INFO] Department: {department}, Age: {age}, Gender: {gender}")
-        print(f"[INFO] Character limits - Personality: {limit_personality}文字, "
-              f"Reason: {limit_reason}文字, "
-              f"Behavior: {limit_behavior}文字, "
-              f"Reviews: {limit_reviews}文字, "
-              f"Values: {limit_values}文字, "
-              f"Demands: {limit_demands}文字")
-        if rag_results:
-            print(f"[INFO] RAG data included: {len(rag_results)} keywords from {department}")
-            for i, result in enumerate(rag_results[:3], 1):
-                print(f"  - Keyword {i}: {result['keyword']}")
-        else:
-            print(f"[INFO] No RAG data available for {department}")
         
         # AIクライアント初期化 (テキスト生成用)
         text_generation_client = None
@@ -544,7 +580,6 @@ async def generate_persona(request: Request):
                 text_generation_client = get_ai_client(selected_text_model, text_api_key_to_use)
             except Exception as e:
                 client_init_error = str(e)
-                print(f"AI Client initialization error for text model {selected_text_model}: {client_init_error}")
         
         generated_text_str = None
         # テキスト生成実行
@@ -555,20 +590,190 @@ async def generate_persona(request: Request):
                         model=selected_text_model,
                         messages=[{"role": "user", "content": prompt_text}],
                         temperature=0.7,
-                        max_tokens=2000
+                        max_tokens=4096
                     )
                     generated_text_str = completion.choices[0].message.content
                 elif selected_text_model.startswith("claude"):
-                    response = text_generation_client.messages.create(
-                        model=selected_text_model,
-                        max_tokens=2000,
-                        messages=[{"role": "user", "content": prompt_text}]
-                    )
-                    generated_text_str = response.content[0].text if response.content else None
+                    # Anthropic API呼び出しのログ
+                    print(f"[DEBUG] Calling Claude API with model: {selected_text_model}")
+                    print(f"[DEBUG] API Key available: {'Yes' if anthropic_api_key else 'No'}")
+                    print(f"[DEBUG] API Key length: {len(anthropic_api_key) if anthropic_api_key else 0}")
+                    print(f"[DEBUG] API Key prefix: {anthropic_api_key[:10]+'...' if anthropic_api_key and len(anthropic_api_key) > 10 else 'N/A'}")
+                    
+                    # 直接HTTPリクエストを送信するオプションを試す
+                    use_direct_http = os.environ.get("USE_DIRECT_HTTP_FOR_CLAUDE", "false").lower() == "true"
+                    if use_direct_http:
+                        print("[INFO] Using direct HTTP request for Claude API instead of SDK")
+                    
+                    # ネットワーク接続の詳細なデバッグ
+                    import socket
+                    import ssl
+                    
+                    try:
+                        # DNS解決のテスト
+                        api_host = "api.anthropic.com"
+                        print(f"[DEBUG] DNS解決テスト: {api_host}")
+                        ip_addresses = socket.gethostbyname_ex(api_host)
+                        print(f"[DEBUG] DNS解決成功: IPアドレス = {ip_addresses[2]}")
+                        
+                        # TCP接続のテスト
+                        print(f"[DEBUG] TCP接続テスト: {api_host}:443")
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        sock.settimeout(10)
+                        result = sock.connect_ex((ip_addresses[2][0], 443))
+                        if result == 0:
+                            print(f"[DEBUG] TCP接続成功")
+                        else:
+                            print(f"[ERROR] TCP接続失敗: エラーコード = {result}")
+                        sock.close()
+                        
+                        # SSLハンドシェイクのテスト
+                        print(f"[DEBUG] SSLハンドシェイクテスト")
+                        context = ssl.create_default_context()
+                        with socket.create_connection((api_host, 443), timeout=10) as sock:
+                            with context.wrap_socket(sock, server_hostname=api_host) as ssock:
+                                print(f"[DEBUG] SSLハンドシェイク成功")
+                                print(f"[DEBUG] SSLバージョン: {ssock.version()}")
+                    except Exception as net_error:
+                        print(f"[ERROR] ネットワーク診断エラー: {type(net_error).__name__}: {net_error}")
+                    
+                    # プロンプトの内容をログ出力（長すぎる場合は最初の500文字のみ）
+                    print(f"[DEBUG] Prompt length: {len(prompt_text)} characters")
+                    print(f"[DEBUG] Prompt preview (first 500 chars): {prompt_text[:500]}...")
+                    
+                    # メッセージの構造を確認
+                    messages_to_send = [{"role": "user", "content": prompt_text}]
+                    print(f"[DEBUG] Messages structure: {len(messages_to_send)} messages")
+                    print(f"[DEBUG] First message role: {messages_to_send[0]['role']}")
+                    print(f"[DEBUG] First message content length: {len(messages_to_send[0]['content'])} chars")
+                    
+                    # リトライ処理を追加（エクスポネンシャルバックオフ）
+                    max_retries = 3
+                    base_delay = 2  # 基本遅延（秒）
+                    
+                    response = None
+                    last_error = None
+                    
+                    # 直接HTTPリクエストを使用する場合
+                    if use_direct_http:
+                        import httpx
+                        for attempt in range(max_retries):
+                            try:
+                                if attempt > 0:
+                                    wait_time = base_delay * (2 ** (attempt - 1))
+                                    print(f"[INFO] Retry attempt {attempt + 1}/{max_retries} for Claude API (direct HTTP) after {wait_time}s delay")
+                                    import time
+                                    time.sleep(wait_time)
+                                
+                                print("[DEBUG] Sending direct HTTP request to Claude API")
+                                async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+                                    http_response = await client.post(
+                                        "https://api.anthropic.com/v1/messages",
+                                        headers={
+                                            "x-api-key": anthropic_api_key,
+                                            "anthropic-version": "2023-06-01",
+                                            "content-type": "application/json"
+                                        },
+                                        json={
+                                            "model": selected_text_model,
+                                            "max_tokens": 4096,
+                                            "messages": messages_to_send,
+                                            "temperature": 0.7
+                                        }
+                                    )
+                                    
+                                    print(f"[DEBUG] HTTP response status: {http_response.status_code}")
+                                    
+                                    if http_response.status_code == 200:
+                                        response_data = http_response.json()
+                                        if response_data.get("content") and len(response_data["content"]) > 0:
+                                            generated_text_str = response_data["content"][0].get("text", "")
+                                            print(f"[INFO] Claude (direct HTTP) generated {len(generated_text_str)} characters")
+                                        break
+                                    else:
+                                        error_text = http_response.text
+                                        print(f"[ERROR] Claude API HTTP error: {http_response.status_code} - {error_text}")
+                                        if http_response.status_code in [401, 403, 404]:
+                                            raise Exception(f"Non-retryable error: {http_response.status_code}")
+                                        
+                            except Exception as e:
+                                last_error = e
+                                print(f"[ERROR] Claude API direct HTTP attempt {attempt + 1} failed: {type(e).__name__}: {e}")
+                                if attempt == max_retries - 1:
+                                    raise last_error
+                    else:
+                        # SDKを使用する場合（既存の処理）
+                        for attempt in range(max_retries):
+                            try:
+                                if attempt > 0:
+                                    # エクスポネンシャルバックオフ
+                                    wait_time = base_delay * (2 ** (attempt - 1))
+                                    print(f"[INFO] Retry attempt {attempt + 1}/{max_retries} for Claude API after {wait_time}s delay")
+                                    import time
+                                    time.sleep(wait_time)
+                                
+                                # APIリクエストのパラメータをログ出力
+                                print(f"[DEBUG] Claude API request parameters:")
+                                print(f"  - Model: {selected_text_model}")
+                                print(f"  - Max tokens: 4096")
+                                print(f"  - Temperature: 0.7")
+                                print(f"  - Timeout: 60.0 seconds")
+                                print(f"  - Message count: {len(messages_to_send)}")
+                                
+                                # タイムアウトを60秒に増加（Renderの無料プランのスピンアップ時間を考慮）
+                                response = text_generation_client.messages.create(
+                                    model=selected_text_model,
+                                    max_tokens=4096,
+                                    messages=messages_to_send,
+                                    temperature=0.7,
+                                    timeout=60.0  # 60秒のタイムアウト
+                                )
+                                break  # 成功したらループを抜ける
+                            except Exception as e:
+                                last_error = e
+                                print(f"[ERROR] Claude API attempt {attempt + 1} failed: {type(e).__name__}: {e}")
+                                
+                                # エラーの詳細情報を出力
+                                if hasattr(e, '__dict__'):
+                                    print(f"[DEBUG] エラーの詳細: {e.__dict__}")
+                                if hasattr(e, 'response'):
+                                    print(f"[DEBUG] エラーレスポンス: {e.response}")
+                                if hasattr(e, 'request'):
+                                    if hasattr(e.request, 'url'):
+                                        print(f"[DEBUG] リクエストURL: {e.request.url}")
+                                    if hasattr(e.request, 'method'):
+                                        print(f"[DEBUG] リクエストメソッド: {e.request.method}")
+                                
+                                # 特定のエラーコードの場合はリトライしない
+                                if hasattr(e, 'status_code'):
+                                    if e.status_code in [401, 403, 404]:  # 認証エラーやモデルエラー
+                                        print(f"[ERROR] Non-retryable error (status {e.status_code}). Stopping retries.")
+                                        raise
+                                    elif e.status_code == 429:  # レート制限
+                                        print(f"[WARNING] Rate limit hit. Applying longer backoff.")
+                                        if attempt < max_retries - 1:
+                                            wait_time = base_delay * (2 ** attempt) * 2  # レート制限時は2倍の待機時間
+                                            continue
+                                
+                                # 最後の試行の場合はエラーを再発生
+                                if attempt == max_retries - 1:
+                                    raise last_error
+                    
+                    # レスポンス処理
+                    if response:
+                        print(f"[DEBUG] Claude API call successful")
+                        print(f"[DEBUG] Claude API response type: {type(response)}")
+                        if hasattr(response, 'content'):
+                            print(f"[DEBUG] Response content type: {type(response.content)}")
+                            print(f"[DEBUG] Response content length: {len(response.content) if response.content else 0}")
+                        
+                        # contentがリストの場合、最初の要素のtextを取得
+                        if response.content and len(response.content) > 0:
+                            if hasattr(response.content[0], 'text'):
+                                generated_text_str = response.content[0].text
                 elif selected_text_model.startswith("gemini"):
                     # 新しいSDKの場合
                     if hasattr(text_generation_client, 'models'):
-                        print(f"[DEBUG] Using new SDK for text generation with model: {selected_text_model}")
                         response = text_generation_client.models.generate_content(
                             model=selected_text_model,
                             contents=prompt_text
@@ -577,21 +782,46 @@ async def generate_persona(request: Request):
                             generated_text_str = response.candidates[0].content.parts[0].text
                     # 古いSDKの場合
                     else:
-                        print(f"[DEBUG] Using old SDK for text generation with model: {selected_text_model}")
                         response = text_generation_client.generate_content(prompt_text)
                         generated_text_str = response.text
                         # Gemini特有の文字数指定を追加で削除
                         generated_text_str = re.sub(r'[（(]\d+文字程度[）)]\s*', '', generated_text_str)
                         generated_text_str = re.sub(r'\d+文字程度[\s、。]', '', generated_text_str)
             except Exception as e:
-                print(f"Error during text generation with {selected_text_model}: {e}")
-                traceback.print_exc()
+                
+                # Claude APIが接続エラーで失敗した場合、Geminiにフォールバック
+                if selected_text_model.startswith("claude") and ("APIConnectionError" in str(e) or "Connection error" in str(e)):
+                    try:
+                        # Gemini APIキーの確認
+                        google_api_key = os.getenv("GOOGLE_API_KEY", "").strip()
+                        if google_api_key:
+                            # Geminiクライアントの初期化
+                            fallback_model = "gemini-2.0-flash-exp"
+                            fallback_client = get_ai_client(fallback_model, google_api_key)
+                            
+                            # Geminiでテキスト生成を試行
+                            if hasattr(fallback_client, 'models'):
+                                response = fallback_client.models.generate_content(
+                                    model=fallback_model,
+                                    contents=prompt_text
+                                )
+                                if response.candidates and response.candidates[0].content.parts:
+                                    generated_text_str = response.candidates[0].content.parts[0].text
+                            else:
+                                response = fallback_client.generate_content(prompt_text)
+                                generated_text_str = response.text
+                            
+                            # Gemini特有の文字数指定を削除（generated_text_strが存在する場合のみ）
+                            if generated_text_str:
+                                generated_text_str = re.sub(r'[（(]\d+文字程度[）)]\s*', '', generated_text_str)
+                                generated_text_str = re.sub(r'\d+文字程度[\s、。]', '', generated_text_str)
+                    except Exception as fallback_error:
+                        generated_text_str = None
         
         if generated_text_str is None: # AI生成失敗またはスキップ時のフォールバック
             error_msg = "Text generation failed or was skipped."
             if client_init_error:
                 error_msg += f" Client initialization error: {client_init_error}"
-            print(error_msg)
             generated_details = {
                 "personality": "真面目で責任感が強く、家族を大切にする。健康意識が高く、予防医療に関心がある。",
                 "reason": "定期的な健康診断と、軽度の高血圧の管理のため。",
@@ -601,12 +831,7 @@ async def generate_persona(request: Request):
                 "demands": "わかりやすい説明と、必要に応じて専門医への適切な紹介。予防医療のアドバイスも欲しい。"
             }
         else:
-            print(f"[DEBUG] Raw AI response preview (first 200 chars): {generated_text_str[:200] if generated_text_str else 'None'}")
             generated_details = parse_ai_response(generated_text_str)
-            # 生成後のチェック
-            for key, value in generated_details.items():
-                if "文字程度" in str(value):
-                    print(f"[WARNING] Character count text found in {key}: {value[:50]}...")
             
 
         # --- 画像生成 ---
@@ -719,48 +944,33 @@ async def generate_persona(request: Request):
                                 for part in candidate.content.parts:
                                     if hasattr(part, 'inline_data') and part.inline_data:
                                         if hasattr(part.inline_data, 'data'):
-                                            print(f"[DEBUG] Gemini image part found. Mime type: {getattr(part.inline_data, 'mime_type', 'image/png')}")
                                             image_data = part.inline_data.data # bytes
                                             mime_type = getattr(part.inline_data, 'mime_type', 'image/png')
                                             base64_image = base64.b64encode(image_data).decode('utf-8')
                                             image_url = f"data:{mime_type};base64,{base64_image}"
-                                            print("[INFO] Gemini Image generated successfully as Base64 Data URI.")
                                             image_found = True
                                             break
                                 
                                 if not image_found:
-                                    print("[ERROR] No image data found in response parts")
                                     image_url = "https://placehold.jp/300x200/EEE/777?text=No+Image+Data"
                             else:
-                                print("[ERROR] Gemini response candidate found, but no content or parts.")
-                                if hasattr(candidate, 'finish_reason'):
-                                    print(f"[ERROR] Gemini Finish Reason: {candidate.finish_reason}")
-                                if hasattr(candidate, 'safety_ratings'):
-                                    print(f"[ERROR] Gemini Safety Ratings: {candidate.safety_ratings}")
                                 image_url = "https://placehold.jp/300x200/EEE/777?text=No+Content"
                         elif hasattr(response, 'text') and response.text:
-                            print(f"[ERROR] Gemini image generation returned text instead of image: {response.text}")
                             image_url = "https://placehold.jp/300x200/EEE/777?text=Text+Response"
                         else:
-                            print("[ERROR] No candidates in Gemini response")
                             image_url = "https://placehold.jp/300x200/EEE/777?text=No+Candidates"
                             
                     else:
-                        print("[ERROR] New Gemini SDK not available for image generation")
                         image_url = "https://placehold.jp/300x200/EEE/777?text=No+SDK"
 
                 except Exception as img_e:
-                    print(f"[ERROR] Gemini Image generation failed: {img_e}")
-                    traceback.print_exc()
                     # エラーメッセージに詳細を含める
                     error_message = str(img_e).replace("\\n", " ") # 改行をスペースに
                     image_url = f"https://placehold.jp/300x200/EEE/777?text=Gemini+Error"
             else:
-                print("Google API key not found for Gemini. Skipping image generation.")
                 image_url = "https://placehold.jp/300x200/CCC/555?text=No+Google+Key"
         
         elif selected_image_model == "none":
-            print("Image generation set to 'none'.")
             image_url = "https://placehold.jp/150x150.png?text=No+Image" # No Image
         
         # レスポンスデータ作成
@@ -772,11 +982,37 @@ async def generate_persona(request: Request):
         return response_data
 
     except Exception as e:
-        print(f"Error in generate_persona: {e}")
-        traceback.print_exc()
+        
+        # エラーメッセージの詳細化
+        error_message = f"サーバーエラー: {str(e)}"
+        error_details = {
+            "error": error_message,
+            "error_type": type(e).__name__
+        }
+        
+        # HTTPステータスコードがある場合は502として返す
+        status_code = 500
+        if hasattr(e, 'status_code'):
+            if e.status_code == 502:
+                status_code = 502
+                error_details["error"] = "AI API サービスへの接続に失敗しました。しばらく待ってから再度お試しください。"
+                error_details["original_error"] = str(e)
+        
+        # Claude固有のエラーメッセージ
+        if 'selected_text_model' in locals() and selected_text_model and "claude" in selected_text_model.lower():
+            if "APIConnectionError" in str(e) or "Connection error" in str(e):
+                error_details["error"] = "Claude APIへの接続に失敗しました。Renderの無料プランを使用している場合、サービスがスピンダウンしている可能性があります。"
+                error_details["model"] = selected_text_model
+                error_details["suggestion"] = "数秒後に再試行するか、他のモデル（GPT、Gemini）を使用してください。"
+                error_details["render_note"] = "Renderの無料プランでは15分間アイドル後にサービスが停止し、次回リクエスト時に30-60秒の起動時間が必要です。"
+            elif "502" in str(e) or "Bad Gateway" in str(e):
+                error_details["error"] = "Claude APIのゲートウェイエラーが発生しました。"
+                error_details["model"] = selected_text_model
+                error_details["suggestion"] = "APIサービスが一時的に利用できない可能性があります。"
+        
         return JSONResponse(
-            status_code=500,
-            content={"error": f"サーバーエラー: {str(e)}"}
+            status_code=status_code,
+            content=error_details
         )
 
 @app.post("/api/download/pdf")
@@ -937,9 +1173,8 @@ async def download_ppt(request: Request):
         if 'image_path' in locals() and image_path and os.path.exists(image_path):
             try:
                 os.unlink(image_path)
-                print(f"Cleaned up temporary file: {image_path}")
             except Exception as e:
-                print(f"Error removing temporary file: {e}")
+                pass  # エラーが発生しても無視して続行
 
 @app.get("/health", summary="Health check endpoint", tags=["Health"])
 async def health_check():
@@ -947,6 +1182,7 @@ async def health_check():
     Simple health check endpoint to confirm the API is running.
     """
     return {"status": "ok"}
+
 
 # To run this app locally (from the 'backend' directory, assuming main.py is in 'app'):
 # Ensure 'app' is a package (has __init__.py if needed, though often not for FastAPI structure like this)

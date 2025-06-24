@@ -182,3 +182,55 @@ async def delete_rag_table(table_name: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete RAG data: {str(e)}"
         )
+
+@router.post(
+    "/api/admin/rag/upload-specialty",
+    response_model=schemas.RAGUploadResponse,
+    summary="Upload specialty-specific RAG data",
+    tags=["RAG Settings"]
+)
+async def upload_specialty_rag_data(
+    file: UploadFile = File(...),
+    specialty: str = Form(...)
+):
+    """
+    Upload a CSV file containing RAG data for a specific specialty.
+    The CSV should contain columns matching the expected format for keyword search data.
+    """
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only CSV files are supported"
+        )
+    
+    try:
+        # Read CSV content
+        content = await file.read()
+        df = pd.read_csv(io.BytesIO(content))
+        
+        # Save to RAG database using the proper function
+        result = rag_processor.save_rag_data(specialty, df, file.filename)
+        
+        if result.get("success"):
+            return schemas.RAGUploadResponse(
+                success=True,
+                message=f"Successfully uploaded {result['inserted_count']} records for specialty '{specialty}'",
+                table_name=specialty,
+                row_count=result['inserted_count']
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to upload data: {result.get('error', 'Unknown error')}"
+            )
+            
+    except pd.errors.EmptyDataError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The CSV file is empty or invalid"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while processing the file: {str(e)}"
+        )

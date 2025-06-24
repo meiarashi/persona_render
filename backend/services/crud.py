@@ -12,7 +12,7 @@ SETTINGS_FILE_NAME = "admin_settings.json"
 SETTINGS_FILE_PATH = PERSISTENT_DISK_MOUNT_PATH / SETTINGS_FILE_NAME
 
 DEFAULT_SETTINGS = AdminSettings(
-    models=ModelSettings(text_api_model="gpt-4.1", image_api_model="dall-e-3"),
+    models=ModelSettings(text_api_model="gpt-4.1-2025-04-14", image_api_model="dall-e-3"),
     limits={
         "personality": "500",
         "reason": "300",
