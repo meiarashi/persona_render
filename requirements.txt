@@ -4,14 +4,14 @@ Flask-Cors==5.0.1
 fastapi>=0.100.0,<0.111.0
 uvicorn[standard]>=0.22.0,<0.28.0
 gunicorn
-pydantic>=2.9.2
+pydantic>=2.0.0,<3.0.0
 python-dotenv>=1.0.0,<2.0.0
 
 # AI APIs
-openai==1.52.0
+openai>=1.52.0
 google-genai>=1.0.0
-google-generativeai==0.8.5
-anthropic==0.49.0
+google-generativeai>=0.8.5
+anthropic>=0.34.0,<0.40.0
 
 # Output Generators
 fpdf2==2.8.3

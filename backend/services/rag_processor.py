@@ -21,7 +21,7 @@ DEPARTMENT_MAP = {
     "respiratory_medicine": "呼吸器内科", "diabetes_medicine": "糖尿病内科",
     "nephrology": "腎臓内科", "neurology": "神経内科",
     "hematology": "血液内科", "plastic_surgery": "形成外科",
-    "beauty_surgery": "美容外科"
+    "beauty_surgery": "美容外科", "endocrinology": "内分泌科"
 }
 
 # 永続ストレージのパス（既存設定と同じ場所）

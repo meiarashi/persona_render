@@ -62,7 +62,7 @@ class PromptBuilder:
             field_id = field['id']
             field_label = field['label']
             limit = char_limits.get(field_id, str(field['default_limit']))
-            prompt_parts.append(f"\n{i}. **{field_label}**: {limit}文字程度で記述")
+            prompt_parts.append(f"\n{i}. **{field_label}**: {limit}文字程度の内容をここに記述")
         
         return "\n".join(prompt_parts)
     

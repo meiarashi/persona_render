@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             try {
-                const response = await fetch('/api/admin/rag/upload', {
+                const response = await fetch('/api/admin/rag/upload-specialty', {
                     method: 'POST',
                     body: formData
                 });
@@ -350,12 +350,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load AI models from config
     async function loadAIModels() {
         try {
+            console.log("Loading AI models from API...");
             const response = await fetch('/api/config/ai-models');
             if (response.ok) {
                 const models = await response.json();
+                console.log("Loaded AI models:", models);
                 
                 // Populate text model dropdown
                 const textSelect = document.getElementById('text-api-model-select');
+                if (!textSelect) {
+                    console.error("Text model select element not found!");
+                    return;
+                }
                 textSelect.innerHTML = '';
                 models.text_models.forEach(model => {
                     const option = document.createElement('option');
@@ -363,9 +369,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     option.textContent = model.name;
                     textSelect.appendChild(option);
                 });
+                console.log("Text models populated:", models.text_models.length, "options");
                 
                 // Populate image model dropdown
                 const imageSelect = document.getElementById('image-api-model-select');
+                if (!imageSelect) {
+                    console.error("Image model select element not found!");
+                    return;
+                }
                 imageSelect.innerHTML = '';
                 models.image_models.forEach(model => {
                     const option = document.createElement('option');
@@ -373,9 +384,49 @@ document.addEventListener('DOMContentLoaded', () => {
                     option.textContent = model.name;
                     imageSelect.appendChild(option);
                 });
+                console.log("Image models populated:", models.image_models.length, "options");
+            } else {
+                console.error("Failed to load AI models, status:", response.status);
             }
         } catch (error) {
             console.error('Error loading AI models:', error);
+            // Fallback: Load models from local config
+            console.log("Attempting fallback: loading models from local config...");
+            const fallbackModels = {
+                text_models: [
+                    { id: "gpt-4.1-2025-04-14", name: "GPT-4.1" },
+                    { id: "claude-3-7-sonnet-20250219", name: "Claude 3.7 sonnet" },
+                    { id: "-gemini-2.5-pro-preview-06-05", name: "Gemini 2.5 Pro" }
+                ],
+                image_models: [
+                    { id: "dall-e-3", name: "DALL-E 3" },
+                    { id: "gemini-2.0-flash-exp-image-generation", name: "Gemini 2.0 Flash (画像生成)" },
+                    { id: "none", name: "画像なし" }
+                ]
+            };
+            
+            // Populate with fallback data
+            const textSelect = document.getElementById('text-api-model-select');
+            if (textSelect) {
+                textSelect.innerHTML = '';
+                fallbackModels.text_models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.id;
+                    option.textContent = model.name;
+                    textSelect.appendChild(option);
+                });
+            }
+            
+            const imageSelect = document.getElementById('image-api-model-select');
+            if (imageSelect) {
+                imageSelect.innerHTML = '';
+                fallbackModels.image_models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.id;
+                    option.textContent = model.name;
+                    imageSelect.appendChild(option);
+                });
+            }
         }
     }
 
@@ -417,14 +468,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 const currentSettings = await response.json();
                 console.log("Received settings:", currentSettings);
 
+                // Function to set select value with retry
+                function setSelectValue(selectId, value, retryCount = 0) {
+                    const select = document.getElementById(selectId);
+                    if (!select) return;
+                    
+                    // Check if the option exists
+                    const optionExists = Array.from(select.options).some(opt => opt.value === value);
+                    
+                    if (optionExists) {
+                        select.value = value;
+                        console.log(`Successfully set ${selectId} to ${value}`);
+                    } else if (retryCount < 10) {
+                        // Retry after a short delay
+                        console.log(`Option ${value} not found in ${selectId}, retrying... (${retryCount + 1}/10)`);
+                        setTimeout(() => setSelectValue(selectId, value, retryCount + 1), 200);
+                    } else {
+                        console.error(`Failed to set ${selectId} to ${value} after 10 retries`);
+                    }
+                }
+
                 // Populate Text API Settings
                 if (currentSettings.models && currentSettings.models.text_api_model) {
-                    document.getElementById('text-api-model-select').value = currentSettings.models.text_api_model;
+                    setSelectValue('text-api-model-select', currentSettings.models.text_api_model);
                 }
 
                 // Populate Image API Settings
                 if (currentSettings.models && currentSettings.models.image_api_model) {
-                    document.getElementById('image-api-model-select').value = currentSettings.models.image_api_model;
+                    setSelectValue('image-api-model-select', currentSettings.models.image_api_model);
                 }
 
                 // Populate Character Limits
@@ -454,6 +525,10 @@ document.addEventListener('DOMContentLoaded', () => {
         loadDepartments()
     ]).then(() => {
         // Call load settings function after configs are loaded
+        loadAllSettings();
+    }).catch(error => {
+        console.error("Error loading configurations:", error);
+        // Even if config loading fails, try to load settings
         loadAllSettings();
     });
     
