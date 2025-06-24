@@ -112,7 +112,7 @@ if frontend_dir.exists() and frontend_dir.is_dir():
         raise HTTPException(status_code=404, detail="admin.html not found")
 
     @app.get("/", include_in_schema=False)
-    async def serve_user_html():
+    async def serve_user_html(username: str = Depends(verify_admin_credentials)):
         user_html_path = frontend_dir / "user/index.html"
         if user_html_path.exists(): return FileResponse(user_html_path)
         fallback_html_path = project_root_dir / "frontend/user/index.html"
