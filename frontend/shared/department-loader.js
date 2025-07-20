@@ -50,6 +50,17 @@ document.addEventListener('DOMContentLoaded', async function() {
     const departmentOptionsContainer = document.querySelector('.department-options');
     if (departmentOptionsContainer && departments.length > 0) {
         departmentOptionsContainer.innerHTML = generateDepartmentOptionsHTML(departments);
+        
+        // 新しく生成された要素にイベントリスナーを再設定
+        const radioButtons = departmentOptionsContainer.querySelectorAll('input[type="radio"]');
+        radioButtons.forEach(radio => {
+            radio.addEventListener('change', function() {
+                // 既存のhandleStepValidation関数を呼び出す
+                if (typeof window.handleStepValidation === 'function') {
+                    window.handleStepValidation();
+                }
+            });
+        });
     }
     
     // タイトルをカテゴリーに応じて更新
