@@ -52,7 +52,7 @@ except ImportError:
 # Import from new structure
 from .api import admin_settings, config
 from .services import crud, rag_processor
-from .middleware.auth import verify_admin_credentials
+from .middleware.auth import verify_admin_credentials, verify_department_credentials
 from .models import schemas as models
 from .utils import config_loader, prompt_builder
 
@@ -84,6 +84,10 @@ if frontend_dir.exists() and frontend_dir.is_dir():
     print(f"Serving static files from: {frontend_dir}")
     app.mount("/static/user", StaticFiles(directory=frontend_dir / "user"), name="user_static_assets")
     app.mount("/static/admin", StaticFiles(directory=frontend_dir / "admin"), name="admin_static_assets")
+    app.mount("/static/shared", StaticFiles(directory=frontend_dir / "shared"), name="shared_static_assets")
+    app.mount("/static/medical", StaticFiles(directory=frontend_dir / "medical"), name="medical_static_assets")
+    app.mount("/static/dental", StaticFiles(directory=frontend_dir / "dental"), name="dental_static_assets")
+    app.mount("/static/others", StaticFiles(directory=frontend_dir / "others"), name="others_static_assets")
     
     # Mount images from frontend directory
     frontend_images_dir = frontend_dir / "images"
@@ -118,7 +122,67 @@ if frontend_dir.exists() and frontend_dir.is_dir():
         fallback_html_path = project_root_dir / "frontend/user/index.html"
         if fallback_html_path.exists(): return FileResponse(fallback_html_path)
         raise HTTPException(status_code=404, detail="index.html not found")
-    print("User UI and Admin UI routes are set up.")
+    
+    # 診療科別エンドポイント
+    @app.get("/medical", include_in_schema=False)
+    async def serve_medical_html(username: str = Depends(verify_department_credentials("medical"))):
+        medical_html_path = frontend_dir / "medical/index.html"
+        if medical_html_path.exists(): return FileResponse(medical_html_path)
+        # フォールバック: 共通のindex.htmlを使用
+        fallback_html_path = frontend_dir / "user/index.html"
+        if fallback_html_path.exists(): return FileResponse(fallback_html_path)
+        raise HTTPException(status_code=404, detail="medical/index.html not found")
+    
+    @app.get("/dental", include_in_schema=False)
+    async def serve_dental_html(username: str = Depends(verify_department_credentials("dental"))):
+        dental_html_path = frontend_dir / "dental/index.html"
+        if dental_html_path.exists(): return FileResponse(dental_html_path)
+        # フォールバック: 共通のindex.htmlを使用
+        fallback_html_path = frontend_dir / "user/index.html"
+        if fallback_html_path.exists(): return FileResponse(fallback_html_path)
+        raise HTTPException(status_code=404, detail="dental/index.html not found")
+    
+    @app.get("/others", include_in_schema=False)
+    async def serve_others_html(username: str = Depends(verify_department_credentials("others"))):
+        others_html_path = frontend_dir / "others/index.html"
+        if others_html_path.exists(): return FileResponse(others_html_path)
+        # フォールバック: 共通のindex.htmlを使用
+        fallback_html_path = frontend_dir / "user/index.html"
+        if fallback_html_path.exists(): return FileResponse(fallback_html_path)
+        raise HTTPException(status_code=404, detail="others/index.html not found")
+    
+    # 診療科別の設定API
+    @app.get("/api/departments/by-category/{category}")
+    async def get_departments_by_category(category: str):
+        """診療科カテゴリーに応じた診療科リストを返す"""
+        departments_by_category_path = project_root_dir / "config" / "departments_by_category.json"
+        if not departments_by_category_path.exists():
+            raise HTTPException(status_code=404, detail="departments_by_category.json not found")
+        
+        with open(departments_by_category_path, 'r', encoding='utf-8') as f:
+            departments_by_category = json.load(f)
+        
+        if category not in departments_by_category:
+            raise HTTPException(status_code=404, detail=f"Category '{category}' not found")
+        
+        # departments.jsonから詳細情報を取得
+        departments_path = project_root_dir / "config" / "departments.json"
+        if not departments_path.exists():
+            raise HTTPException(status_code=404, detail="departments.json not found")
+        
+        with open(departments_path, 'r', encoding='utf-8') as f:
+            all_departments = json.load(f)
+        
+        # カテゴリーに属する診療科のみをフィルタリング
+        category_dept_ids = departments_by_category[category]
+        filtered_departments = [
+            dept for dept in all_departments["departments"]
+            if dept["id"] in category_dept_ids and dept.get("enabled", True)
+        ]
+        
+        return {"departments": filtered_departments}
+    
+    print("User UI, Admin UI, and Department routes are set up.")
 else:
     print(f"Frontend directory not found at {frontend_dir}. Static file serving skipped.")
 

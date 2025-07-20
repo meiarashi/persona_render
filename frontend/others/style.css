@@ -1,0 +1,1650 @@
+/* General Body and Reset Styles */
+body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+    color: #333;
+    background-color: #f8f9fa;
+    font-size: 13px;
+}
+
+a {
+    text-decoration: none;
+    color: #007bff;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Header Styles */
+header {
+    background-color: #ffffff;
+    padding: 1rem 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-bottom: 1px solid #e9ecef;
+}
+
+header h1 {
+    margin: 0;
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+}
+
+nav ul li {
+    display: inline;
+    margin: 0 10px;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.logo {
+    font-weight: bold;
+    font-size: 1.5em;
+    color: #333;
+}
+
+header nav a {
+    margin-left: 20px;
+    color: #555;
+}
+
+header nav a:hover {
+    color: #000;
+    text-decoration: none;
+}
+
+/* Main Layout Container */
+.main-container {
+    /* display: flex; */ /* Removed flex display */
+    max-width: 1200px; /* Limit overall width and center */
+    min-height: calc(100vh - 140px); /* Adjust this if header/footer height changes */
+    margin: 20px auto; /* Center the container with margin */
+    background-color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-radius: 8px; /* Optional: Add back border-radius */
+    overflow: hidden;
+    position: relative; /* Needed for absolute positioning of loading overlay */
+}
+
+/* Form Area (Now the main content area) */
+.form-area {
+    /* flex: 1; */ /* Removed flex property */
+    padding: 30px 40px 0 40px; /* Adjust padding - Bottom padding set to 0 */
+    /* transition: flex 0.3s ease; */ /* Removed transition */
+    /* height: calc(100vh - 40px); */ /* Removed fixed height */
+    /* overflow-y: auto; */ /* Removed default scroll, let content flow */
+    width: 100%; /* Take full width of the container */
+    box-sizing: border-box; /* Include padding in width */
+}
+
+/* Individual Form Step Styles */
+.form-step {
+    display: none;
+    border: 1px solid #dee2e6;
+    padding: 20px;
+    padding-top: 20px; /* Add top padding */
+    border-radius: 8px;
+    background-color: #ffffff;
+    overflow: visible;
+}
+
+.form-step.active {
+    display: block;
+}
+
+/* Form Step Header (Icon, Progress Bar, Question) */
+.step-header {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    position: relative;
+    min-height: 64px;
+}
+
+.step-header .icon {
+    width: 85px;
+    height: 85px;
+    background-color: transparent;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    color: white;
+    font-size: 1em;
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: -23px;
+}
+
+.step-header .icon img {
+    display: block;
+    margin: 0;
+    padding: 0;
+}
+
+/* Container for Progress bar and Question Text */
+.step-header > div {
+    flex-grow: 1;
+}
+
+.progress-bar {
+    position: relative;
+    height: 20px;
+    background-color: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 0;
+}
+
+.progress-bar span {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8em;
+    color: #ffffff;
+    z-index: 1;
+}
+
+.progress {
+    height: 100%;
+    background-color: #28a745;
+    border-radius: 10px 0 0 10px;
+    transition: width 0.3s ease;
+}
+
+/* Question text below progress bar */
+.question-text {
+    margin: 0;
+    padding-top: 8px;
+    font-size: 1.1em; /* Slightly larger font */
+    color: #495057;
+    line-height: 1.3;
+    font-weight: bold;
+}
+
+/* Options Grid (Departments, Purpose, Setting Type) */
+.department-options,
+.purpose-options,
+.setting-type-options { /* Add setting-type-options */
+    display: grid;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.department-options {
+    grid-template-columns: repeat(8, 1fr); /* 8列表示を維持 */
+}
+
+.purpose-options { /* Specific styles for purpose options */
+    display: grid; /* Ensure grid display */
+    grid-template-columns: repeat(3, 216px); /* Set fixed width for each button */
+    width: 668px; /* Explicit width: (3 * 216px) + (2 * 10px gap) */
+    margin: 20px auto; /* Center the grid container */
+    gap: 10px;
+}
+
+.setting-type-options { /* Add setting-type-options */
+    display: grid; /* Ensure grid display */
+    grid-template-columns: repeat(3, 216px); /* Set fixed width for each button */
+    width: 668px; /* Explicit width: (3 * 216px) + (2 * 10px gap) */
+    margin: 20px auto; /* Center the grid container */
+    gap: 10px;
+}
+
+.department-options label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+    padding: 0px 0 1px 0; /* 上0px、右0、下1px、左0 - 上側のパディングを削除 */
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.86em;
+    transition: all 0.2s ease;
+    text-align: center;
+    height: 85px; /* 90pxから85pxに縮小 - 上側が少しカットされる */
+    width: auto;
+    min-width: 0;
+}
+
+.department-icon {
+    width: 64px; /* ボタン内で最大限大きく、はみ出さないサイズに調整 */
+    height: 64px;
+    margin-bottom: 0px;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* Purpose and Setting Type Options */
+.purpose-options label,
+.setting-type-options label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: #ffffff;
+    text-align: center;
+}
+
+.purpose-options label .department-icon {
+    width: 96px;
+    height: 96px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    margin-bottom: 10px;
+}
+
+.purpose-options label.selected {
+    border-color: #28a745;
+    background-color: #f8fff9;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.purpose-options label:not(.selected):hover {
+    border-color: #28a745;
+    background-color: #f8fff9;
+}
+
+.purpose-options input[type="radio"],
+.setting-type-options input[type="radio"] {
+    display: none;
+}
+
+/* General Form Input Styles */
+form div {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 1em; /* Match tab button font size */
+}
+
+/* 一般的な入力フィールドスタイル - すべてのインプットに適用 */
+input[type="text"],
+.editable-field,
+.form-control,
+[contenteditable="true"],
+.persona-preview input,
+.persona-preview-grid input {
+    border: 1px solid #ccc !important;
+    border-radius: 4px !important;
+    padding: 5px 8px !important;
+    background-color: #fff !important;
+    min-height: 24px !important;
+    box-sizing: border-box !important;
+}
+
+/* 都道府県と市区町村のフィールド専用 - 特殊セレクタで確実に適用 */
+input[id*="prefecture"],
+input[id*="city"],
+input[id*="ward"],
+input[id*="town"],
+input[name*="prefecture"],
+input[name*="city"],
+input[name*="ward"],
+input[name*="town"],
+.persona-preview-grid p:nth-child(3) input, /* 都道府県の可能性が高い */
+.persona-preview-grid p:nth-child(4) input, /* 市区町村の可能性が高い */
+.persona-preview-grid p input {
+    width: 150px !important;
+    display: inline-block !important;
+    margin-left: 5px !important;
+    background-color: #fff !important;
+    border: 1px solid #ccc !important;
+    border-radius: 4px !important;
+}
+
+/* Ensure placeholder text also matches */
+input::placeholder,
+textarea::placeholder {
+    font-size: 1em;
+}
+
+/* Form field examples (like "例: 新宿区") */
+input::placeholder,
+textarea::placeholder {
+    color: #999;
+}
+
+/* Button Styles */
+button {
+    /* Common button styles */
+    padding: 10px 12px; /* Match department label padding */
+    background-color: #007bff; 
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em; 
+    font-weight: bold; 
+    transition: background-color 0.2s ease;
+    margin-top: 10px;
+    box-sizing: border-box; /* Ensure padding is included in width */
+}
+
+/* Container for Step Navigation Buttons */
+.step-nav-buttons {
+    text-align: center; /* Center the inline-block buttons */
+    margin-top: 0; /* 10px から 0 に変更 */
+    display: block !important; /* 強制的に表示 */
+    visibility: visible !important; /* 強制的に表示 */
+}
+
+/* 確認画面上部のボタンコンテナ用の特別なスタイル */
+.form-step[data-step="5"] .step-nav-buttons {
+    display: block !important; /* 強制的に表示 */
+    visibility: visible !important; /* 強制的に表示 */
+    margin-bottom: 20px !important; /* 下部のマージンを確保 */
+    text-align: center !important; /* 中央揃え */
+}
+
+/* Ensure next button is also inline-block for alignment */
+.next-step-btn { 
+    display: inline-block; /* Changed from block */
+    width: 216px; /* Set fixed width calculated from 5 columns */
+    /* margin: 30px auto 10px auto; */ /* Remove auto margin for side-by-side */
+    vertical-align: top; /* Align buttons vertically */
+}
+
+.next-step-btn:disabled {
+    background-color: #cccccc; /* 薄いグレー */
+    color: #666666;          /* やや薄い文字色 */
+    cursor: not-allowed;     /* 禁止カーソル */
+    opacity: 0.7;            /* 少し透明にする */
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+.prev-step-btn {
+    background-color: #6c757d;
+    /* margin-right: 10px; */ /* Remove margin-right if using centering container */
+    width: 108px; /* Set width to half of next-step-btn */
+    display: inline-block; /* Allow side-by-side alignment */
+    margin-right: 10px; /* Add space between buttons */
+}
+
+.prev-step-btn:hover {
+    background-color: #5a6268;
+}
+
+#add-field-btn {
+    background-color: #17a2b8;
+    margin-bottom: 0; /* 20px から 0 に変更 */
+    margin-top: 0; /* 上の空白をなくす */
+}
+
+#add-field-btn:hover {
+    background-color: #138496;
+}
+
+#generate-persona-btn {
+    background-color: #28a745;
+}
+#generate-persona-btn:hover {
+    background-color: #218838;
+}
+
+/* Detail Setting Options (Step 3) */
+.setting-options {
+    margin-bottom: 20px;
+}
+.setting-options label {
+     display: inline-block;
+     margin-right: 20px;
+     font-weight: normal;
+}
+
+/* Grid Layout for Detail Form Fields (Step 3) */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr; /* Change to 3 columns */
+    row-gap: 8px;
+    column-gap: 15px;
+}
+
+.form-grid div {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+}
+
+.form-grid div label {
+    margin-bottom: 3px;
+    font-size: 1em; /* Ensure consistent font size */
+    font-weight: bold; /* Make font bold to match buttons */
+}
+
+/* Adjust margin specifically for inputs/selects within the form grid */
+.form-grid input[type="text"],
+.form-grid select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    margin-bottom: 5px;
+    font-size: 1em; /* Ensure consistent font size */
+    height: 41.5px; /* Set height to match button height */
+}
+
+/* Container for patient type grid and description */
+#patient-type-selection {
+    display: flex; /* Use flexbox */
+    flex-direction: column; /* Stack items vertically */
+    align-items: center; /* Center items horizontally */
+}
+
+/* Patient Type Selection Styles (Step 3) */
+.patient-type-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0px 15px; /* Remove row gap, keep column gap */
+    margin-bottom: 0px; /* Remove margin below grid */
+}
+
+.patient-type-item {
+    /* border: 1px solid #dee2e6; */ /* Remove border */
+    border-radius: 6px; /* Keep radius for potential background on hover/select? */
+    padding: 2px 2px; /* 左右のパディングを10pxから2pxに縮小してアイコンに合わせる */
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease; /* Keep transition for icon maybe */
+    /* Remove item hover/selected background */
+}
+
+/* Remove item-level hover/selected styles */
+/* .patient-type-item:hover { */
+/*    border-color: #adb5bd; */
+/*    background-color: #f8f9fa; */
+/* } */
+
+/* ホバー時のアイコンスタイル - 枠線だけ変更 */
+.patient-type-item:hover .patient-type-icon {
+    border-color: #adb5bd; /* ホバー時に境界線を表示 */
+}
+
+/* 選択された状態のアイコンのスタイル - 枠線のみ変更 */
+.patient-type-item.selected .patient-type-icon {
+    border: 3px solid #28a745; /* 選択時に太めの緑の境界線 */
+}
+
+/* 選択された患者タイプアイテム全体のスタイル */
+.patient-type-item.selected {
+    background-color: transparent; /* 背景を透明に */
+    border: 1px solid transparent; /* 枠線も透明に */
+    border-radius: 4px; /* 角を丸くする */
+}
+
+.patient-type-item input[type="radio"] {
+    display: none !important; /* Keep radio hidden */
+}
+
+/* アイコンのコンテナスタイル - 画像を含むコンテナ */
+.patient-type-icon {
+    width: 129px; /* 横幅 */
+    height: 87px;  /* 高さ */
+    margin: 0 auto 1px auto; /* 下マージンを最小に */
+    border-radius: 4px;
+    border: 1px solid transparent; /* 通常時は透明な境界線 */
+    background-color: transparent; /* 背景を透明に */
+    position: relative; /* 中の画像要素の位置決めの基準点 */
+    overflow: hidden; /* はみ出した画像を隠す */
+}
+
+/* 実際の画像要素のスタイル */
+.patient-type-icon img {
+    width: 100%; /* コンテナいっぱいに表示 */
+    height: 100%; /* コンテナいっぱいに表示 */
+    object-fit: contain; /* アスペクト比を維持 */
+    object-position: center; /* 中央に配置 */
+    position: absolute; /* 絶対位置指定 */
+    top: 0;
+    left: 0;
+}
+
+.patient-type-name {
+    font-size: 1em; /* Match setting-type-options label font size */
+    font-weight: bold;
+    color: #333;
+    display: block;
+}
+
+#patient-type-description {
+    /* Remove all container styling */
+    background-color: transparent !important; /* Force background to be transparent */
+    border: none !important; /* Force no border */
+    border-radius: 0 !important; /* Force no border radius */
+    padding: 0 !important; /* Force no padding */
+    box-shadow: none !important; /* Force no box shadow */
+    margin-top: 2px !important; /* Force minimal top margin */
+    margin-bottom: 2px !important; /* Force minimal bottom margin */
+    text-align: left !important; /* Force left alignment */
+    width: auto !important; /* Force natural width */
+    float: none !important; /* Ensure no floating */
+    font-size: 1em; /* Match setting-type-options label font size */
+    line-height: 1.4; 
+}
+
+/* Make sure all children of description also have no border/background */
+#patient-type-description * {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 3px 0 !important;
+    font-size: 1em; /* Match setting-type-options label font size */
+}
+
+/* Specifically target possible containers within the description */
+#patient-type-description div, 
+#patient-type-description p, 
+#patient-type-description span {
+    display: block !important;
+    border: none !important;
+    background: none !important;
+    padding: 0 !important;
+    margin: 3px 0 !important;
+    border-radius: 0 !important;
+}
+
+/* Hide the heading within the description */
+#patient-type-description h5 {
+    display: none; /* Keep heading hidden */
+}
+
+/* Style for the paragraphs within the description */
+#patient-type-description p {
+    margin-bottom: 3px; /* Add small margin between paragraphs */
+    margin-top: 0; /* Remove default top margin */
+    color: #555; /* Slightly lighter text color */
+}
+
+#patient-type-description p:last-child {
+    margin-bottom: 0; /* Remove margin from the last paragraph */
+}
+
+/* Specifically target strong elements in description for consistent sizing */
+#patient-type-description strong {
+    font-size: 1em !important; /* Keep consistent with text */
+    font-weight: bold !important;
+}
+
+/* Additional Fields Styling (Step 4) */
+#additional-fields .additional-field-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 3px;
+    align-items: baseline; /* center から baseline に変更 */
+}
+
+#additional-fields .additional-field-row input[type="text"] {
+    padding-top: 11px;
+    padding-bottom: 11px;
+    flex: 1; /* 利用可能なスペースを分け合う */
+}
+
+#additional-fields .additional-field-row button {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+    white-space: nowrap; /* テキストの自動改行を防ぐ */
+    margin-top: 0; /* 上マージンをリセット */
+}
+
+/* Loading Indicator Styles (Step 5) - Modified for Full Overlay */
+.loading-step {
+    /* Remove form-step border and default padding */
+    border: none;
+    padding: 0;
+    /* Make it an overlay */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.95); /* Semi-transparent white background */
+    display: none; /* Hidden by default, controlled by .active */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    z-index: 10; /* Ensure it's on top */
+}
+
+/* Override display:block from .form-step.active */
+.form-step.active.loading-step {
+    display: flex;
+}
+
+/* Loading Icon Style Adjustments */
+.loading-icon {
+     width: 60px;
+     height: 60px;
+     background-color: #007bff;
+     border-radius: 50%;
+     margin: 0 auto 30px auto;
+     /* Add animation */
+     animation: spin 1s linear infinite;
+}
+
+/* Loading text style adjustments */
+.loading-step h3 {
+    font-size: 1.5em;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.loading-step p {
+    font-size: 1.1em;
+    color: #555;
+}
+
+/* Add spin animation */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Result Display Styles (Step 6) */
+.result-step {
+    /* padding: 0 !important; */ /* パディングを0にした指定をコメントアウト */
+    border: none !important; /* 枠線を消す */
+}
+
+.result-step h3 {
+    text-align: center;
+    margin-bottom: 10px;
+    font-size: 1.6em;
+    color: #333;
+}
+
+/* 「生成されたペルソナ」タイトル用のスタイル */
+.persona-title {
+    text-align: center;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    font-size: 1.5em;
+    color: #333;
+    padding-bottom: 5px;
+}
+
+/* 診療科・作成目的情報用のスタイル */
+.header-info-items {
+    margin-bottom: 15px;
+}
+
+.header-info-items p {
+    margin: 5px 0;
+    padding: 8px 12px;
+    background-color: transparent; /* グレー背景から透明に変更 */
+    border-radius: 4px;
+    font-size: 0.95em;
+}
+
+.header-info-items strong {
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.persona-result-container {
+    display: flex; /* Flexbox を有効化 */
+    gap: 20px; /* プレビューと詳細の間の隙間 */
+    margin-top: 20px;
+}
+
+/* New styles for persona preview (left side) */
+.persona-preview {
+    flex: 0 0 35%; /* New width: 35% */
+    padding: 20px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    background-color: #fff;
+    box-sizing: border-box;
+    position: relative; /* 追加: 子要素の絶対配置の基準点 */
+    /* overflow-y: auto; */ /* Add if content might overflow vertically */
+}
+
+/* 画像コンテナをposition: relativeに設定 */
+.persona-image-container {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 15px;
+}
+
+.persona-preview img#preview-persona-image {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+/* 画像上にオーバーレイテキストを配置 */
+.persona-preview::before {
+    /* content: "ペルソナ画像"; */ /* This line is removed to hide the text */
+    position: absolute;
+    top: 95px; /* 画像の中央付近に調整 */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    white-space: nowrap;
+    z-index: 10;
+    width: auto;
+    min-width: 80px;
+    text-align: center;
+}
+
+/* 画像上にテキストを重ねるスタイル */
+.persona-image-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    text-align: center;
+    width: auto; /* 固定幅から自動幅に変更 */
+    min-width: 100px; /* 最小幅を設定 */
+    white-space: nowrap; /* テキストを折り返さない */
+    pointer-events: none; /* クリックイベントを通過させる */
+}
+
+/* アイコンテキストのスタイル修正（既存クラスにも対応） */
+.img-persona-label,
+.persona-image-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    text-align: center;
+    width: auto; /* 固定幅から自動幅に変更 */
+    min-width: 100px; /* 最小幅を設定 */
+    white-space: nowrap; /* テキストを折り返さない */
+    pointer-events: none; /* クリックイベントを通過させる */
+}
+
+.persona-preview h4#preview-name { /* More specific selector for name */
+    font-size: 1.3em; 
+    margin-top: 0;
+    margin-bottom: 15px; /* Space below name before grid */
+    text-align: center; 
+    color: #333;
+    font-weight: bold;
+}
+
+/* Persona Preview Grid (remains 2-column for initial items) */
+.persona-preview-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0px 15px;
+    align-items: start;
+    margin-bottom: 8px !important; /* 下マージンを8pxに統一 */
+}
+.persona-preview-grid p {
+    font-size: 0.9em;
+    line-height: 1.6;
+    margin-top: 0;
+    margin-bottom: 8px;
+    color: #555;
+    word-break: break-word;
+    display: flex; /* Flexbox を有効化 */
+    align-items: flex-start; /* 左寄せに変更 */
+}
+.persona-preview-grid p strong {
+    display: inline-block !important;
+    /* min-width: 70px !important; */ /* ラベルの幅を統一 - この行をコメントアウトまたは削除 */
+    font-weight: bold !important;
+    margin-right: 5px !important; /* 入力欄との間の右マージンは維持 */
+}
+
+/* Container for 1-column additional info within persona-preview */
+.additional-info-column {
+    margin-top: 0px; /* Space above the 1-column section を 0px に変更 */
+}
+.additional-info-column p {
+    font-size: 0.9em;
+    line-height: 1.6;
+    margin-top: 0;
+    margin-bottom: 8px;
+    color: #555;
+    word-break: break-word;
+    text-align: left; /* 左寄せを明示的に指定 */
+}
+.additional-info-column p strong {
+    font-weight: bold;
+    color: #333;
+    margin-right: 5px;
+}
+
+/* Styling for the dynamic fields container if it uses .additional-info-column */
+/* REMOVING EMPTY RULESET 
+Styling for the dynamic fields container if it uses .additional-info-column
+#preview-additional-dynamic-fields.additional-info-column p {
+    Styles from .additional-info-column p will apply
+}
+*/
+
+/* Div for dynamically added fields, if it also needs grid styling (OLD - REMOVE IF NOT USED) */
+/* #preview-additional-dynamic-fields {
+    grid-column: 1 / -1; 
+    margin-top: 8px; 
+}*/
+
+.persona-details {
+    flex: 0 0 calc(65% - 20px); /* New width: ~65% (considering the gap) */
+    padding: 20px; /* Consistent padding */
+    border: 1px solid #eee;
+    border-radius: 8px;
+    background-color: #fff;
+    box-sizing: border-box;
+    /* overflow-y: auto; */ /* Add if content might overflow vertically */
+}
+
+.persona-details h4 {
+    /* Remove button-like styles */
+    /* background-color: #007bff; */
+    /* color: white; */
+    /* padding: 5px 10px; */
+    /* border-radius: 4px; */
+    /* display: inline-block; */
+    
+    /* Apply standard heading styles */
+    color: #333; /* Standard text color */
+    font-size: 1.1em; /* Slightly larger font size for heading */
+    font-weight: bold;
+    margin-top: 15px; /* Add space above heading */
+    margin-bottom: 8px; /* Adjust space below heading */
+    padding: 0; /* Ensure no padding */
+    display: block; /* Make it a block element */
+}
+
+/* Set margin-top to 0 for the very first heading */
+.persona-details h4:first-of-type {
+    margin-top: 0;
+}
+
+.persona-details p {
+    font-size: 1.1em !important; /* セクション名 (h4) に近いフォントサイズに - 確実に適用されるように !important を追加 */
+    color: #444; 
+    line-height: 1.7; 
+    margin-bottom: 15px; /* Add some space between paragraphs */
+}
+
+/* Download Options (Result Page - Positioned at the top right of the step) */
+.download-options {
+    /* text-align: right; */ /* Existing style, might be removed or overridden */
+    /* margin-bottom: 15px; */ /* Existing style, might be removed or overridden */
+    position: absolute;
+    top: 20px; /* Adjust this value to position from the top edge of persona-preview-container */
+    right: 20px; /* Adjust this value to position from the right edge of persona-preview-container */
+    z-index: 100; /* Ensure buttons are on top of other elements */
+    display: flex; /* To align buttons if there are multiple */
+    gap: 10px; /* Space between buttons */
+}
+
+/* General download button style (borders, padding, etc.) */
+.download-options button {
+    /* background-color: #007bff; Color set by ID below */
+    margin: 0 0 0 8px;
+    padding: 6px 16px;
+    font-size: 0.85em;
+    color: white; /* Ensure text is white */
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+/* Specific button colors */
+#download-pdf-result {
+    background-color: #ff0000 !important; /* 赤色 */
+    display: inline-block !important; /* 強制表示 */
+    height: 40px !important; /* 高さを固定 */
+    padding: 10px 16px !important; /* パディングを調整 */
+    font-size: 14px !important; /* フォントサイズを調整 */
+}
+
+/* General Button Styles - Ensure these don't conflict badly */
+
+.result-step .prev-step-btn {
+    margin-top: 5px;
+    background-color: #6c757d;
+}
+
+/* Footer Styles */
+footer {
+    text-align: center;
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #e9ecef;
+    color: #6c757d;
+    font-size: 0.9em;
+}
+
+/* Responsive Design (Max-width 992px) */
+@media (max-width: 992px) {
+    body {
+        font-size: 14px;
+    }
+    .main-container {
+        margin: 10px; /* Reduce margin on smaller screens */
+        /* display: block; */ /* Ensure it's block if flex was used before */
+    }
+
+    .form-area {
+        padding: 20px 20px 0 20px; /* Reduce padding, ensuring bottom padding is 0 */
+    }
+
+    /* Adjust department options for smaller screens */
+    .department-options { /* Apply responsive grid to department */
+         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+    .purpose-options,
+    .setting-type-options { /* Apply to setting-type-options as well */
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Apply responsive grid */
+        width: auto; /* Reset width for smaller screens */
+        /* margin: 20px auto; */ /* Keep centering */
+    }
+
+    /* Adjust next/prev button width and layout on smaller screens */
+    .next-step-btn {
+         width: 90%;
+         display: block;
+    }
+    .prev-step-btn {
+         width: 90%;
+         display: block;
+         margin: 10px auto;
+         margin-right: auto; /* Remove specific right margin */
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr; /* Stack grid items */
+    }
+    .persona-result-container {
+        flex-direction: column; /* Stack persona details */
+    }
+    .persona-profile {
+        width: 100%;
+        margin-bottom: 20px;
+        position: static; /* Remove sticky positioning */
+        height: auto;
+    }
+    .profile-details-list dt {
+        flex-basis: 80px; /* Adjust label width */
+    }
+}
+
+/* Styling for the new horizontally aligned location inputs */
+.location-inputs-container {
+    display: flex;
+    gap: 10px; /* Space between Prefecture and Municipality inputs */
+    align-items: flex-start; /* Align items based on their top edge */
+}
+
+.location-input-item {
+    flex: 1; /* Each item (prefecture/municipality) takes equal width */
+    display: flex;
+    flex-direction: column; /* Stack label above input */
+}
+
+/* Ensure labels within location-input-item match general form-grid labels */
+.location-input-item label {
+    /* font-size: 1em; */ /* Already inherited from .form-grid div label */
+    /* font-weight: bold; */ /* Already inherited */
+    margin-bottom: 3px; /* Consistent margin */
+    display: block; /* Ensure it takes full width above the input */
+}
+
+/* Ensure inputs/selects within location-input-item take full width of their item container */
+.location-input-item select,
+.location-input-item input[type="text"] {
+    width: 100%;
+    /* Height will be inherited from .form-grid select/input rule (41.5px) */
+    /* Other styles like padding, border, border-radius also inherited */
+}
+
+/* Grid cell containing the location inputs */
+.location-grid-cell {
+    /* Override the display:flex from .form-grid div to allow inner flex layout */
+    display: block; 
+}
+
+/* Adjust margin specifically for inputs/selects within the form grid */
+.form-grid input[type="text"],
+.form-grid select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    margin-bottom: 5px;
+    font-size: 1em; /* Ensure consistent font size */
+    height: 41.5px; /* Set height to match button height */
+}
+
+.form-grid input[type="text"],
+.form-grid select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+.additional-fixed-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* 2列に分割 */
+    gap: 15px; /* 各グリッドアイテム間の隙間 */
+    margin-bottom: 20px; /* グリッド全体の下部のマージン */
+}
+.additional-fixed-fields-grid div {
+    /* 個々の入力フィールドコンテナのスタイル (必要に応じて調整) */
+    margin-bottom: 0; /* form div のマージンと重複しないように */
+}
+
+.additional-fixed-fields-grid div label {
+    /* ラベルのスタイル (必要に応じて調整) */
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.additional-fixed-fields-grid div input[type="text"] {
+    /* テキスト入力フィールドのスタイル */
+    width: 100%; /* 親要素の幅いっぱいに広げる */
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+#additional-fields .additional-field-row .remove-field-btn {
+    padding-top: 9px !important;
+    padding-bottom: 10px !important; 
+    height: auto !important; /* インラインの height: fit-content を上書き */
+    align-self: baseline !important; /* インラインの align-self: center を上書き */
+}
+
+/* Confirmation Screen Specific Styles */
+.confirmation-summary .summary-section {
+    margin-bottom: 0px; /* 各セクション間のマージンを0に */
+    padding-bottom: 15px; /* 各セクションの下のパディング */
+    border-bottom: 1px solid #eee; /* セクション区切り線 */
+}
+
+.confirmation-summary .summary-section:last-child {
+    border-bottom: none; /* 最後のセクションの区切り線はなし */
+    margin-bottom: 0;
+}
+
+.confirmation-summary h5 {
+    font-size: 1.1em; 
+    font-weight: bold;
+    color: #333;
+    margin-top: 0px; /* 上の空白を調整 */
+    margin-bottom: 10px;
+    display: flex; 
+    justify-content: space-between; 
+    align-items: baseline; /* テキストとボタンの垂直中央揃え から ベースライン揃えへ変更 */
+}
+
+.confirmation-summary .edit-step-btn {
+    font-size: 0.9em; 
+    height: 40.63px; /* h5の高さに合わせる */
+    padding: 0 10px; /* 上下のpaddingは0にし、左右のpaddingは適宜調整 */
+    line-height: 48.63px; /* heightと同じ値にしてテキストを垂直中央揃え */
+    background-color: #6c757d; 
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    box-sizing: border-box; /* heightにpaddingとborderが含まれるように */
+    display: inline-flex; /* テキストをさらに中央揃えしやすくする */
+    align-items: center;
+    justify-content: center;
+}
+.confirmation-summary .edit-step-btn:hover {
+    background-color: #5a6268;
+}
+
+.confirmation-summary p,
+#summary-basic-info p, /* Ensure styles apply here */
+#summary-additional-fixed-info p,
+#summary-additional-dynamic-info p {
+    font-size: 1em; /* 標準フォントサイズに統一 (bodyが13pxなら13px) */
+    color: #333;
+    margin-bottom: 8px; /* 各情報の行間 */
+    line-height: 1.5;
+}
+
+#summary-basic-info strong,
+#summary-additional-fixed-info strong,
+#summary-additional-dynamic-info strong,
+.confirmation-summary p strong { /* summary-department と summary-purpose のstrongも対象 */
+    font-weight: bold;
+    margin-right: 8px; /* ラベルと値の間のスペース */
+    display: inline-block; /* 必要に応じて */
+}
+
+/* 基本情報と追加情報のコンテナのスタイル調整 */
+#summary-basic-info.form-grid,
+#summary-additional-fixed-info.additional-fixed-fields-grid {
+    padding: 10px;
+    border: 1px solid #e0e0e0; /* 薄い枠線を追加 */
+    border-radius: 4px;
+    margin-top: 5px;
+    display: grid; /* Keep grid for layout */
+    gap: 10px; /* Adjust gap as needed */
+}
+#summary-basic-info.form-grid p,
+#summary-additional-fixed-info.additional-fixed-fields-grid p {
+    margin-bottom: 0; /* グリッド内のpタグのmarginを調整 */
+    border-bottom: none; /* 個別の項目に下線は不要 */
+    padding-bottom: 0;
+}
+
+
+/* ボタンのフォントサイズを他と統一 (汎用ボタンスタイルに影響させるか、ここで上書き) */
+#final-generate-btn-bottom, /* 古いID指定を残すか、クラスのみにするか検討 */
+.form-step[data-step="5"] .prev-step-btn, /* 確認画面のナビゲーションボタン */
+.final-generate-btn-common { /* 新しい共通クラス */
+    font-size: 1em; /* 標準フォントサイズ */
+    padding: 10px 12px; /* 他のナビゲーションボタンに合わせる */
+}
+
+/* final-generate-btn-common のスタイルを #final-generate-btn から継承または再定義 */
+.final-generate-btn-common {
+    background-color: #28a745; /* 緑色に変更 */
+    color: white; /* テキスト色を白に (念のため) */
+}
+
+.final-generate-btn-common:hover {
+    background-color: #218838; /* ホバー色 */
+}
+
+/* 不要になった可能性のある古いIDセレクタのスタイルをコメントアウトまたは削除
+#final-generate-btn {
+    background-color: #28a745; 
+    color: white; 
+}
+
+#final-generate-btn:hover {
+    background-color: #218838; 
+}
+*/
+
+.initially-hidden-confirm-btn {
+    display: none !important; /* 初期状態は非表示。インラインの margin-left と共存させるため important を使用 */
+}
+
+.force-show-confirm-btn {
+    display: inline-block !important; /* JSからこのクラスを付与して表示を強制 */
+}
+
+/* 編集可能フィールドのスタイル - 枠線を常時表示 */
+
+.form-step[data-step="5"] .prev-step-btn {
+    margin-top: 5px;
+    background-color: #6c757d;
+}
+
+.editable-field {
+    padding: 5px; /* 上下左右のパディングを5pxに統一 */
+    border-radius: 4px; /* ボーダー半径を4pxに */
+    min-width: 20px;
+    display: inline-block;
+    transition: all 0.2s ease;
+    cursor: text;
+    background-color: white; /* 背景色を白に統一 */
+    border: 1px solid #ccc; /* ボーダーを#cccに統一 */
+    vertical-align: middle; /* 他の要素と垂直方向中央揃え */
+    box-sizing: border-box; /* paddingとborderをwidth/heightに含める */
+    height: 26px; /* 高さを26pxに固定 */
+    line-height: normal; /* テキストの垂直位置調整 */
+}
+
+.editable-field:hover {
+    background-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 0 1px #ccc;
+    border: 1px solid #aaa; /* ホバー時は枠線を濃く */
+}
+
+.editable-field:focus {
+    background-color: #fff;
+    box-shadow: 0 0 0 2px #007bff;
+    outline: none;
+    border: 1px solid #007bff;
+}
+
+/* 名前編集用 */
+#preview-name.editable-field {
+    font-size: 1em;
+    font-weight: bold;
+    min-width: 100px;
+    text-align: center;
+}
+
+/* 都道府県・市区町村編集用 */
+.editable-location {
+    min-width: 60px;
+    font-weight: normal;
+}
+
+
+/* 編集アイコンを非表示 */
+.editable-field::after {
+    content: "";
+    display: none;
+}
+
+/* 都道府県選択リストのスタイル調整 */
+.prefecture-select {
+    padding: 2px 5px; /* パディングを他のフィールドと合わせる */
+    border-radius: 4px;
+    width: 100px; /* 幅を固定 */
+    border: 1px solid #ccc;
+    background-color: white;
+    font-size: 0.9em; /* 文字サイズを他のフィールドと統一 */
+    height: 26px; /* 高さを他のフィールドと合わせる */
+    box-sizing: border-box; /* paddingとborderをwidth/heightに含める */
+    vertical-align: middle; /* 垂直方向の中央揃え */
+    font-family: 'Helvetica Neue', Arial, sans-serif; /* 他のフィールドと同じフォント */
+    line-height: normal; /* 行高さをリセット */
+    appearance: menulist; /* ドロップダウン表示を維持 */
+    -webkit-appearance: menulist;
+    -moz-appearance: menulist;
+    margin-left: 4px; /* 左マージンを追加 */
+}
+
+.prefecture-select:hover {
+    border-color: #aaa;
+    background-color: rgba(255, 255, 255, 0.8);
+}
+
+.prefecture-select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* 結果画面のナビゲーションボタンコンテナ */
+.result-navigation {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 10px; /* Reduced from 20px */
+    margin-bottom: 0px; /* Ensured no bottom margin from this container */
+    align-items: center;
+    /* height: 0px; Removed, height will be auto based on content */
+    background: none; /* 背景色を削除 */
+    padding: 0; /* Ensured no padding in this container */
+}
+
+/* 編集に戻るボタンのスタイル */
+.result-navigation .prev-step-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin: 0;
+    width: 120px;
+    height: 40px;
+    display: inline-block;
+    line-height: 40px;
+    text-align: center;
+    padding: 0;
+    vertical-align: middle;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.result-navigation .prev-step-btn:hover {
+    background-color: #5a6268;
+}
+
+/* 最初からボタンのスタイル */
+.restart-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin: 0;
+    width: 120px;
+    height: 40px;
+    display: inline-block;
+    line-height: 40px;
+    text-align: center;
+    padding: 0;
+    vertical-align: middle;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.restart-btn:hover {
+    background-color: #218838;
+}
+
+/* 名前フィールド */
+#preview-name-container input[type="text"],
+.persona-preview input[type="text"] {
+    width: 150px !important; /* 重要度を上げる */
+    margin: 10px auto !important;
+    display: block !important;
+    text-align: center !important;
+    padding: 6px 10px !important;
+    font-weight: bold !important;
+    font-size: 1.1em !important;
+    border: 1px solid #ddd !important;
+    border-radius: 3px !important;
+    background-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* 都道府県と市区町村の入力欄 - 最大限の詳細度でスタイルを強制 */
+.persona-preview-grid p input[type="text"],
+.persona-preview-grid input[type="text"],
+.location-field {
+    width: 150px !important; /* 重要度を上げる */
+    display: inline-block !important;
+    margin-left: 5px !important;
+    padding: 2px 5px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 3px !important;
+    background-color: rgba(255, 255, 255, 0.5) !important;
+    min-height: 22px !important;
+    box-sizing: border-box !important;
+    font-size: 0.9em !important; /* 文字サイズを他のフィールドと統一 */
+}
+
+/* ラベルの幅を調整 */
+.persona-preview-grid strong,
+.persona-preview-grid p strong {
+    display: inline-block !important;
+    /* min-width: 70px !important; */ /* ラベルの幅を統一 - この行をコメントアウトまたは削除 */
+    font-weight: bold !important;
+    margin-right: 5px !important; /* 入力欄との間の右マージンは維持 */
+}
+
+.persona-preview-container {
+    display: flex;
+    gap: 20px; /* Adjust gap as needed */
+    padding: 20px; /* Added padding as it seems to be the main content box */
+    background-color: #fff; /* Assuming it's a white box */
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    position: relative; /* Make this a positioning context */
+}
+
+/* Ensure download buttons themselves are styled appropriately if not already */
+.download-options .download-btn {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.download-options .download-btn.pdf {
+    background-color: #D32F2F; /* Red for PDF */
+}
+
+/* 市区町村の入力フィールドの調整 */
+#preview-municipality.editable-field {
+    width: 100px; /* 幅を固定 */
+    height: 26px; /* 高さを固定 */
+    padding: 2px 5px; /* パディングを調整 */
+    line-height: normal; /* 行高さをリセット */
+    display: inline-flex; /* フレックスボックスとして表示 */
+    align-items: center; /* 垂直方向の中央揃え */
+    margin-left: 4px; /* 左マージンを追加 */
+}
+
+/* 名前の入力フィールドの調整 */
+#preview-name.editable-field {
+    font-size: 1em;
+    font-weight: bold;
+    min-width: 100px;
+    text-align: center;
+    display: inline-flex; /* フレックスボックスとして表示 */
+    align-items: center; /* 垂直方向の中央揃え */
+    justify-content: center; /* 水平方向の中央揃え */
+    height: 26px; /* 高さを固定 */
+    padding: 2px 5px; /* パディングを調整 */
+}
+
+/* 項目名のラベル調整 */
+.persona-preview-grid p strong {
+    min-width: auto; /* 固定幅を解除 */
+    margin-right: 5px; /* 右マージンを追加 */
+    display: inline-block;
+    vertical-align: middle; /* 垂直方向の中央揃え */
+}
+
+/* ダウンロードボタンを強制表示 */
+.download-options {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    display: flex !important; /* 強制表示 */
+    gap: 10px;
+}
+
+.download-options button {
+    display: inline-block !important; /* 強制表示 */
+    margin: 0 5px !important;
+    padding: 6px 16px !important;
+    font-size: 0.85em !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    transition: background-color 0.2s ease !important;
+}
+
+/* PDFダウンロードボタン */
+#download-pdf-result {
+    background-color: #ff0000 !important; /* 赤色 */
+    display: inline-block !important; /* 強制表示 */
+    height: 40px !important; /* 高さを固定 */
+    padding: 10px 16px !important; /* パディングを調整 */
+    font-size: 14px !important; /* フォントサイズを調整 */
+}
+
+/* Style for the selected department label */
+.department-options label.selected {
+    background-color: rgba(40, 167, 69, 0.15); /* Lighter, semi-transparent green background */
+    border-color: rgba(40, 167, 69, 0.6); /* Slightly darker green border */
+    box-shadow: 0 0 5px rgba(40, 167, 69, 0.3);
+}
+
+/* Apply hover effect only to non-selected department labels */
+.department-options label:not(.selected):hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+    transform: translateY(-2px);
+}
+
+.department-options input[type="radio"] {
+    display: none;
+}
+
+/* 生成ボタン共通スタイル */
+.final-generate-btn-common {
+    display: inline-block !important; /* 強制的に表示 */
+    visibility: visible !important; /* 強制的に表示 */
+    background-color: #28a745 !important; /* 緑色 */
+    color: white !important; /* テキスト色を白に */
+}
+
+/* トップの生成ボタン専用のスタイル */
+#final-generate-btn-top {
+    display: inline-block !important; /* 強制的に表示 */
+    visibility: visible !important; /* 強制的に表示 */
+}
+
+.setting-type-options label.selected {
+    border-color: #28a745;
+    background-color: #f8fff9;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.setting-type-options label:not(.selected):hover {
+    border-color: #28a745;
+    background-color: #f8fff9;
+}
+
+/* Owl bounce animation for loading screen */
+.bounce {
+  display: inline-block;
+  animation: bounce 1s ease-in-out infinite;
+}
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-10px) scale(1.02);
+  }
+  50% {
+    transform: translateY(0) scale(0.98);
+  }
+  75% {
+    transform: translateY(-5px) scale(1.01);
+  }
+}
+
+/* Owl loading animation for loading screen */
+.loading-container {
+  text-align: center;
+  position: relative;
+  padding: 40px 20px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.owl-loading {
+  width: 120px;
+  height: 120px;
+  position: relative;
+  display: block;
+  margin: 0 auto 30px;
+  animation: float 2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0);}
+  50% { transform: translateY(-10px);}
+}
+
+/* New progress bar styles */
+.loading-status-text {
+  font-size: 1.1em;
+  color: #333;
+  margin-bottom: 15px;
+  text-align: center;
+  min-height: 1.5em;
+  display: block;
+}
+
+.progress-bar-container {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto 20px;
+}
+
+.progress-bar-bg {
+  background-color: #e0e0e0;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  background-color: #28a745;
+  height: 100%;
+  width: 0%;
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+.progress-percentage {
+  text-align: center;
+  margin-top: 8px;
+  font-size: 0.9em;
+  color: #666;
+}
+
+.loading-step-info {
+  text-align: center;
+  color: #666;
+  font-size: 0.9em;
+}
+
+.current-step {
+  margin-bottom: 5px;
+}
+
+.estimated-time {
+  color: #999;
+}
+
+/* Remove old loading styles */
+.loading-circle {
+  display: none;
+}
+
+.loading-text {
+  display: none;
+}
+
+.dots {
+  display: none;
+} 

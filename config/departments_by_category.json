@@ -1,0 +1,41 @@
+{
+  "medical": [
+    "internal_medicine",
+    "surgery",
+    "pediatrics",
+    "orthopedics",
+    "dermatology",
+    "ophthalmology",
+    "cardiology",
+    "psychiatry",
+    "otorhinolaryngology",
+    "gynecology",
+    "urology",
+    "neurosurgery",
+    "anesthesiology",
+    "radiology",
+    "rehabilitation",
+    "allergy",
+    "gastroenterology",
+    "respiratory_medicine",
+    "diabetes_medicine",
+    "nephrology",
+    "neurology",
+    "endocrinology",
+    "hematology",
+    "plastic_surgery",
+    "beauty_surgery"
+  ],
+  "dental": [
+    "general_dentistry",
+    "pediatric_dentistry",
+    "orthodontics",
+    "cosmetic_dentistry",
+    "oral_surgery"
+  ],
+  "others": [
+    "rehabilitation",
+    "allergy",
+    "beauty_surgery"
+  ]
+}

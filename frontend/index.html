@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>診療科選択 - 医療系ペルソナ自動生成AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 60px 40px;
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.2em;
+            margin-bottom: 50px;
+        }
+
+        .department-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .department-card {
+            background: #f8f9fa;
+            border: 2px solid transparent;
+            border-radius: 15px;
+            padding: 40px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .department-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            border-color: #3498db;
+        }
+
+        .department-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .medical { color: #e74c3c; }
+        .dental { color: #3498db; }
+        .others { color: #27ae60; }
+
+        .department-name {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .department-desc {
+            font-size: 0.95em;
+            color: #7f8c8d;
+            line-height: 1.5;
+        }
+
+        .footer {
+            margin-top: 40px;
+            color: #95a5a6;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 40px 20px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .department-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>医療系ペルソナ自動生成AI</h1>
+        <p class="subtitle">診療科を選択してください</p>
+        
+        <div class="department-grid">
+            <a href="/medical" class="department-card">
+                <div class="department-icon medical">🏥</div>
+                <div class="department-name">医科</div>
+                <div class="department-desc">
+                    内科、外科、小児科など<br>
+                    一般的な医療機関向け
+                </div>
+            </a>
+            
+            <a href="/dental" class="department-card">
+                <div class="department-icon dental">🦷</div>
+                <div class="department-name">歯科</div>
+                <div class="department-desc">
+                    一般歯科、矯正歯科など<br>
+                    歯科医療機関向け
+                </div>
+            </a>
+            
+            <a href="/others" class="department-card">
+                <div class="department-icon others">🌿</div>
+                <div class="department-name">その他</div>
+                <div class="department-desc">
+                    整骨院、鍼灸院など<br>
+                    その他の医療関連施設向け
+                </div>
+            </a>
+        </div>
+        
+        <div class="footer">
+            <p>※ 各診療科へのアクセスには認証が必要です</p>
+        </div>
+    </div>
+</body>
+</html>
