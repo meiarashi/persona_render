@@ -55,12 +55,20 @@ document.addEventListener('DOMContentLoaded', async function() {
         const radioButtons = departmentOptionsContainer.querySelectorAll('input[type="radio"]');
         radioButtons.forEach(radio => {
             radio.addEventListener('change', function() {
-                // 既存のhandleStepValidation関数を呼び出す
-                if (typeof window.handleStepValidation === 'function') {
-                    window.handleStepValidation();
+                // ステップ1の「次の質問へ進む」ボタンの状態を更新
+                const step1NextBtn = document.querySelector('.form-step[data-step="1"] .next-step-btn');
+                if (step1NextBtn) {
+                    const selectedDept = document.querySelector('input[name="department"]:checked');
+                    step1NextBtn.disabled = !selectedDept;
                 }
             });
         });
+        
+        // 初期状態でボタンを無効化
+        const step1NextBtn = document.querySelector('.form-step[data-step="1"] .next-step-btn');
+        if (step1NextBtn) {
+            step1NextBtn.disabled = true;
+        }
     }
     
     // タイトルをカテゴリーに応じて更新
