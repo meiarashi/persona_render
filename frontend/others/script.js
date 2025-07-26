@@ -1043,10 +1043,83 @@ document.addEventListener('DOMContentLoaded', async () => {
     const editStepButtons = multiStepForm.querySelectorAll('.edit-step-btn');
 
     let currentStep = 1;
-    const TOTAL_FORM_STEPS = 5; 
+    const TOTAL_FORM_STEPS = 6; // 診療科選択、主訴選択、目的選択、詳細設定、追加質問、確認画面 
     let hasVisitedConfirmationScreen = false;
     const purposeLabels = multiStepForm.querySelectorAll('.purpose-options label');
 
+    // 診療科の表示名マッピング（API用）
+    const departmentDisplayNames = {
+        'cosmo': '美容外科',
+        'mental': '精神科',
+        'ortho_rehab': '整骨院・整体院',
+        'international': '外国人診療',
+        'home_care': '在宅医療',
+        'dialysis': '人工透析'
+    };
+    
+    // 主訴を動的に読み込む関数
+    async function loadChiefComplaints(departmentValue) {
+        const departmentName = departmentDisplayNames[departmentValue];
+        if (!departmentName) {
+            console.error('Department display name not found for:', departmentValue);
+            return;
+        }
+        
+        try {
+            // カテゴリーを判定（その他固定）
+            const category = 'others';
+            
+            // APIから主訴リストを取得
+            const response = await fetch(`/api/chief-complaints/${category}/${departmentName}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch chief complaints');
+            }
+            
+            const data = await response.json();
+            const chiefComplaints = data.chief_complaints;
+            
+            // 主訴選択画面のコンテナを取得
+            const chiefComplaintStep = document.querySelector('[data-step="2"]');
+            const chiefComplaintContainer = chiefComplaintStep.querySelector('.chief-complaint-options');
+            
+            // 既存の選択肢をクリア
+            chiefComplaintContainer.innerHTML = '';
+            
+            // 主訴の選択肢を追加
+            chiefComplaints.forEach((complaint, index) => {
+                const label = document.createElement('label');
+                label.className = 'option-label';
+                
+                const input = document.createElement('input');
+                input.type = 'radio';
+                input.name = 'chief_complaint';
+                input.value = complaint;
+                input.id = `chief_complaint_${index}`;
+                
+                const span = document.createElement('span');
+                span.textContent = complaint;
+                
+                label.appendChild(input);
+                label.appendChild(span);
+                chiefComplaintContainer.appendChild(label);
+            });
+            
+            // イベントリスナーを再設定
+            const chiefComplaintRadios = chiefComplaintContainer.querySelectorAll('input[name="chief_complaint"]');
+            chiefComplaintRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    chiefComplaintRadios.forEach(r => {
+                        r.parentElement.classList.remove('selected');
+                    });
+                    this.parentElement.classList.add('selected');
+                });
+            });
+        } catch (error) {
+            console.error('Error loading chief complaints:', error);
+            alert('主訴の読み込みに失敗しました。');
+        }
+    }
+    
     // --- NEW showStep FUNCTION DEFINITION --- 
     function showStep(stepNumberToShow) {
         loadingStep = document.querySelector('.loading-step'); // <--- ここで代入
@@ -1083,8 +1156,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (targetStepElement) {
             targetStepElement.classList.add('active');
             
-            // 確認画面（ステップ5）の処理
-            if (stepNumberToShow === 5) {
+            // 確認画面（ステップ6）の処理
+            if (stepNumberToShow === 6) {
                 // 上部のボタンを確実に表示する
                 const topButtonContainer = targetStepElement.querySelector('.step-nav-buttons');
                 if (topButtonContainer) {
@@ -1115,7 +1188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        if (currentStep === 3 && !hasRandomizedDetailsEver) {
+        if (currentStep === 4 && !hasRandomizedDetailsEver) {
             if (typeof randomizeDetailSettingsFields === 'function') {
                 console.log("[DEBUG] showStep: Calling randomizeDetailSettingsFields for Step 3. hasRandomizedDetailsEver:", hasRandomizedDetailsEver);
                 randomizeDetailSettingsFields();
@@ -1217,6 +1290,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return value;
         };
         document.getElementById('summary-department').textContent = getRadioDisplayText('department', data.department);
+        document.getElementById('summary-chief-complaint').textContent = getRadioDisplayText('chief_complaint', data.chief_complaint);
         document.getElementById('summary-purpose').textContent = getRadioDisplayText('purpose', data.purpose);
         const basicInfoContainer = document.getElementById('summary-basic-info');
         basicInfoContainer.innerHTML = ''; 
@@ -1350,7 +1424,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     nextButtons.forEach(button => {
-        button.addEventListener('click', () => {
+        button.addEventListener('click', async () => {
             // ステップ1の診療科未選択アラートを削除
             // if (currentStep === 1) { 
             //     const selectedDept = multiStepForm.querySelector('input[name="department"]:checked');
@@ -1360,8 +1434,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             //     }
             // }
 
-            // ステップ3で「自動」が選択されている場合の特別処理
-            if (currentStep === 3) {
+            // ステップ1で診療科が選択されたら主訴を読み込む
+            if (currentStep === 1) {
+                const selectedDept = multiStepForm.querySelector('input[name="department"]:checked');
+                if (selectedDept) {
+                    await loadChiefComplaints(selectedDept.value);
+                }
+            }
+
+            // ステップ4で「自動」が選択されている場合の特別処理
+            if (currentStep === 4) {
                 const settingTypeRadio = multiStepForm.querySelector('input[name="setting_type"]:checked');
                 if (settingTypeRadio && settingTypeRadio.value === 'auto') {
                     // 1. 詳細設定フォームのフィールドをリセット
@@ -1506,8 +1588,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             const data = getFormData();
             currentPersonaResult = null;
+            
+            // 主訴が選択されているかチェック
+            const selectedChiefComplaint = data.chief_complaint;
+            const apiEndpoint = selectedChiefComplaint ? '/api/generate-by-complaint' : '/api/generate';
+            
+            // カテゴリー情報を追加（その他固定）
+            if (selectedChiefComplaint) {
+                data.category = 'others';
+            }
+            
             try {
-                const response = await fetch('/api/generate', {
+                const response = await fetch(apiEndpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -1728,6 +1820,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         document.getElementById('header-department').textContent = headerDepartmentDisplay;
+
+        let headerChiefComplaintDisplay = profile.chief_complaint || result.chief_complaint || '-';
+        document.getElementById('header-chief-complaint').textContent = headerChiefComplaintDisplay;
 
         let headerPurposeDisplay = profile.purpose || '-';
         if (profile.purpose) {
