@@ -617,8 +617,8 @@ def parse_ai_response(text):
                 
             # Check if this is a section header for personality section
             # Support both numbered format and **header** format
-            if (line.startswith("1.") and ("性格" in line or "価値観" in line or "人生観" in line)) or \
-               (line.startswith("**") and ("性格" in line or "価値観" in line or "人生観" in line) and line.endswith("**")):
+            if (line.startswith("1.") and ("性格" in line or "個性" in line or "価値観" in line or "人生観" in line)) or \
+               (line.startswith("**") and ("性格" in line or "個性" in line or "価値観" in line or "人生観" in line) and line.endswith("**")):
                 current_section = "personality"
                 # Check if content is on the same line after colon
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
@@ -630,8 +630,8 @@ def parse_ai_response(text):
                 continue
                 
             # Check for reason section
-            elif (line.startswith("2.") and "通院理由" in line) or \
-                 (line.startswith("**") and "通院理由" in line and line.endswith("**")):
+            elif (line.startswith("2.") and ("通院理由" in line or "病院に行く理由" in line)) or \
+                 (line.startswith("**") and ("通院理由" in line or "病院に行く理由" in line) and line.endswith("**")):
                 current_section = "reason"
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
                 if content:
@@ -1141,17 +1141,25 @@ async def generate_persona_by_complaint(request: Request):
 """
         
         # AI API呼び出し
+        print(f"[DEBUG] Calling generate_text_response with model: {selected_text_model}")
+        print(f"[DEBUG] Prompt length: {len(prompt_with_complaint)}")
+        
         ai_response = await generate_text_response(
             prompt_with_complaint,
             selected_text_model,
             text_api_key_to_use
         )
         
+        print(f"[DEBUG] AI response received: {bool(ai_response)}")
+        print(f"[DEBUG] AI response length: {len(ai_response) if ai_response else 0}")
+        print(f"[DEBUG] AI response preview: {ai_response[:200] if ai_response else 'None'}...")
+        
         if not ai_response:
             raise HTTPException(status_code=500, detail="Failed to generate persona")
         
         # レスポンスの解析
         parsed_sections = parse_ai_response(ai_response)
+        print(f"[DEBUG] Parsed sections: {parsed_sections}")
         
         # ペルソナ画像生成（オプション）
         persona_image_url = None
