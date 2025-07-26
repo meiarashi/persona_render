@@ -993,6 +993,135 @@ function getWeightedBracketForIncome(incomeValueStr) {
     return null;
 }
 
+// 診療科名のマッピング（API用）
+const departmentDisplayNames = {
+    'ophthalmology': '眼科',
+    'internal_medicine': '内科',
+    'surgery': '外科',
+    'pediatrics': '小児科',
+    'orthopedics': '整形外科',
+    'otorhinolaryngology': '耳鼻咽喉科',
+    'dermatology': '皮膚科',
+    'gynecology': '婦人科',
+    'urology': '泌尿器科',
+    'psychiatry': '精神科',
+    'neurosurgery': '脳神経外科',
+    'general_dentistry': '歯科',
+    'pediatric_dentistry': '小児歯科',
+    'orthodontics': '矯正歯科',
+    'cosmetic_dentistry': '審美歯科',
+    'oral_surgery': '口腔外科',
+    'anesthesiology': '麻酔科',
+    'radiology': '放射線科',
+    'rehabilitation': 'リハビリテーション科',
+    'allergy': 'アレルギー科',
+    'cardiology': '循環器内科',
+    'gastroenterology': '消化器内科',
+    'respiratory_medicine': '呼吸器内科',
+    'diabetes_medicine': '糖尿病内科',
+    'nephrology': '腎臓内科',
+    'neurology': '神経内科',
+    'hematology': '血液内科',
+    'endocrinology': '内分泌内科',
+    'plastic_surgery': '形成外科',
+    'beauty_surgery': '美容外科'
+};
+
+// 主訴リストを読み込む関数
+async function loadChiefComplaints(departmentValue) {
+    const departmentName = departmentDisplayNames[departmentValue];
+    if (!departmentName) {
+        console.error('Department display name not found for:', departmentValue);
+        return;
+    }
+    
+    try {
+        // カテゴリーを判定
+        let category;
+        const medicalDepts = ['ophthalmology', 'internal_medicine', 'surgery', 'pediatrics', 'orthopedics', 
+                            'otorhinolaryngology', 'dermatology', 'gynecology', 'urology', 'psychiatry', 
+                            'neurosurgery', 'anesthesiology', 'radiology', 'rehabilitation', 'allergy',
+                            'cardiology', 'gastroenterology', 'respiratory_medicine', 'diabetes_medicine',
+                            'nephrology', 'neurology', 'hematology', 'endocrinology', 'plastic_surgery', 'beauty_surgery'];
+        const dentalDepts = ['general_dentistry', 'pediatric_dentistry', 'orthodontics', 'cosmetic_dentistry', 'oral_surgery'];
+        
+        if (medicalDepts.includes(departmentValue)) {
+            category = 'medical';
+        } else if (dentalDepts.includes(departmentValue)) {
+            category = 'dental';
+        } else {
+            throw new Error('Unknown department category');
+        }
+        
+        // APIから主訴リストを取得
+        const response = await fetch(`/api/chief-complaints/${category}/${departmentName}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch chief complaints');
+        }
+        
+        const data = await response.json();
+        const chiefComplaints = data.chief_complaints;
+        
+        // 主訴選択画面のコンテナを取得
+        const chiefComplaintOptions = document.querySelector('.chief-complaint-options');
+        if (!chiefComplaintOptions) {
+            console.error('Chief complaint options container not found');
+            return;
+        }
+        
+        // 既存の内容をクリア
+        chiefComplaintOptions.innerHTML = '';
+        
+        // 主訴のラジオボタンを生成
+        chiefComplaints.forEach((complaint, index) => {
+            const label = document.createElement('label');
+            const input = document.createElement('input');
+            input.type = 'radio';
+            input.name = 'chief_complaint';
+            input.value = complaint;
+            if (index === 0) input.checked = true; // 最初の項目をデフォルトで選択
+            
+            label.appendChild(input);
+            label.appendChild(document.createTextNode(` ${complaint}`));
+            chiefComplaintOptions.appendChild(label);
+        });
+        
+        // ラジオボタンのスタイルを適用（診療科選択と同じスタイル）
+        chiefComplaintOptions.classList.add('department-options');
+        
+        // 主訴選択のイベントリスナーを追加
+        const chiefComplaintRadios = chiefComplaintOptions.querySelectorAll('input[type="radio"]');
+        chiefComplaintRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                // 選択されたラベルのスタイルを更新
+                const allLabels = chiefComplaintOptions.querySelectorAll('label');
+                allLabels.forEach(label => {
+                    label.classList.remove('selected');
+                });
+                
+                // 選択されたラジオボタンの親ラベルに selected クラスを追加
+                const selectedLabel = this.closest('label');
+                if (selectedLabel) {
+                    selectedLabel.classList.add('selected');
+                }
+            });
+        });
+        
+        // 初期選択項目にselectedクラスを追加
+        const checkedRadio = chiefComplaintOptions.querySelector('input[type="radio"]:checked');
+        if (checkedRadio) {
+            const selectedLabel = checkedRadio.closest('label');
+            if (selectedLabel) {
+                selectedLabel.classList.add('selected');
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error loading chief complaints:', error);
+        alert('主訴の読み込みに失敗しました。');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     // 患者タイプのアイコンを初期化
     if (typeof initializePatientTypeIcons === 'function') {
@@ -1196,6 +1325,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         else data['setting_type'] = 'patient_type'; // Default to 'patient_type' if none selected
         const departmentRadio = multiStepForm.querySelector('input[name="department"]:checked');
         if(departmentRadio) data['department'] = departmentRadio.value;
+        const chiefComplaintRadio = multiStepForm.querySelector('input[name="chief_complaint"]:checked');
+        if(chiefComplaintRadio) data['chief_complaint'] = chiefComplaintRadio.value;
         // console.log("Collected Form Data:", data);
         return data;
     }
@@ -1217,6 +1348,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return value;
         };
         document.getElementById('summary-department').textContent = getRadioDisplayText('department', data.department);
+        document.getElementById('summary-chief-complaint').textContent = getRadioDisplayText('chief_complaint', data.chief_complaint);
         document.getElementById('summary-purpose').textContent = getRadioDisplayText('purpose', data.purpose);
         const basicInfoContainer = document.getElementById('summary-basic-info');
         basicInfoContainer.innerHTML = ''; 
@@ -1278,13 +1410,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentDepartmentRadios.forEach(originalRadio => {
         const newRadio = originalRadio.cloneNode(true);
         if (originalRadio.parentNode) originalRadio.parentNode.replaceChild(newRadio, originalRadio);
-        newRadio.addEventListener('change', () => {
+        newRadio.addEventListener('change', async () => {
             updateSelectedLabel(multiStepForm.querySelectorAll('input[name="department"]'), 'department');
             // 診療科が選択されたらステップ1の「次の質問へ進む」ボタンを活性化
             if (currentStep === 1) {
                 const step1NextBtn = formSteps[0].querySelector('.next-step-btn');
                 if (step1NextBtn) {
                     step1NextBtn.disabled = false;
+                }
+                
+                // 選択された診療科に基づいて主訴を読み込む
+                const selectedDept = multiStepForm.querySelector('input[name="department"]:checked');
+                if (selectedDept && selectedDept.value) {
+                    await loadChiefComplaints(selectedDept.value);
                 }
             }
         });
@@ -1360,8 +1498,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             //     }
             // }
 
-            // ステップ3で「自動」が選択されている場合の特別処理
-            if (currentStep === 3) {
+            // ステップ4で「自動」が選択されている場合の特別処理
+            if (currentStep === 4) {
                 const settingTypeRadio = multiStepForm.querySelector('input[name="setting_type"]:checked');
                 if (settingTypeRadio && settingTypeRadio.value === 'auto') {
                     // 1. 詳細設定フォームのフィールドをリセット
@@ -1506,8 +1644,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             const data = getFormData();
             currentPersonaResult = null;
+            
+            // 主訴が選択されているかチェック
+            const selectedChiefComplaint = data.chief_complaint;
+            const apiEndpoint = selectedChiefComplaint ? '/api/generate-by-complaint' : '/api/generate';
+            
+            // カテゴリー情報を追加
+            if (selectedChiefComplaint) {
+                // 診療科に基づいてカテゴリーを判定
+                const medicalDepts = ['ophthalmology', 'internal_medicine', 'surgery', 'pediatrics', 'orthopedics', 
+                                    'otorhinolaryngology', 'dermatology', 'gynecology', 'urology', 'psychiatry', 
+                                    'neurosurgery', 'anesthesiology', 'radiology', 'rehabilitation', 'allergy',
+                                    'cardiology', 'gastroenterology', 'respiratory_medicine', 'diabetes_medicine',
+                                    'nephrology', 'neurology', 'hematology', 'endocrinology', 'plastic_surgery', 'beauty_surgery'];
+                const dentalDepts = ['general_dentistry', 'pediatric_dentistry', 'orthodontics', 'cosmetic_dentistry', 'oral_surgery'];
+                
+                if (medicalDepts.includes(data.department)) {
+                    data.category = 'medical';
+                } else if (dentalDepts.includes(data.department)) {
+                    data.category = 'dental';
+                }
+            }
+            
             try {
-                const response = await fetch('/api/generate', {
+                const response = await fetch(apiEndpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -1728,6 +1888,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         document.getElementById('header-department').textContent = headerDepartmentDisplay;
+        
+        let headerChiefComplaintDisplay = profile.chief_complaint || result.chief_complaint || '-';
+        if (profile.chief_complaint || result.chief_complaint) {
+            const chiefComplaintRadio = document.querySelector(`input[name="chief_complaint"][value="${profile.chief_complaint || result.chief_complaint}"]`);
+            if (chiefComplaintRadio && chiefComplaintRadio.parentElement && chiefComplaintRadio.parentElement.textContent) {
+                headerChiefComplaintDisplay = chiefComplaintRadio.parentElement.textContent.trim();
+            }
+        }
+        document.getElementById('header-chief-complaint').textContent = headerChiefComplaintDisplay;
 
         let headerPurposeDisplay = profile.purpose || '-';
         if (profile.purpose) {
@@ -2053,6 +2222,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
                 // 診療科の視覚的な選択状態をリセット
                 updateSelectedLabel(departmentRadios, 'department');
+                
+                // 主訴選択をクリア
+                const chiefComplaintOptions = document.querySelector('.chief-complaint-options');
+                if (chiefComplaintOptions) {
+                    chiefComplaintOptions.innerHTML = '';
+                }
 
                 // ステップ1の「次の質問へ進む」ボタンを非活性化
                 const step1NextBtn = formSteps[0].querySelector('.next-step-btn');

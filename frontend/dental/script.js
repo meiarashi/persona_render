@@ -1129,6 +1129,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             // ラジオボタンのスタイルを適用（診療科選択と同じスタイル）
             chiefComplaintOptions.classList.add('department-options');
             
+            // イベントリスナーを再設定
+            const chiefComplaintRadios = chiefComplaintOptions.querySelectorAll('input[name="chief_complaint"]');
+            chiefComplaintRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    chiefComplaintRadios.forEach(r => {
+                        r.parentElement.classList.remove('selected');
+                    });
+                    this.parentElement.classList.add('selected');
+                });
+            });
+            
         } catch (error) {
             console.error('Error loading chief complaints:', error);
             alert('主訴の読み込みに失敗しました。');

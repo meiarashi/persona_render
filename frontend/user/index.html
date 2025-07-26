@@ -25,8 +25,8 @@
                         <span class="icon"><img src="/images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
                         <div>
                             <div class="progress-bar">
-                                <span>1/4問目</span>
-                                <div class="progress" style="width: 25%;"></div>
+                                <span>1/5問目</span>
+                                <div class="progress" style="width: 20%;"></div>
                             </div>
                             <h4 class="question-text">あなたの診療科を教えて下さい。</h4>
                         </div>
@@ -70,14 +70,37 @@
                     </div>
                 </div>
 
-                <!-- Step 2: Purpose Selection (Initially hidden) -->
+                <!-- Step 2: Chief Complaint Selection (Initially hidden) -->
                 <div class="form-step" data-step="2">
                     <div class="step-header">
                         <span class="icon"><img src="/images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
                         <div>
                             <div class="progress-bar">
-                                <span>2/4問目</span>
-                                <div class="progress" style="width: 50%;"></div>
+                                <span>2/5問目</span>
+                                <div class="progress" style="width: 40%;"></div>
+                            </div>
+                            <h4 class="question-text">主訴を選択してください。</h4>
+                        </div>
+                    </div>
+                    
+                    <div class="chief-complaint-options">
+                        <!-- 主訴のオプションは動的に生成されます -->
+                    </div>
+                    <div class="step-nav-buttons"> 
+                        <button type="button" class="prev-step-btn">&lt; 前へ</button>
+                        <button type="button" class="next-step-btn">次の質問へ進む &gt;</button>
+                        <button type="button" class="confirm-and-proceed-btn initially-hidden-confirm-btn" style="margin-left: 10px;">入力内容の確認へ進む</button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Purpose Selection (Initially hidden) -->
+                <div class="form-step" data-step="3">
+                    <div class="step-header">
+                        <span class="icon"><img src="/images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
+                        <div>
+                            <div class="progress-bar">
+                                <span>3/5問目</span>
+                                <div class="progress" style="width: 60%;"></div>
                             </div>
                             <h4 class="question-text">ペルソナを作成する目的を教えて下さい。</h4>
                         </div>
@@ -95,14 +118,14 @@
                     </div>
                 </div>
 
-                <!-- Step 3: Detail Settings (Initially hidden) -->
-                <div class="form-step" data-step="3">
+                <!-- Step 4: Detail Settings (Initially hidden) -->
+                <div class="form-step" data-step="4">
                     <div class="step-header">
                         <span class="icon"><img src="/images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
                         <div>
                             <div class="progress-bar">
-                                <span>3/4問目</span>
-                                <div class="progress" style="width: 75%;"></div>
+                                <span>4/5問目</span>
+                                <div class="progress" style="width: 80%;"></div>
                             </div>
                             <h4 class="question-text">ペルソナの項目について設定して下さい。</h4>
                         </div>
@@ -512,8 +535,8 @@
                     </div>
                 </div>
 
-                <!-- Step 4: Additional Questions (Initially hidden) -->
-                <div class="form-step" data-step="4">
+                <!-- Step 5: Additional Questions (Initially hidden) -->
+                <div class="form-step" data-step="5">
                     <div class="step-header">
                         <span class="icon"><img src="/images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
                         <div>
@@ -546,8 +569,8 @@
                     </div>
                 </div>
 
-                <!-- Step 5: Confirmation Screen (NEW) -->
-                <div class="form-step" data-step="5">
+                <!-- Step 6: Confirmation Screen (NEW) -->
+                <div class="form-step" data-step="6">
                     <div class="step-header">
                         <span class="icon"><img src="/images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
                         <div>
@@ -570,17 +593,21 @@
                             <p id="summary-department">未入力</p>
                         </div>
                         <div class="summary-section">
-                            <h5>作成目的<button type="button" class="edit-step-btn" data-step="2">編集</button></h5>
+                            <h5>主訴<button type="button" class="edit-step-btn" data-step="2">編集</button></h5>
+                            <p id="summary-chief-complaint">未入力</p>
+                        </div>
+                        <div class="summary-section">
+                            <h5>作成目的<button type="button" class="edit-step-btn" data-step="3">編集</button></h5>
                             <p id="summary-purpose">未入力</p>
                         </div>
                         <div class="summary-section">
-                            <h5>基本情報<button type="button" class="edit-step-btn" data-step="3">編集</button></h5>
+                            <h5>基本情報<button type="button" class="edit-step-btn" data-step="4">編集</button></h5>
                             <div id="summary-basic-info" class="form-grid">
                                 <!-- Basic info will be populated here -->
                             </div>
                         </div>
                         <div class="summary-section">
-                            <h5>追加情報<button type="button" class="edit-step-btn" data-step="4">編集</button></h5>
+                            <h5>追加情報<button type="button" class="edit-step-btn" data-step="5">編集</button></h5>
                             <div id="summary-additional-fixed-info" class="additional-fixed-fields-grid">
                                 <!-- Additional fixed info will be populated here -->
                             </div>
@@ -591,8 +618,8 @@
                     </div>
                 </div>
 
-                <!-- Step 6: Loading (Previously Step 5) -->
-                <div class="form-step loading-step" data-step="6">
+                <!-- Step 7: Loading (Previously Step 5) -->
+                <div class="form-step loading-step" data-step="7">
                      <div class="loading-container">
                        <img src="/images/owl.png" alt="owl" class="owl-loading" style="width:120px;height:120px;object-fit:contain;display:block;margin:0 auto 30px;">
                        
@@ -612,13 +639,14 @@
                      </div>
                  </div>
 
-                 <!-- Step 7: Result Display (Previously Step 6) -->
-                 <div class="form-step result-step" data-step="7">
+                 <!-- Step 8: Result Display (Previously Step 6) -->
+                 <div class="form-step result-step" data-step="8">
                      <div class="persona-result-container">
                         <div class="persona-preview">
                             <!-- 診療科・作成目的の情報をここに移動 -->
                             <div class="header-info-items">
                                 <p><strong>診療科:</strong> <span id="header-department">-</span></p>
+                                <p><strong>主訴:</strong> <span id="header-chief-complaint">-</span></p>
                                 <p><strong>作成目的:</strong> <span id="header-purpose">-</span></p>
                             </div>
                             

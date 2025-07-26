@@ -55,6 +55,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         const radioButtons = departmentOptionsContainer.querySelectorAll('input[type="radio"]');
         radioButtons.forEach(radio => {
             radio.addEventListener('change', function() {
+                // 選択されたラベルのスタイルを更新
+                const allLabels = departmentOptionsContainer.querySelectorAll('label');
+                allLabels.forEach(label => {
+                    label.classList.remove('selected');
+                });
+                
+                // 選択されたラジオボタンの親ラベルに selected クラスを追加
+                const selectedLabel = this.closest('label');
+                if (selectedLabel) {
+                    selectedLabel.classList.add('selected');
+                }
+                
                 // ステップ1の「次の質問へ進む」ボタンの状態を更新
                 const step1NextBtn = document.querySelector('.form-step[data-step="1"] .next-step-btn');
                 if (step1NextBtn) {

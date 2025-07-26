@@ -1002,6 +1002,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentPersonaResult = null;
     let hasRandomizedDetailsEver = false; // ランダム初期化実行フラグ
     let loadingStep; // <--- loadingStep をここで宣言
+    
+    // WebP画像のフォールバック適用
+    if (typeof applyWebPFallback === 'function') {
+        applyWebPFallback();
+    }
+    
+    // フクロウ画像のWebP対応
+    const owlImages = document.querySelectorAll('img[src*="owl.png"]');
+    owlImages.forEach(img => {
+        const originalSrc = img.src;
+        img.src = originalSrc.replace('.png', '.webp');
+        img.onerror = function() {
+            this.src = originalSrc;
+        };
+    });
 
     // (Keep checkDepartmentIcons function here if it exists)
     function checkDepartmentIcons() {
@@ -1128,6 +1143,33 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // ラジオボタンのスタイルを適用（診療科選択と同じスタイル）
             chiefComplaintOptions.classList.add('department-options');
+            
+            // 主訴選択のイベントリスナーを追加
+            const chiefComplaintRadios = chiefComplaintOptions.querySelectorAll('input[type="radio"]');
+            chiefComplaintRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    // 選択されたラベルのスタイルを更新
+                    const allLabels = chiefComplaintOptions.querySelectorAll('label');
+                    allLabels.forEach(label => {
+                        label.classList.remove('selected');
+                    });
+                    
+                    // 選択されたラジオボタンの親ラベルに selected クラスを追加
+                    const selectedLabel = this.closest('label');
+                    if (selectedLabel) {
+                        selectedLabel.classList.add('selected');
+                    }
+                });
+            });
+            
+            // 初期選択項目にselectedクラスを追加
+            const checkedRadio = chiefComplaintOptions.querySelector('input[type="radio"]:checked');
+            if (checkedRadio) {
+                const selectedLabel = checkedRadio.closest('label');
+                if (selectedLabel) {
+                    selectedLabel.classList.add('selected');
+                }
+            }
             
         } catch (error) {
             console.error('Error loading chief complaints:', error);
@@ -2454,25 +2496,7 @@ function applyWebPFallback() {
     });
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Apply WebP fallback to all images
-    applyWebPFallback();
-    
-    // Apply WebP fallback to owl images
-    const owlImages = document.querySelectorAll('img[src*="owl.png"]');
-    owlImages.forEach(img => {
-        const originalSrc = img.src;
-        img.src = originalSrc.replace('.png', '.webp');
-        img.onerror = function() {
-            this.src = originalSrc;
-        };
-    });
-    
-    // 既存のイベントリスナーに加えて
-    initializePatientTypeIcons();
-});
-
-});
+// 重複したDOMContentLoadedは削除（既に上部で統合済み）
 
 // Helper function (can be moved to a more global scope if needed elsewhere)
 function getSelectDisplayTextForResult(selectId, value) {
@@ -3151,4 +3175,6 @@ function stopProgressAnimation() {
 }
 
 // 画像を表示するコード箇所
-// 関数は他の場所で定義されているため、この重複した定義は削除しました 
+// 関数は他の場所で定義されているため、この重複した定義は削除しました
+
+}); // DOMContentLoaded終了 
