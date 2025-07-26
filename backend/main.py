@@ -1522,7 +1522,13 @@ def generate_pdf(data):
     pdf.multi_cell(left_column_width, 7, f"診療科: {department_display}", 0, 'L')
     current_y_after_icon_name = pdf.get_y()
 
-    # 2. 作成目的 (左カラム)
+    # 2. 主訴 (左カラム)
+    pdf.set_xy(left_column_content_x, current_y_after_icon_name)
+    chief_complaint_val = profile.get('chief_complaint', '-')
+    pdf.multi_cell(left_column_width, 7, f"主訴: {chief_complaint_val}", 0, 'L')
+    current_y_after_icon_name = pdf.get_y()
+
+    # 3. 作成目的 (左カラム)
     pdf.set_xy(left_column_content_x, current_y_after_icon_name)
     purpose_val = profile.get('purpose', '-')
     purpose_display = PURPOSE_MAP.get(purpose_val.lower(), purpose_val) # Lowercase for map key
@@ -1750,6 +1756,7 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
     
     header_items = [
         ("診療科", department_text),
+        ("主訴", persona_data.get('chief_complaint', '-')),
         ("作成目的", purpose_text)
     ]
     for i, (label, value) in enumerate(header_items):
