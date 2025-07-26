@@ -1081,76 +1081,80 @@ document.addEventListener('DOMContentLoaded', async () => {
         'beauty_surgery': '美容外科'
     };
 
-    // 主訴リストを読み込む関数
+    // 診療科の表示名マッピング（API用）
+    const departmentDisplayNamesForAPI = {
+        'general_dentistry': '歯科',
+        'pediatric_dentistry': '小児歯科',
+        'orthodontics': '矯正歯科',
+        'cosmetic_dentistry': '審美歯科',
+        'oral_surgery': '口腔外科'
+    };
+
+    // 主訴を動的に読み込む関数
     async function loadChiefComplaints(departmentValue) {
-        console.log('[DEBUG] loadChiefComplaints called with departmentValue:', departmentValue);
+        console.log('[DEBUG] loadChiefComplaints called with:', departmentValue);
         
-        const departmentName = departmentDisplayNames[departmentValue];
+        const departmentName = departmentDisplayNamesForAPI[departmentValue];
         if (!departmentName) {
             console.error('Department display name not found for:', departmentValue);
             return;
         }
         
-        console.log('[DEBUG] Department display name:', departmentName);
-        
         try {
             // カテゴリーを判定（歯科固定）
             const category = 'dental';
+            const apiUrl = `/api/chief-complaints/${category}/${departmentName}`;
+            
+            console.log('[DEBUG] Fetching from API:', apiUrl);
             
             // APIから主訴リストを取得
-            const apiUrl = `/api/chief-complaints/${category}/${departmentName}`;
-            console.log('[DEBUG] Fetching chief complaints from:', apiUrl);
-            
             const response = await fetch(apiUrl);
             if (!response.ok) {
-                console.error('[DEBUG] API response not OK:', response.status, response.statusText);
-                throw new Error(`Failed to fetch chief complaints: ${response.status} ${response.statusText}`);
+                throw new Error('Failed to fetch chief complaints');
             }
             
             const data = await response.json();
-            console.log('[DEBUG] API response data:', data);
-            
+            console.log('[DEBUG] API Response:', data);
             const chiefComplaints = data.chief_complaints;
-            console.log('[DEBUG] Chief complaints list:', chiefComplaints);
             
             // 主訴選択画面のコンテナを取得
-            const chiefComplaintOptions = document.querySelector('.chief-complaint-options');
-            if (!chiefComplaintOptions) {
+            const chiefComplaintStep = document.querySelector('[data-step="2"]');
+            console.log('[DEBUG] Chief complaint step element:', chiefComplaintStep);
+            
+            const chiefComplaintContainer = chiefComplaintStep ? chiefComplaintStep.querySelector('.chief-complaint-options') : null;
+            console.log('[DEBUG] Chief complaint container:', chiefComplaintContainer);
+            
+            if (!chiefComplaintContainer) {
                 console.error('Chief complaint options container not found');
                 return;
             }
             
-            console.log('[DEBUG] Chief complaint options container found:', chiefComplaintOptions);
+            // 既存の選択肢をクリア
+            chiefComplaintContainer.innerHTML = '';
             
-            // 既存の内容をクリア
-            chiefComplaintOptions.innerHTML = '';
-            
-            console.log(`[DEBUG] Creating ${chiefComplaints.length} radio buttons for chief complaints`);
-            
-            // 主訴のラジオボタンを生成
+            // 主訴の選択肢を追加
             chiefComplaints.forEach((complaint, index) => {
                 const label = document.createElement('label');
+                label.className = 'option-label';
+                
                 const input = document.createElement('input');
                 input.type = 'radio';
                 input.name = 'chief_complaint';
                 input.value = complaint;
-                if (index === 0) input.checked = true; // 最初の項目をデフォルトで選択
+                input.id = `chief_complaint_${index}`;
+                
+                const span = document.createElement('span');
+                span.textContent = complaint;
                 
                 label.appendChild(input);
-                label.appendChild(document.createTextNode(` ${complaint}`));
-                chiefComplaintOptions.appendChild(label);
+                label.appendChild(span);
+                chiefComplaintContainer.appendChild(label);
             });
             
-            // ラジオボタンのスタイルを適用（診療科選択と同じスタイル）
-            chiefComplaintOptions.classList.add('department-options');
-            
-            console.log('[DEBUG] Applied department-options class to chiefComplaintOptions');
-            console.log('[DEBUG] chiefComplaintOptions.innerHTML:', chiefComplaintOptions.innerHTML);
+            console.log(`[DEBUG] Created ${chiefComplaints.length} chief complaint options`);
             
             // イベントリスナーを再設定
-            const chiefComplaintRadios = chiefComplaintOptions.querySelectorAll('input[name="chief_complaint"]');
-            console.log('[DEBUG] Found', chiefComplaintRadios.length, 'chief complaint radio buttons');
-            
+            const chiefComplaintRadios = chiefComplaintContainer.querySelectorAll('input[name="chief_complaint"]');
             chiefComplaintRadios.forEach(radio => {
                 radio.addEventListener('change', function() {
                     chiefComplaintRadios.forEach(r => {
@@ -1159,7 +1163,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     this.parentElement.classList.add('selected');
                 });
             });
-            
         } catch (error) {
             console.error('Error loading chief complaints:', error);
             alert('主訴の読み込みに失敗しました。');

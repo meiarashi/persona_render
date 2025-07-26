@@ -1419,11 +1419,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     step1NextBtn.disabled = false;
                 }
                 
-                // 選択された診療科に基づいて主訴を読み込む
-                const selectedDept = multiStepForm.querySelector('input[name="department"]:checked');
-                if (selectedDept && selectedDept.value) {
-                    await loadChiefComplaints(selectedDept.value);
-                }
+                // 診療科選択時は主訴を読み込まない（Step 2に移行してから読み込む）
             }
         });
     });
@@ -1488,15 +1484,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     nextButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            // ステップ1の診療科未選択アラートを削除
-            // if (currentStep === 1) { 
-            //     const selectedDept = multiStepForm.querySelector('input[name="department"]:checked');
-            //     if (!selectedDept) {
-            //         alert('診療科を選択してください。');
-            //         return;
-            //     }
-            // }
+        button.addEventListener('click', async () => {
+            // ステップ1から2へ進む場合（診療科選択から主訴選択へ）
+            if (currentStep === 1) {
+                const selectedDept = multiStepForm.querySelector('input[name="department"]:checked');
+                if (!selectedDept) {
+                    alert('診療科を選択してください。');
+                    return;
+                }
+                
+                // 先にStep 2を表示
+                if (typeof window.showStep === 'function') {
+                    window.showStep(2);
+                }
+                
+                // 少し待ってから主訴リストを読み込む（DOMが更新されるのを待つ）
+                setTimeout(async () => {
+                    await loadChiefComplaints(selectedDept.value);
+                }, 100);
+                
+                return; // ここで処理を終了（showStepは既に実行済み）
+            }
 
             // ステップ4で「自動」が選択されている場合の特別処理
             if (currentStep === 4) {

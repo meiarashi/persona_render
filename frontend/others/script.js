@@ -1059,7 +1059,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // 主訴を動的に読み込む関数
     async function loadChiefComplaints(departmentValue) {
-        console.log('[DEBUG] loadChiefComplaints called with departmentValue:', departmentValue);
+        console.log('[DEBUG] loadChiefComplaints called with:', departmentValue);
         
         const departmentName = departmentDisplayNames[departmentValue];
         if (!departmentName) {
@@ -1067,38 +1067,37 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
-        console.log('[DEBUG] Department display name:', departmentName);
-        
         try {
             // カテゴリーを判定（その他固定）
             const category = 'others';
+            const apiUrl = `/api/chief-complaints/${category}/${departmentName}`;
+            
+            console.log('[DEBUG] Fetching from API:', apiUrl);
             
             // APIから主訴リストを取得
-            const apiUrl = `/api/chief-complaints/${category}/${departmentName}`;
-            console.log('[DEBUG] Fetching chief complaints from:', apiUrl);
-            
             const response = await fetch(apiUrl);
             if (!response.ok) {
-                console.error('[DEBUG] API response not OK:', response.status, response.statusText);
-                throw new Error(`Failed to fetch chief complaints: ${response.status} ${response.statusText}`);
+                throw new Error('Failed to fetch chief complaints');
             }
             
             const data = await response.json();
-            console.log('[DEBUG] API response data:', data);
-            
+            console.log('[DEBUG] API Response:', data);
             const chiefComplaints = data.chief_complaints;
-            console.log('[DEBUG] Chief complaints list:', chiefComplaints);
             
             // 主訴選択画面のコンテナを取得
             const chiefComplaintStep = document.querySelector('[data-step="2"]');
-            const chiefComplaintContainer = chiefComplaintStep.querySelector('.chief-complaint-options');
+            console.log('[DEBUG] Chief complaint step element:', chiefComplaintStep);
             
-            console.log('[DEBUG] Chief complaint container found:', chiefComplaintContainer);
+            const chiefComplaintContainer = chiefComplaintStep ? chiefComplaintStep.querySelector('.chief-complaint-options') : null;
+            console.log('[DEBUG] Chief complaint container:', chiefComplaintContainer);
+            
+            if (!chiefComplaintContainer) {
+                console.error('Chief complaint options container not found');
+                return;
+            }
             
             // 既存の選択肢をクリア
             chiefComplaintContainer.innerHTML = '';
-            
-            console.log(`[DEBUG] Creating ${chiefComplaints.length} radio buttons for chief complaints`);
             
             // 主訴の選択肢を追加
             chiefComplaints.forEach((complaint, index) => {
@@ -1119,12 +1118,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 chiefComplaintContainer.appendChild(label);
             });
             
-            console.log('[DEBUG] chiefComplaintContainer.innerHTML:', chiefComplaintContainer.innerHTML);
+            console.log(`[DEBUG] Created ${chiefComplaints.length} chief complaint options`);
             
             // イベントリスナーを再設定
             const chiefComplaintRadios = chiefComplaintContainer.querySelectorAll('input[name="chief_complaint"]');
-            console.log('[DEBUG] Found', chiefComplaintRadios.length, 'chief complaint radio buttons');
-            
             chiefComplaintRadios.forEach(radio => {
                 radio.addEventListener('change', function() {
                     chiefComplaintRadios.forEach(r => {

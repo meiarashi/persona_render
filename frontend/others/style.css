@@ -178,7 +178,8 @@ header nav a:hover {
 /* Options Grid (Departments, Purpose, Setting Type) */
 .department-options,
 .purpose-options,
-.setting-type-options { /* Add setting-type-options */
+.setting-type-options,
+.chief-complaint-options { /* Add chief-complaint-options */
     display: grid;
     gap: 10px;
     margin-bottom: 20px;
@@ -202,6 +203,48 @@ header nav a:hover {
     width: 668px; /* Explicit width: (3 * 216px) + (2 * 10px gap) */
     margin: 20px auto; /* Center the grid container */
     gap: 10px;
+}
+
+.chief-complaint-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+}
+
+/* Chief complaint option labels */
+.chief-complaint-options .option-label {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: #ffffff;
+    font-size: 0.95em;
+}
+
+.chief-complaint-options .option-label:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+    transform: translateY(-1px);
+}
+
+.chief-complaint-options .option-label.selected {
+    background-color: rgba(40, 167, 69, 0.15);
+    border-color: rgba(40, 167, 69, 0.6);
+    box-shadow: 0 0 5px rgba(40, 167, 69, 0.3);
+}
+
+.chief-complaint-options input[type="radio"] {
+    margin-right: 10px;
 }
 
 .department-options label {
