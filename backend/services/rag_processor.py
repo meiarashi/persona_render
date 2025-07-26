@@ -373,6 +373,45 @@ def delete_table(table_name: str) -> bool:
     finally:
         conn.close()
 
+def get_rag_context(department: str) -> str:
+    """指定された診療科のRAGコンテキストを取得"""
+    # 診療科名の正規化（英語名の場合は日本語に変換）
+    department_ja = DEPARTMENT_MAP.get(department, department)
+    
+    try:
+        conn = sqlite3.connect(str(RAG_DB_PATH))
+        cursor = conn.cursor()
+        
+        # テーブル名の生成（診療科名を使用）
+        table_name = f"rag_{department_ja.replace('/', '_').replace(' ', '_')}"
+        
+        # テーブルが存在するか確認
+        cursor.execute("""
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name=?
+        """, (table_name,))
+        
+        if not cursor.fetchone():
+            print(f"RAG table for {department_ja} not found")
+            return ""
+        
+        # データを取得
+        cursor.execute(f"SELECT content FROM {table_name}")
+        rows = cursor.fetchall()
+        
+        if rows:
+            # すべてのコンテンツを結合
+            context = "\n\n".join([row[0] for row in rows if row[0]])
+            return context
+        else:
+            return ""
+            
+    except Exception as e:
+        print(f"Error getting RAG context: {e}")
+        return ""
+    finally:
+        conn.close()
+
 # テスト用関数
 if __name__ == "__main__":
     print("RAG Manager Test")
