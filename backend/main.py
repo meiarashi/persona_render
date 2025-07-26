@@ -182,6 +182,32 @@ if frontend_dir.exists() and frontend_dir.is_dir():
         
         return {"departments": filtered_departments}
     
+    # 主訴リスト取得API
+    @app.get("/api/chief-complaints/{category}/{department}")
+    async def get_chief_complaints(category: str, department: str):
+        """指定された診療科の主訴リストを返す"""
+        chief_complaints_path = project_root_dir / "config" / "chief_complaints.json"
+        if not chief_complaints_path.exists():
+            raise HTTPException(status_code=404, detail="chief_complaints.json not found")
+        
+        with open(chief_complaints_path, 'r', encoding='utf-8') as f:
+            chief_complaints = json.load(f)
+        
+        # カテゴリーが存在するか確認
+        if category not in chief_complaints:
+            raise HTTPException(status_code=404, detail=f"Category '{category}' not found")
+        
+        # 診療科が存在するか確認
+        if department not in chief_complaints[category]:
+            raise HTTPException(status_code=404, detail=f"Department '{department}' not found in category '{category}'")
+        
+        # 主訴リストを返す
+        return {
+            "category": category,
+            "department": department,
+            "chief_complaints": chief_complaints[category][department]
+        }
+    
     print("User UI, Admin UI, and Department routes are set up.")
 else:
     print(f"Frontend directory not found at {frontend_dir}. Static file serving skipped.")
@@ -1076,6 +1102,173 @@ async def generate_persona(request: Request):
         
         return JSONResponse(
             status_code=status_code,
+            content=error_details
+        )
+
+@app.post("/api/generate-by-complaint")
+async def generate_persona_by_complaint(request: Request):
+    """主訴別ペルソナ生成エンドポイント"""
+    try:
+        data = await request.json()
+        
+        # 必須パラメータの確認
+        required_fields = ['category', 'department', 'chief_complaint', 'purpose']
+        for field in required_fields:
+            if field not in data:
+                raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
+        
+        # 主訴情報を既存のdataフォーマットに追加
+        data['chief_complaint'] = data.get('chief_complaint')
+        
+        # 設定をcrudから読み込む
+        app_settings = crud.read_settings()
+        
+        selected_text_model = app_settings.models.text_api_model if app_settings.models else "gpt-4.1-2025-04-14"
+        selected_image_model = app_settings.models.image_api_model if app_settings.models else "dall-e-3"
+        
+        # APIキーの取得
+        openai_api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+        anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+        google_api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
+        
+        # テキスト生成用APIキーの選択
+        text_api_key_to_use = None
+        if selected_text_model.startswith("gpt"):
+            text_api_key_to_use = openai_api_key
+        elif selected_text_model.startswith("claude"):
+            text_api_key_to_use = anthropic_api_key
+        elif selected_text_model.startswith("gemini"):
+            text_api_key_to_use = google_api_key
+        
+        if not text_api_key_to_use:
+            raise HTTPException(status_code=500, detail="API key for selected text model not found")
+        
+        # RAGコンテキストの取得（診療科に基づく）
+        rag_context = rag_processor.get_rag_context(data.get('department'))
+        
+        # 文字数制限の設定
+        char_limits = {
+            'personality': data.get('personality_limit', '100'),
+            'hospital_visit_reason': data.get('hospital_visit_reason_limit', '100'),
+            'symptom_frequency': data.get('symptom_frequency_limit', '100'),
+            'review_points': data.get('review_points_limit', '100'),
+            'values_behaviors': data.get('values_behaviors_limit', '100'),
+            'demands': data.get('demands_limit', '100')
+        }
+        
+        # プロンプトの構築（主訴を含む）
+        prompt_with_complaint = f"""
+あなたは医療マーケティングの専門家です。
+指定された診療科と主訴に基づいて、具体的で現実的な患者ペルソナを作成してください。
+
+# 基本情報
+- 診療科: {data.get('department')}
+- 主訴: {data.get('chief_complaint')}
+- ペルソナ作成目的: {data.get('purpose')}
+- 患者タイプ: {data.get('patient_type', '(指定なし)')}
+"""
+        
+        # その他の情報があれば追加
+        if data.get('name'):
+            prompt_with_complaint += f"- 名前: {data.get('name')}\n"
+        if data.get('gender'):
+            prompt_with_complaint += f"- 性別: {data.get('gender')}\n"
+        if data.get('age'):
+            prompt_with_complaint += f"- 年齢: {data.get('age')}\n"
+        if data.get('prefecture'):
+            prompt_with_complaint += f"- 都道府県: {data.get('prefecture')}\n"
+        if data.get('municipality'):
+            prompt_with_complaint += f"- 市区町村: {data.get('municipality')}\n"
+        
+        # RAGコンテキストがあれば追加
+        if rag_context:
+            prompt_with_complaint += f"\n\n# 参考データ（実際の検索キーワード）\n{rag_context}\n"
+        
+        # 生成項目
+        prompt_with_complaint += f"""
+# 生成してほしい項目
+
+1. **個性（価値観・人生観）**: {char_limits['personality']}文字程度
+2. **病院に行く理由（主訴「{data.get('chief_complaint')}」を踏まえて）**: {char_limits['hospital_visit_reason']}文字程度
+3. **症状のパターンや受診頻度**: {char_limits['symptom_frequency']}文字程度
+4. **口コミを見る際に重要視すること**: {char_limits['review_points']}文字程度
+5. **医療機関に対する価値観や行動傾向**: {char_limits['values_behaviors']}文字程度
+6. **医療機関に求めるもの**: {char_limits['demands']}文字程度
+
+注意事項:
+- 主訴「{data.get('chief_complaint')}」を必ず反映させてください
+- 各項目は指定された文字数で簡潔に記述してください
+- 具体的でリアルな内容にしてください
+"""
+        
+        # AI API呼び出し
+        ai_response = generate_text_response(
+            prompt_with_complaint,
+            selected_text_model,
+            text_api_key_to_use
+        )
+        
+        if not ai_response:
+            raise HTTPException(status_code=500, detail="Failed to generate persona")
+        
+        # レスポンスの解析
+        parsed_sections = parse_ai_response(ai_response)
+        
+        # ペルソナ画像生成（オプション）
+        persona_image_url = None
+        if data.get('generate_image', False) and selected_image_model.startswith("dall-e"):
+            image_prompt = create_image_prompt(data, parsed_sections)
+            persona_image_url = generate_persona_image(
+                image_prompt,
+                selected_image_model,
+                openai_api_key
+            )
+        
+        # レスポンスの構築
+        response_data = {
+            "department": data.get('department'),
+            "chief_complaint": data.get('chief_complaint'),
+            "purpose": data.get('purpose'),
+            "patient_type": data.get('patient_type'),
+            "personality": parsed_sections.get('personality', ''),
+            "hospital_visit_reason": parsed_sections.get('hospital_visit_reason', ''),
+            "symptom_frequency": parsed_sections.get('symptom_frequency', ''),
+            "review_points": parsed_sections.get('review_points', ''),
+            "values_behaviors": parsed_sections.get('values_behaviors', ''),
+            "demands": parsed_sections.get('demands', ''),
+            "persona_image_url": persona_image_url,
+            "generation_model": selected_text_model
+        }
+        
+        # 基本情報があれば追加
+        if data.get('name'):
+            response_data['name'] = data.get('name')
+        if data.get('gender'):
+            response_data['gender'] = data.get('gender')
+        if data.get('age'):
+            response_data['age'] = data.get('age')
+        if data.get('prefecture'):
+            response_data['prefecture'] = data.get('prefecture')
+        if data.get('municipality'):
+            response_data['municipality'] = data.get('municipality')
+        
+        return JSONResponse(content=response_data)
+        
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(f"Error in generate_persona_by_complaint: {e}")
+        traceback.print_exc()
+        
+        # エラーメッセージの詳細化
+        error_message = f"サーバーエラー: {str(e)}"
+        error_details = {
+            "error": error_message,
+            "error_type": type(e).__name__
+        }
+        
+        return JSONResponse(
+            status_code=500,
             content=error_details
         )
 
