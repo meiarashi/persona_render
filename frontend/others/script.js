@@ -1190,7 +1190,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (currentStep === 4 && !hasRandomizedDetailsEver) {
             if (typeof randomizeDetailSettingsFields === 'function') {
-                console.log("[DEBUG] showStep: Calling randomizeDetailSettingsFields for Step 3. hasRandomizedDetailsEver:", hasRandomizedDetailsEver);
+                console.log("[DEBUG] showStep: Calling randomizeDetailSettingsFields for Step 4. hasRandomizedDetailsEver:", hasRandomizedDetailsEver);
                 randomizeDetailSettingsFields();
             }
             hasRandomizedDetailsEver = true;
@@ -1386,7 +1386,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (patientTypeSelectionDiv) patientTypeSelectionDiv.style.display = 'none';
                 if (!hasRandomizedDetailsEver && typeof randomizeDetailSettingsFields === 'function') {
                      const currentStepElement = document.querySelector('.form-step.active');
-                     if (currentStepElement && currentStepElement.dataset.step === "3") {
+                     if (currentStepElement && currentStepElement.dataset.step === "4") {
                           randomizeDetailSettingsFields();
                           hasRandomizedDetailsEver = true;
                      }

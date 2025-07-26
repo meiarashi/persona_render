@@ -1172,7 +1172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const editStepButtons = multiStepForm.querySelectorAll('.edit-step-btn');
 
     let currentStep = 1;
-    const TOTAL_FORM_STEPS = 5; 
+    const TOTAL_FORM_STEPS = 6; // 診療科選択、主訴選択、目的選択、詳細設定、追加質問、確認画面 
     let hasVisitedConfirmationScreen = false;
     const purposeLabels = multiStepForm.querySelectorAll('.purpose-options label');
 
@@ -1244,9 +1244,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        if (currentStep === 3 && !hasRandomizedDetailsEver) {
+        if (currentStep === 4 && !hasRandomizedDetailsEver) {
             if (typeof randomizeDetailSettingsFields === 'function') {
-                console.log("[DEBUG] showStep: Calling randomizeDetailSettingsFields for Step 3. hasRandomizedDetailsEver:", hasRandomizedDetailsEver);
+                console.log("[DEBUG] showStep: Calling randomizeDetailSettingsFields for Step 4. hasRandomizedDetailsEver:", hasRandomizedDetailsEver);
                 randomizeDetailSettingsFields();
             }
             hasRandomizedDetailsEver = true;
