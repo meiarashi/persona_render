@@ -1644,16 +1644,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // 主訴が選択されているかチェック
             const selectedChiefComplaint = data.chief_complaint;
-            const apiEndpoint = selectedChiefComplaint ? '/api/generate-by-complaint' : '/api/generate';
+            const apiEndpoint = '/api/generate'; // Always use the same endpoint
             
             // カテゴリー情報を追加（歯科固定）
-            if (selectedChiefComplaint) {
-                data.category = 'dental';
-                
-                // Convert department from English to Japanese for API
-                if (data.department && departmentDisplayNamesForAPI[data.department]) {
-                    data.department = departmentDisplayNamesForAPI[data.department];
-                }
+            data.category = 'dental';
+            
+            // Convert department from English to Japanese for API
+            if (data.department && departmentDisplayNamesForAPI[data.department]) {
+                data.department = departmentDisplayNamesForAPI[data.department];
             }
             
             try {

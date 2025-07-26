@@ -474,7 +474,7 @@ async def generate_text_response(prompt_text, model_name, api_key):
 
 # --- Function to build prompts ---
 def build_prompt(data, limit_personality="100", limit_reason="100", limit_behavior="100", 
-                 limit_reviews="100", limit_values="100", limit_demands="100"):
+                 limit_reviews="100", limit_values="100", limit_demands="100", rag_context=""):
 
     # --- Patient Type Descriptions ---
     patient_type_details_map = {
@@ -575,13 +575,21 @@ def build_prompt(data, limit_personality="100", limit_reason="100", limit_behavi
     prompt_parts.append("- 文字数の指定（例：「100文字程度」）は出力に含めない")
     prompt_parts.append("- ペルソナ名などの余分なヘッダーは含めない")
     prompt_parts.append("")
+    # 主訴は必須項目
+    chief_complaint = data.get('chief_complaint')
+    
     prompt_parts.append("## 生成する項目（各項目を指定文字数で）:")
-    prompt_parts.append(f"1. **性格（価値観・人生観）**: {limit_personality}文字程度の内容をここに記述")
-    prompt_parts.append(f"2. **通院理由**: {limit_reason}文字程度の内容をここに記述")
-    prompt_parts.append(f"3. **症状通院頻度・行動パターン**: {limit_behavior}文字程度の内容をここに記述")
-    prompt_parts.append(f"4. **口コミの重視ポイント**: {limit_reviews}文字程度の内容をここに記述")
-    prompt_parts.append(f"5. **医療機関への価値観・行動傾向**: {limit_values}文字程度の内容をここに記述")
+    prompt_parts.append(f"1. **個性（価値観・人生観）**: {limit_personality}文字程度の内容をここに記述")
+    prompt_parts.append(f"2. **病院に行く理由（主訴「{chief_complaint}」を踏まえて）**: {limit_reason}文字程度の内容をここに記述")
+    prompt_parts.append(f"3. **症状のパターンや受診頻度**: {limit_behavior}文字程度の内容をここに記述")
+    prompt_parts.append(f"4. **口コミを見る際に重要視すること**: {limit_reviews}文字程度の内容をここに記述")
+    prompt_parts.append(f"5. **医療機関に対する価値観や行動傾向**: {limit_values}文字程度の内容をここに記述")
     prompt_parts.append(f"6. **医療機関に求めるもの**: {limit_demands}文字程度の内容をここに記述")
+    
+    prompt_parts.append("\n注意事項:")
+    prompt_parts.append(f"- 主訴「{chief_complaint}」を必ず反映させてください")
+    prompt_parts.append("- 各項目は指定された文字数で簡潔に記述してください")
+    prompt_parts.append("- 具体的でリアルな内容にしてください")
     
     return "\n".join(prompt_parts)
 
@@ -617,8 +625,8 @@ def parse_ai_response(text):
                 
             # Check if this is a section header for personality section
             # Support both numbered format and **header** format
-            if (line.startswith("1.") and ("性格" in line or "個性" in line or "価値観" in line or "人生観" in line)) or \
-               (line.startswith("**") and ("性格" in line or "個性" in line or "価値観" in line or "人生観" in line) and line.endswith("**")):
+            if (line.startswith("1.") and ("個性" in line or "価値観" in line or "人生観" in line)) or \
+               (line.startswith("**") and ("個性" in line or "価値観" in line or "人生観" in line) and line.endswith("**")):
                 current_section = "personality"
                 # Check if content is on the same line after colon
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
@@ -630,8 +638,8 @@ def parse_ai_response(text):
                 continue
                 
             # Check for reason section
-            elif (line.startswith("2.") and ("通院理由" in line or "病院に行く理由" in line)) or \
-                 (line.startswith("**") and ("通院理由" in line or "病院に行く理由" in line) and line.endswith("**")):
+            elif (line.startswith("2.") and "病院に行く理由" in line) or \
+                 (line.startswith("**") and "病院に行く理由" in line and line.endswith("**")):
                 current_section = "reason"
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
                 if content:
@@ -827,7 +835,17 @@ async def generate_persona(request: Request):
             "values": limit_values,
             "demands": limit_demands
         }
-        prompt_text = prompt_builder.build_persona_prompt(data, char_limits, rag_context)
+        # build_prompt関数を使用（主訴対応済み）
+        prompt_text = build_prompt(
+            data,
+            limit_personality=str(char_limits["personality"]),
+            limit_reason=str(char_limits["reason"]),
+            limit_behavior=str(char_limits["behavior"]),
+            limit_reviews=str(char_limits["reviews"]),
+            limit_values=str(char_limits["values"]),
+            limit_demands=str(char_limits["demands"]),
+            rag_context=rag_context
+        )
         
         
         # AIクライアント初期化 (テキスト生成用)
@@ -1044,7 +1062,9 @@ async def generate_persona(request: Request):
             content=error_details
         )
 
-@app.post("/api/generate-by-complaint")
+# [削除済み] /api/generate-by-complaintエンドポイントは/api/generateに統合されました
+
+@app.post("/api/generate-by-complaint-deprecated")
 async def generate_persona_by_complaint(request: Request):
     """主訴別ペルソナ生成エンドポイント"""
     try:
@@ -1163,13 +1183,14 @@ async def generate_persona_by_complaint(request: Request):
         
         # ペルソナ画像生成（オプション）
         persona_image_url = None
-        if data.get('generate_image', False) and selected_image_model.startswith("dall-e"):
-            image_prompt = create_image_prompt(data, parsed_sections)
-            persona_image_url = generate_persona_image(
-                image_prompt,
-                selected_image_model,
-                openai_api_key
-            )
+        # TODO: 画像生成機能を実装する場合は、create_image_promptとgenerate_persona_image関数を定義する
+        # if data.get('generate_image', False) and selected_image_model.startswith("dall-e"):
+        #     image_prompt = create_image_prompt(data, parsed_sections)
+        #     persona_image_url = generate_persona_image(
+        #         image_prompt,
+        #         selected_image_model,
+        #         openai_api_key
+        #     )
         
         # レスポンスの構築（/api/generateと同じ構造に合わせる）
         response_data = {

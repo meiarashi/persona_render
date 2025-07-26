@@ -1671,17 +1671,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = getFormData();
             currentPersonaResult = null;
             
-            // 主訴が選択されているかチェック
-            const selectedChiefComplaint = data.chief_complaint;
-            const apiEndpoint = selectedChiefComplaint ? '/api/generate-by-complaint' : '/api/generate';
+            // APIエンドポイントは常に/api/generateを使用
+            const apiEndpoint = '/api/generate';
             
             // カテゴリー情報を追加（医科固定）
-            if (selectedChiefComplaint) {
-                data.category = 'medical';
-                // departmentを日本語に変換
-                if (data.department && departmentDisplayNamesForAPI[data.department]) {
-                    data.department = departmentDisplayNamesForAPI[data.department];
-                }
+            data.category = 'medical';
+            
+            // departmentを日本語に変換（主訴の有無に関わらず必要）
+            if (data.department && departmentDisplayNamesForAPI[data.department]) {
+                data.department = departmentDisplayNamesForAPI[data.department];
             }
             
             try {

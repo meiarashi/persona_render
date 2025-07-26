@@ -1620,16 +1620,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // 主訴が選択されているかチェック
             const selectedChiefComplaint = data.chief_complaint;
-            const apiEndpoint = selectedChiefComplaint ? '/api/generate-by-complaint' : '/api/generate';
+            const apiEndpoint = '/api/generate'; // Always use the same endpoint
             
             // カテゴリー情報を追加（その他固定）
-            if (selectedChiefComplaint) {
-                data.category = 'others';
-                
-                // Convert department from English to Japanese for API
-                if (data.department && departmentDisplayNames[data.department]) {
-                    data.department = departmentDisplayNames[data.department];
-                }
+            data.category = 'others';
+            
+            // Convert department from English to Japanese for API
+            if (data.department && departmentDisplayNames[data.department]) {
+                data.department = departmentDisplayNames[data.department];
             }
             
             try {

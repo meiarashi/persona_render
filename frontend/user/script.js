@@ -1661,33 +1661,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // 主訴が選択されているかチェック
             const selectedChiefComplaint = data.chief_complaint;
-            const apiEndpoint = selectedChiefComplaint ? '/api/generate-by-complaint' : '/api/generate';
+            const apiEndpoint = '/api/generate'; // Always use the same endpoint
             
             // カテゴリー情報を追加
-            if (selectedChiefComplaint) {
-                // カテゴリー判定用に元のdepartment値を保持
-                const originalDepartment = data.department;
-                
-                // 診療科に基づいてカテゴリーを判定
-                const medicalDepts = ['ophthalmology', 'internal_medicine', 'surgery', 'pediatrics', 'orthopedics', 
-                                    'otorhinolaryngology', 'dermatology', 'gynecology', 'urology', 'psychiatry', 
-                                    'neurosurgery', 'anesthesiology', 'radiology', 'rehabilitation', 'allergy',
-                                    'cardiology', 'gastroenterology', 'respiratory_medicine', 'diabetes_medicine',
-                                    'nephrology', 'neurology', 'hematology', 'endocrinology', 'plastic_surgery', 'beauty_surgery'];
-                const dentalDepts = ['general_dentistry', 'pediatric_dentistry', 'orthodontics', 'cosmetic_dentistry', 'oral_surgery'];
-                
-                if (medicalDepts.includes(originalDepartment)) {
-                    data.category = 'medical';
-                } else if (dentalDepts.includes(originalDepartment)) {
-                    data.category = 'dental';
-                } else {
-                    data.category = 'others';
-                }
-                
-                // departmentを日本語に変換
-                if (data.department && departmentDisplayNames[data.department]) {
-                    data.department = departmentDisplayNames[data.department];
-                }
+            // カテゴリー判定用に元のdepartment値を保持
+            const originalDepartment = data.department;
+            
+            // 診療科に基づいてカテゴリーを判定
+            const medicalDepts = ['ophthalmology', 'internal_medicine', 'surgery', 'pediatrics', 'orthopedics', 
+                                'otorhinolaryngology', 'dermatology', 'gynecology', 'urology', 'psychiatry', 
+                                'neurosurgery', 'anesthesiology', 'radiology', 'rehabilitation', 'allergy',
+                                'cardiology', 'gastroenterology', 'respiratory_medicine', 'diabetes_medicine',
+                                'nephrology', 'neurology', 'hematology', 'endocrinology', 'plastic_surgery', 'beauty_surgery'];
+            const dentalDepts = ['general_dentistry', 'pediatric_dentistry', 'orthodontics', 'cosmetic_dentistry', 'oral_surgery'];
+            
+            if (medicalDepts.includes(originalDepartment)) {
+                data.category = 'medical';
+            } else if (dentalDepts.includes(originalDepartment)) {
+                data.category = 'dental';
+            } else {
+                data.category = 'others';
+            }
+            
+            // departmentを日本語に変換
+            if (data.department && departmentDisplayNames[data.department]) {
+                data.department = departmentDisplayNames[data.department];
             }
             
             try {
