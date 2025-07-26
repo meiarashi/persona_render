@@ -1625,6 +1625,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             // カテゴリー情報を追加（その他固定）
             if (selectedChiefComplaint) {
                 data.category = 'others';
+                
+                // Convert department from English to Japanese for API
+                if (data.department && departmentDisplayNames[data.department]) {
+                    data.department = departmentDisplayNames[data.department];
+                }
             }
             
             try {

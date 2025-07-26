@@ -2610,6 +2610,9 @@ function getRandomAnnualIncome(ageInYears, currentOccupation, allPossibleHtmlInc
         "農業（小規模）", "漁業（小規模）", "秘書", "事務職（一般）", 
         "事務職（専門）", "受付", "販売員", "接客業" 
     ];
+    
+    // Initialize filteredHtmlIncomeValues at the beginning of the function
+    let filteredHtmlIncomeValues = [...allPossibleHtmlIncomeValues];
 
     if (studentOccupations.includes(currentOccupation) || ageInYears < 18) {
         console.log("Selecting '<100' (100万円未満) due to student status or age < 18");
@@ -2869,8 +2872,6 @@ function getRandomAnnualIncome(ageInYears, currentOccupation, allPossibleHtmlInc
         }
         console.log(`${ageInYears}歳の秘書の収入上限を${ageCap}万円に制限`);
     }
-
-    let filteredHtmlIncomeValues = [...allPossibleHtmlIncomeValues];
 
     // Function to apply income caps and handle empty results
     function applyIncomeCap(incomeValues, cap) {

@@ -1678,6 +1678,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             // カテゴリー情報を追加（医科固定）
             if (selectedChiefComplaint) {
                 data.category = 'medical';
+                // departmentを日本語に変換
+                if (data.department && departmentDisplayNamesForAPI[data.department]) {
+                    data.department = departmentDisplayNamesForAPI[data.department];
+                }
             }
             
             try {
