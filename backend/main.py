@@ -304,6 +304,174 @@ def get_ai_client(model_name, api_key):
     else:
         raise ValueError(f"未対応のモデルです: {model_name}")
 
+# --- Function to generate text using AI ---
+async def generate_text_response(prompt_text, model_name, api_key):
+    """
+    Generate text using the specified AI model.
+    
+    Args:
+        prompt_text (str): The prompt to send to the AI model
+        model_name (str): The model name (e.g., "gpt-4", "claude-3-opus", "gemini-pro")
+        api_key (str): The API key for the AI service
+        
+    Returns:
+        str: The generated text response, or None if generation fails
+    """
+    import time
+    import socket
+    import ssl
+    
+    try:
+        # Initialize AI client
+        client = get_ai_client(model_name, api_key)
+        
+        if model_name.startswith("gpt"):
+            # OpenAI API call
+            completion = client.chat.completions.create(
+                model=model_name,
+                messages=[{"role": "user", "content": prompt_text}],
+                temperature=0.7,
+                max_tokens=4096
+            )
+            return completion.choices[0].message.content
+            
+        elif model_name.startswith("claude"):
+            # Anthropic API call with retry logic
+            print(f"[DEBUG] Calling Claude API with model: {model_name}")
+            
+            # Network diagnostics (optional, can be removed in production)
+            if os.environ.get("DEBUG_NETWORK", "false").lower() == "true":
+                try:
+                    api_host = "api.anthropic.com"
+                    print(f"[DEBUG] DNS resolution test: {api_host}")
+                    ip_addresses = socket.gethostbyname_ex(api_host)
+                    print(f"[DEBUG] DNS resolution successful: IP addresses = {ip_addresses[2]}")
+                except Exception as net_error:
+                    print(f"[ERROR] Network diagnostic error: {type(net_error).__name__}: {net_error}")
+            
+            # Retry configuration
+            max_retries = 3
+            base_delay = 2  # Base delay in seconds
+            
+            messages_to_send = [{"role": "user", "content": prompt_text}]
+            
+            # Use direct HTTP if specified in environment
+            use_direct_http = os.environ.get("USE_DIRECT_HTTP_FOR_CLAUDE", "false").lower() == "true"
+            
+            if use_direct_http:
+                # Direct HTTP request implementation
+                import httpx
+                for attempt in range(max_retries):
+                    try:
+                        if attempt > 0:
+                            wait_time = base_delay * (2 ** (attempt - 1))
+                            print(f"[INFO] Retry attempt {attempt + 1}/{max_retries} for Claude API after {wait_time}s delay")
+                            time.sleep(wait_time)
+                        
+                        async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as http_client:
+                            http_response = await http_client.post(
+                                "https://api.anthropic.com/v1/messages",
+                                headers={
+                                    "x-api-key": api_key,
+                                    "anthropic-version": "2023-06-01",
+                                    "content-type": "application/json"
+                                },
+                                json={
+                                    "model": model_name,
+                                    "max_tokens": 4096,
+                                    "messages": messages_to_send,
+                                    "temperature": 0.7
+                                }
+                            )
+                            
+                            if http_response.status_code == 200:
+                                response_data = http_response.json()
+                                if response_data.get("content") and len(response_data["content"]) > 0:
+                                    return response_data["content"][0].get("text", "")
+                            else:
+                                error_detail = http_response.text
+                                print(f"[ERROR] Claude API HTTP error: {http_response.status_code} - {error_detail}")
+                                if http_response.status_code in [401, 403, 404]:
+                                    raise ValueError(f"Claude API error (status {http_response.status_code}): {error_detail}")
+                                
+                    except Exception as e:
+                        if attempt == max_retries - 1:
+                            raise
+            else:
+                # SDK-based approach with retries
+                for attempt in range(max_retries):
+                    try:
+                        if attempt > 0:
+                            wait_time = base_delay * (2 ** (attempt - 1))
+                            print(f"[INFO] Retry attempt {attempt + 1}/{max_retries} for Claude API after {wait_time}s delay")
+                            time.sleep(wait_time)
+                        
+                        response = client.messages.create(
+                            model=model_name,
+                            max_tokens=4096,
+                            messages=messages_to_send,
+                            temperature=0.7
+                        )
+                        
+                        # Extract text from response
+                        if response.content and len(response.content) > 0:
+                            if hasattr(response.content[0], 'text'):
+                                return response.content[0].text
+                                
+                    except Exception as e:
+                        print(f"[ERROR] Claude API call failed (attempt {attempt + 1}): {type(e).__name__}: {e}")
+                        
+                        # Check for non-retryable errors
+                        if hasattr(e, 'status_code') and e.status_code in [401, 403, 404]:
+                            raise
+                        
+                        # Re-raise on last attempt
+                        if attempt == max_retries - 1:
+                            raise
+                            
+        elif model_name.startswith("gemini"):
+            # Google AI API call
+            if hasattr(client, 'models'):
+                # New SDK
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt_text
+                )
+                if response.candidates and response.candidates[0].content.parts:
+                    generated_text = response.candidates[0].content.parts[0].text
+                else:
+                    return None
+            else:
+                # Old SDK
+                response = client.generate_content(prompt_text)
+                generated_text = response.text
+            
+            # Remove Gemini-specific character count annotations
+            if generated_text:
+                generated_text = re.sub(r'[（(]\d+文字程度[）)]\s*', '', generated_text)
+                generated_text = re.sub(r'\d+文字程度[\s、。]', '', generated_text)
+            
+            return generated_text
+            
+        else:
+            raise ValueError(f"Unsupported model: {model_name}")
+            
+    except Exception as e:
+        print(f"[ERROR] Text generation failed: {type(e).__name__}: {e}")
+        
+        # Try fallback to Gemini if Claude fails with connection error
+        if model_name.startswith("claude") and ("APIConnectionError" in str(e) or "Connection error" in str(e)):
+            try:
+                google_api_key = os.getenv("GOOGLE_API_KEY", "").strip()
+                if google_api_key:
+                    print("[INFO] Falling back to Gemini due to Claude connection error")
+                    fallback_model = "gemini-2.0-flash-exp"
+                    return await generate_text_response(prompt_text, fallback_model, google_api_key)
+            except Exception as fallback_error:
+                print(f"[ERROR] Fallback to Gemini also failed: {fallback_error}")
+        
+        return None
+
 # --- Function to build prompts ---
 def build_prompt(data, limit_personality="100", limit_reason="100", limit_behavior="100", 
                  limit_reviews="100", limit_values="100", limit_demands="100"):
@@ -675,238 +843,10 @@ async def generate_persona(request: Request):
         # テキスト生成実行
         if text_generation_client:
             try:
-                if selected_text_model.startswith("gpt"):
-                    completion = text_generation_client.chat.completions.create(
-                        model=selected_text_model,
-                        messages=[{"role": "user", "content": prompt_text}],
-                        temperature=0.7,
-                        max_tokens=4096
-                    )
-                    generated_text_str = completion.choices[0].message.content
-                elif selected_text_model.startswith("claude"):
-                    # Anthropic API呼び出しのログ
-                    print(f"[DEBUG] Calling Claude API with model: {selected_text_model}")
-                    print(f"[DEBUG] API Key available: {'Yes' if anthropic_api_key else 'No'}")
-                    print(f"[DEBUG] API Key length: {len(anthropic_api_key) if anthropic_api_key else 0}")
-                    print(f"[DEBUG] API Key prefix: {anthropic_api_key[:10]+'...' if anthropic_api_key and len(anthropic_api_key) > 10 else 'N/A'}")
-                    
-                    # 直接HTTPリクエストを送信するオプションを試す
-                    use_direct_http = os.environ.get("USE_DIRECT_HTTP_FOR_CLAUDE", "false").lower() == "true"
-                    if use_direct_http:
-                        print("[INFO] Using direct HTTP request for Claude API instead of SDK")
-                    
-                    # ネットワーク接続の詳細なデバッグ
-                    import socket
-                    import ssl
-                    
-                    try:
-                        # DNS解決のテスト
-                        api_host = "api.anthropic.com"
-                        print(f"[DEBUG] DNS解決テスト: {api_host}")
-                        ip_addresses = socket.gethostbyname_ex(api_host)
-                        print(f"[DEBUG] DNS解決成功: IPアドレス = {ip_addresses[2]}")
-                        
-                        # TCP接続のテスト
-                        print(f"[DEBUG] TCP接続テスト: {api_host}:443")
-                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                        sock.settimeout(10)
-                        result = sock.connect_ex((ip_addresses[2][0], 443))
-                        if result == 0:
-                            print(f"[DEBUG] TCP接続成功")
-                        else:
-                            print(f"[ERROR] TCP接続失敗: エラーコード = {result}")
-                        sock.close()
-                        
-                        # SSLハンドシェイクのテスト
-                        print(f"[DEBUG] SSLハンドシェイクテスト")
-                        context = ssl.create_default_context()
-                        with socket.create_connection((api_host, 443), timeout=10) as sock:
-                            with context.wrap_socket(sock, server_hostname=api_host) as ssock:
-                                print(f"[DEBUG] SSLハンドシェイク成功")
-                                print(f"[DEBUG] SSLバージョン: {ssock.version()}")
-                    except Exception as net_error:
-                        print(f"[ERROR] ネットワーク診断エラー: {type(net_error).__name__}: {net_error}")
-                    
-                    # プロンプトの内容をログ出力（長すぎる場合は最初の500文字のみ）
-                    print(f"[DEBUG] Prompt length: {len(prompt_text)} characters")
-                    print(f"[DEBUG] Prompt preview (first 500 chars): {prompt_text[:500]}...")
-                    
-                    # メッセージの構造を確認
-                    messages_to_send = [{"role": "user", "content": prompt_text}]
-                    print(f"[DEBUG] Messages structure: {len(messages_to_send)} messages")
-                    print(f"[DEBUG] First message role: {messages_to_send[0]['role']}")
-                    print(f"[DEBUG] First message content length: {len(messages_to_send[0]['content'])} chars")
-                    
-                    # リトライ処理を追加（エクスポネンシャルバックオフ）
-                    max_retries = 3
-                    base_delay = 2  # 基本遅延（秒）
-                    
-                    response = None
-                    last_error = None
-                    
-                    # 直接HTTPリクエストを使用する場合
-                    if use_direct_http:
-                        import httpx
-                        for attempt in range(max_retries):
-                            try:
-                                if attempt > 0:
-                                    wait_time = base_delay * (2 ** (attempt - 1))
-                                    print(f"[INFO] Retry attempt {attempt + 1}/{max_retries} for Claude API (direct HTTP) after {wait_time}s delay")
-                                    import time
-                                    time.sleep(wait_time)
-                                
-                                print("[DEBUG] Sending direct HTTP request to Claude API")
-                                async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
-                                    http_response = await client.post(
-                                        "https://api.anthropic.com/v1/messages",
-                                        headers={
-                                            "x-api-key": anthropic_api_key,
-                                            "anthropic-version": "2023-06-01",
-                                            "content-type": "application/json"
-                                        },
-                                        json={
-                                            "model": selected_text_model,
-                                            "max_tokens": 4096,
-                                            "messages": messages_to_send,
-                                            "temperature": 0.7
-                                        }
-                                    )
-                                    
-                                    print(f"[DEBUG] HTTP response status: {http_response.status_code}")
-                                    
-                                    if http_response.status_code == 200:
-                                        response_data = http_response.json()
-                                        if response_data.get("content") and len(response_data["content"]) > 0:
-                                            generated_text_str = response_data["content"][0].get("text", "")
-                                            print(f"[INFO] Claude (direct HTTP) generated {len(generated_text_str)} characters")
-                                        break
-                                    else:
-                                        error_text = http_response.text
-                                        print(f"[ERROR] Claude API HTTP error: {http_response.status_code} - {error_text}")
-                                        if http_response.status_code in [401, 403, 404]:
-                                            raise Exception(f"Non-retryable error: {http_response.status_code}")
-                                        
-                            except Exception as e:
-                                last_error = e
-                                print(f"[ERROR] Claude API direct HTTP attempt {attempt + 1} failed: {type(e).__name__}: {e}")
-                                if attempt == max_retries - 1:
-                                    raise last_error
-                    else:
-                        # SDKを使用する場合（既存の処理）
-                        for attempt in range(max_retries):
-                            try:
-                                if attempt > 0:
-                                    # エクスポネンシャルバックオフ
-                                    wait_time = base_delay * (2 ** (attempt - 1))
-                                    print(f"[INFO] Retry attempt {attempt + 1}/{max_retries} for Claude API after {wait_time}s delay")
-                                    import time
-                                    time.sleep(wait_time)
-                                
-                                # APIリクエストのパラメータをログ出力
-                                print(f"[DEBUG] Claude API request parameters:")
-                                print(f"  - Model: {selected_text_model}")
-                                print(f"  - Max tokens: 4096")
-                                print(f"  - Temperature: 0.7")
-                                print(f"  - Timeout: 60.0 seconds")
-                                print(f"  - Message count: {len(messages_to_send)}")
-                                
-                                # タイムアウトを60秒に増加（Renderの無料プランのスピンアップ時間を考慮）
-                                response = text_generation_client.messages.create(
-                                    model=selected_text_model,
-                                    max_tokens=4096,
-                                    messages=messages_to_send,
-                                    temperature=0.7,
-                                    timeout=60.0  # 60秒のタイムアウト
-                                )
-                                break  # 成功したらループを抜ける
-                            except Exception as e:
-                                last_error = e
-                                print(f"[ERROR] Claude API attempt {attempt + 1} failed: {type(e).__name__}: {e}")
-                                
-                                # エラーの詳細情報を出力
-                                if hasattr(e, '__dict__'):
-                                    print(f"[DEBUG] エラーの詳細: {e.__dict__}")
-                                if hasattr(e, 'response'):
-                                    print(f"[DEBUG] エラーレスポンス: {e.response}")
-                                if hasattr(e, 'request'):
-                                    if hasattr(e.request, 'url'):
-                                        print(f"[DEBUG] リクエストURL: {e.request.url}")
-                                    if hasattr(e.request, 'method'):
-                                        print(f"[DEBUG] リクエストメソッド: {e.request.method}")
-                                
-                                # 特定のエラーコードの場合はリトライしない
-                                if hasattr(e, 'status_code'):
-                                    if e.status_code in [401, 403, 404]:  # 認証エラーやモデルエラー
-                                        print(f"[ERROR] Non-retryable error (status {e.status_code}). Stopping retries.")
-                                        raise
-                                    elif e.status_code == 429:  # レート制限
-                                        print(f"[WARNING] Rate limit hit. Applying longer backoff.")
-                                        if attempt < max_retries - 1:
-                                            wait_time = base_delay * (2 ** attempt) * 2  # レート制限時は2倍の待機時間
-                                            continue
-                                
-                                # 最後の試行の場合はエラーを再発生
-                                if attempt == max_retries - 1:
-                                    raise last_error
-                    
-                    # レスポンス処理
-                    if response:
-                        print(f"[DEBUG] Claude API call successful")
-                        print(f"[DEBUG] Claude API response type: {type(response)}")
-                        if hasattr(response, 'content'):
-                            print(f"[DEBUG] Response content type: {type(response.content)}")
-                            print(f"[DEBUG] Response content length: {len(response.content) if response.content else 0}")
-                        
-                        # contentがリストの場合、最初の要素のtextを取得
-                        if response.content and len(response.content) > 0:
-                            if hasattr(response.content[0], 'text'):
-                                generated_text_str = response.content[0].text
-                elif selected_text_model.startswith("gemini"):
-                    # 新しいSDKの場合
-                    if hasattr(text_generation_client, 'models'):
-                        response = text_generation_client.models.generate_content(
-                            model=selected_text_model,
-                            contents=prompt_text
-                        )
-                        if response.candidates and response.candidates[0].content.parts:
-                            generated_text_str = response.candidates[0].content.parts[0].text
-                    # 古いSDKの場合
-                    else:
-                        response = text_generation_client.generate_content(prompt_text)
-                        generated_text_str = response.text
-                        # Gemini特有の文字数指定を追加で削除
-                        generated_text_str = re.sub(r'[（(]\d+文字程度[）)]\s*', '', generated_text_str)
-                        generated_text_str = re.sub(r'\d+文字程度[\s、。]', '', generated_text_str)
+                generated_text_str = await generate_text_response(prompt_text, selected_text_model, text_api_key_to_use)
             except Exception as e:
-                
-                # Claude APIが接続エラーで失敗した場合、Geminiにフォールバック
-                if selected_text_model.startswith("claude") and ("APIConnectionError" in str(e) or "Connection error" in str(e)):
-                    try:
-                        # Gemini APIキーの確認
-                        google_api_key = os.getenv("GOOGLE_API_KEY", "").strip()
-                        if google_api_key:
-                            # Geminiクライアントの初期化
-                            fallback_model = "gemini-2.0-flash-exp"
-                            fallback_client = get_ai_client(fallback_model, google_api_key)
-                            
-                            # Geminiでテキスト生成を試行
-                            if hasattr(fallback_client, 'models'):
-                                response = fallback_client.models.generate_content(
-                                    model=fallback_model,
-                                    contents=prompt_text
-                                )
-                                if response.candidates and response.candidates[0].content.parts:
-                                    generated_text_str = response.candidates[0].content.parts[0].text
-                            else:
-                                response = fallback_client.generate_content(prompt_text)
-                                generated_text_str = response.text
-                            
-                            # Gemini特有の文字数指定を削除（generated_text_strが存在する場合のみ）
-                            if generated_text_str:
-                                generated_text_str = re.sub(r'[（(]\d+文字程度[）)]\s*', '', generated_text_str)
-                                generated_text_str = re.sub(r'\d+文字程度[\s、。]', '', generated_text_str)
-                    except Exception as fallback_error:
-                        generated_text_str = None
+                print(f"[ERROR] Text generation failed: {type(e).__name__}: {e}")
+                generated_text_str = None
         
         if generated_text_str is None: # AI生成失敗またはスキップ時のフォールバック
             error_msg = "Text generation failed or was skipped."
@@ -923,7 +863,6 @@ async def generate_persona(request: Request):
         else:
             generated_details = parse_ai_response(generated_text_str)
             
-
         # --- 画像生成 ---
         image_url = "https://placehold.jp/150x150.png" # デフォルトプレースホルダー
 
