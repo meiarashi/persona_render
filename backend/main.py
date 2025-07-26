@@ -1141,7 +1141,7 @@ async def generate_persona_by_complaint(request: Request):
 """
         
         # AI API呼び出し
-        ai_response = generate_text_response(
+        ai_response = await generate_text_response(
             prompt_with_complaint,
             selected_text_model,
             text_api_key_to_use
@@ -1163,18 +1163,20 @@ async def generate_persona_by_complaint(request: Request):
                 openai_api_key
             )
         
-        # レスポンスの構築
+        # レスポンスの構築（/api/generateと同じ構造に合わせる）
         response_data = {
             "department": data.get('department'),
             "chief_complaint": data.get('chief_complaint'),
             "purpose": data.get('purpose'),
             "patient_type": data.get('patient_type'),
-            "personality": parsed_sections.get('personality', ''),
-            "hospital_visit_reason": parsed_sections.get('hospital_visit_reason', ''),
-            "symptom_frequency": parsed_sections.get('symptom_frequency', ''),
-            "review_points": parsed_sections.get('review_points', ''),
-            "values_behaviors": parsed_sections.get('values_behaviors', ''),
-            "demands": parsed_sections.get('demands', ''),
+            "details": {
+                "personality": parsed_sections.get('personality', ''),
+                "reason": parsed_sections.get('reason', ''),
+                "behavior": parsed_sections.get('behavior', ''),
+                "reviews": parsed_sections.get('reviews', ''),
+                "values": parsed_sections.get('values', ''),
+                "demands": parsed_sections.get('demands', '')
+            },
             "persona_image_url": persona_image_url,
             "generation_model": selected_text_model
         }
