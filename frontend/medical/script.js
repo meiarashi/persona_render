@@ -1685,6 +1685,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             
             try {
+                // Log the request data being sent
+                console.error('[DEBUG] API Request Data:', JSON.stringify(data, null, 2));
+                console.error('[DEBUG] API Endpoint:', apiEndpoint);
+                
                 const response = await fetch(apiEndpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1692,6 +1696,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ detail: 'ペルソナ生成中に不明なエラーが発生しました。' }));
+                    console.error('[DEBUG] Error Response Status:', response.status);
+                    console.error('[DEBUG] Error Response Data:', errorData);
                     throw new Error(errorData.detail || `サーバーエラー: ${response.status}`);
                 }
 
@@ -1712,6 +1718,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             } catch (error) {
                 console.error('Error generating persona:', error);
+                console.error('[DEBUG] Full error object:', error);
                 stopProgressAnimation(); // Stop animation on error
                 alert(`ペルソナ生成に失敗しました: ${error.message}`);
                 showStep(TOTAL_FORM_STEPS); // Go back to confirmation screen on error

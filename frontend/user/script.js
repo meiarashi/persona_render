@@ -1024,7 +1024,13 @@ const departmentDisplayNames = {
     'hematology': '血液内科',
     'endocrinology': '内分泌内科',
     'plastic_surgery': '形成外科',
-    'beauty_surgery': '美容外科'
+    'beauty_surgery': '美容外科',
+    'cosmo': '美容外科',
+    'health_checkup': '健診・人間ドック',
+    'elderly_care': '介護・高齢者医療',
+    'home_care': '在宅医療',
+    'industrial_medicine': '産業医',
+    'travel_medicine': '渡航医学'
 };
 
 // 主訴リストを読み込む関数
@@ -1659,6 +1665,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // カテゴリー情報を追加
             if (selectedChiefComplaint) {
+                // カテゴリー判定用に元のdepartment値を保持
+                const originalDepartment = data.department;
+                
                 // 診療科に基づいてカテゴリーを判定
                 const medicalDepts = ['ophthalmology', 'internal_medicine', 'surgery', 'pediatrics', 'orthopedics', 
                                     'otorhinolaryngology', 'dermatology', 'gynecology', 'urology', 'psychiatry', 
@@ -1667,10 +1676,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     'nephrology', 'neurology', 'hematology', 'endocrinology', 'plastic_surgery', 'beauty_surgery'];
                 const dentalDepts = ['general_dentistry', 'pediatric_dentistry', 'orthodontics', 'cosmetic_dentistry', 'oral_surgery'];
                 
-                if (medicalDepts.includes(data.department)) {
+                if (medicalDepts.includes(originalDepartment)) {
                     data.category = 'medical';
-                } else if (dentalDepts.includes(data.department)) {
+                } else if (dentalDepts.includes(originalDepartment)) {
                     data.category = 'dental';
+                } else {
+                    data.category = 'others';
+                }
+                
+                // departmentを日本語に変換
+                if (data.department && departmentDisplayNames[data.department]) {
+                    data.department = departmentDisplayNames[data.department];
                 }
             }
             
@@ -1682,6 +1698,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ detail: 'ペルソナ生成中に不明なエラーが発生しました。' }));
+                    console.error('API Error Response:', errorData);
+                    console.error('Request data:', data);
                     throw new Error(errorData.detail || `サーバーエラー: ${response.status}`);
                 }
 
