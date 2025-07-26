@@ -1059,31 +1059,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // 主訴を動的に読み込む関数
     async function loadChiefComplaints(departmentValue) {
+        console.log('[DEBUG] loadChiefComplaints called with departmentValue:', departmentValue);
+        
         const departmentName = departmentDisplayNames[departmentValue];
         if (!departmentName) {
             console.error('Department display name not found for:', departmentValue);
             return;
         }
         
+        console.log('[DEBUG] Department display name:', departmentName);
+        
         try {
             // カテゴリーを判定（その他固定）
             const category = 'others';
             
             // APIから主訴リストを取得
-            const response = await fetch(`/api/chief-complaints/${category}/${departmentName}`);
+            const apiUrl = `/api/chief-complaints/${category}/${departmentName}`;
+            console.log('[DEBUG] Fetching chief complaints from:', apiUrl);
+            
+            const response = await fetch(apiUrl);
             if (!response.ok) {
-                throw new Error('Failed to fetch chief complaints');
+                console.error('[DEBUG] API response not OK:', response.status, response.statusText);
+                throw new Error(`Failed to fetch chief complaints: ${response.status} ${response.statusText}`);
             }
             
             const data = await response.json();
+            console.log('[DEBUG] API response data:', data);
+            
             const chiefComplaints = data.chief_complaints;
+            console.log('[DEBUG] Chief complaints list:', chiefComplaints);
             
             // 主訴選択画面のコンテナを取得
             const chiefComplaintStep = document.querySelector('[data-step="2"]');
             const chiefComplaintContainer = chiefComplaintStep.querySelector('.chief-complaint-options');
             
+            console.log('[DEBUG] Chief complaint container found:', chiefComplaintContainer);
+            
             // 既存の選択肢をクリア
             chiefComplaintContainer.innerHTML = '';
+            
+            console.log(`[DEBUG] Creating ${chiefComplaints.length} radio buttons for chief complaints`);
             
             // 主訴の選択肢を追加
             chiefComplaints.forEach((complaint, index) => {
@@ -1104,8 +1119,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 chiefComplaintContainer.appendChild(label);
             });
             
+            console.log('[DEBUG] chiefComplaintContainer.innerHTML:', chiefComplaintContainer.innerHTML);
+            
             // イベントリスナーを再設定
             const chiefComplaintRadios = chiefComplaintContainer.querySelectorAll('input[name="chief_complaint"]');
+            console.log('[DEBUG] Found', chiefComplaintRadios.length, 'chief complaint radio buttons');
+            
             chiefComplaintRadios.forEach(radio => {
                 radio.addEventListener('change', function() {
                     chiefComplaintRadios.forEach(r => {
@@ -1437,9 +1456,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             // ステップ1で診療科が選択されたら主訴を読み込む
             if (currentStep === 1) {
                 const selectedDept = multiStepForm.querySelector('input[name="department"]:checked');
-                if (selectedDept) {
-                    await loadChiefComplaints(selectedDept.value);
+                if (!selectedDept) {
+                    alert('診療科を選択してください。');
+                    return;
                 }
+                
+                // 先にStep 2を表示
+                if (typeof window.showStep === 'function') {
+                    window.showStep(2);
+                }
+                
+                // 少し待ってから主訴リストを読み込む（DOMが更新されるのを待つ）
+                setTimeout(async () => {
+                    await loadChiefComplaints(selectedDept.value);
+                }, 100);
+                
+                return; // ここで処理を終了（showStepは既に実行済み）
             }
 
             // ステップ4で「自動」が選択されている場合の特別処理

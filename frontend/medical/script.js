@@ -1098,24 +1098,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 主訴リストを読み込む関数
     async function loadChiefComplaints(departmentValue) {
+        console.log('[DEBUG] loadChiefComplaints called with departmentValue:', departmentValue);
+        
         const departmentName = departmentDisplayNames[departmentValue];
         if (!departmentName) {
             console.error('Department display name not found for:', departmentValue);
             return;
         }
         
+        console.log('[DEBUG] Department display name:', departmentName);
+        
         try {
             // カテゴリーを判定（医科固定）
             const category = 'medical';
             
             // APIから主訴リストを取得
-            const response = await fetch(`/api/chief-complaints/${category}/${departmentName}`);
+            const apiUrl = `/api/chief-complaints/${category}/${departmentName}`;
+            console.log('[DEBUG] Fetching chief complaints from:', apiUrl);
+            
+            const response = await fetch(apiUrl);
             if (!response.ok) {
-                throw new Error('Failed to fetch chief complaints');
+                console.error('[DEBUG] API response not OK:', response.status, response.statusText);
+                throw new Error(`Failed to fetch chief complaints: ${response.status} ${response.statusText}`);
             }
             
             const data = await response.json();
+            console.log('[DEBUG] API response data:', data);
+            
             const chiefComplaints = data.chief_complaints;
+            console.log('[DEBUG] Chief complaints list:', chiefComplaints);
             
             // 主訴選択画面のコンテナを取得
             const chiefComplaintOptions = document.querySelector('.chief-complaint-options');
@@ -1124,8 +1135,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             
+            console.log('[DEBUG] Chief complaint options container found:', chiefComplaintOptions);
+            
             // 既存の内容をクリア
             chiefComplaintOptions.innerHTML = '';
+            
+            console.log(`[DEBUG] Creating ${chiefComplaints.length} radio buttons for chief complaints`);
             
             // 主訴のラジオボタンを生成
             chiefComplaints.forEach((complaint, index) => {
@@ -1144,8 +1159,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             // ラジオボタンのスタイルを適用（診療科選択と同じスタイル）
             chiefComplaintOptions.classList.add('department-options');
             
+            console.log('[DEBUG] Applied department-options class to chiefComplaintOptions');
+            console.log('[DEBUG] chiefComplaintOptions.innerHTML:', chiefComplaintOptions.innerHTML);
+            
             // 主訴選択のイベントリスナーを追加
             const chiefComplaintRadios = chiefComplaintOptions.querySelectorAll('input[type="radio"]');
+            console.log('[DEBUG] Found', chiefComplaintRadios.length, 'chief complaint radio buttons');
+            
             chiefComplaintRadios.forEach(radio => {
                 radio.addEventListener('change', function() {
                     // 選択されたラベルのスタイルを更新
@@ -1490,8 +1510,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
                 
-                // 主訴リストを動的に読み込む
-                await loadChiefComplaints(selectedDept.value);
+                // 先にStep 2を表示
+                if (typeof window.showStep === 'function') {
+                    window.showStep(2);
+                }
+                
+                // 少し待ってから主訴リストを読み込む（DOMが更新されるのを待つ）
+                setTimeout(async () => {
+                    await loadChiefComplaints(selectedDept.value);
+                }, 100);
+                
+                return; // ここで処理を終了（showStepは既に実行済み）
             }
 
             // ステップ3で「自動」が選択されている場合の特別処理
