@@ -27,16 +27,13 @@ DEPARTMENT_MAP = {
 }
 
 # データベースパスの設定
-# ローカル開発環境ではapp_settingsディレクトリを使用
-if os.name == 'nt' or "microsoft" in platform.release().lower():
-    # Windows/WSL環境
-    PERSISTENT_DISK_MOUNT_PATH = Path("./app_settings")
-else:
-    # 本番環境（Render）では環境変数から取得
-    PERSISTENT_DISK_MOUNT_PATH = Path(os.getenv("PERSISTENT_DISK_PATH", "./app_settings"))
-
+# すべての環境でコードベースのapp_settingsディレクトリを使用
+PERSISTENT_DISK_MOUNT_PATH = Path("./app_settings")
 RAG_DB_PATH = PERSISTENT_DISK_MOUNT_PATH / "rag_data.db"
 UPLOADED_FILES_DIR = PERSISTENT_DISK_MOUNT_PATH / "uploaded_files"
+
+# 本番環境でもローカルDBを使用することを明示
+print(f"[RAG] Using code-based database at: {RAG_DB_PATH}")
 
 def ensure_rag_directories():
     """RAG関連のディレクトリを確保"""
@@ -431,11 +428,9 @@ def get_rag_context(department: str) -> str:
         conn.close()
 
 def get_rag_base_dir():
-    """プラットフォームに応じたRAGディレクトリパスを取得"""
-    if platform.system() == "Windows" or "microsoft" in platform.release().lower():
-        return Path("C:/Users/bdigd/OneDrive/Desktop/persona_render/rag/各診療科")
-    else:
-        return Path("/mnt/c/Users/bdigd/OneDrive/Desktop/persona_render/rag/各診療科")
+    """RAGディレクトリパスを取得"""
+    # 本番環境ではプロジェクトルートからの相対パスを使用
+    return Path("./rag/各診療科")
 
 def load_csv_data_from_directory():
     """CSVファイルをディレクトリから自動的にロード"""
