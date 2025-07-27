@@ -5,6 +5,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Optional
 import json
+import glob
 
 # 診療科の英語→日本語マッピング
 DEPARTMENT_MAP = {
@@ -88,6 +89,9 @@ def init_rag_database():
         conn.commit()
         conn.close()
         print(f"RAG database initialized at: {RAG_DB_PATH}")
+        
+        # CSVファイルから自動的にデータをロード
+        load_csv_data_from_directory()
         
     except Exception as e:
         print(f"Error initializing RAG database: {e}")
@@ -411,6 +415,93 @@ def get_rag_context(department: str) -> str:
         return ""
     finally:
         conn.close()
+
+def load_csv_data_from_directory():
+    """CSVファイルをディレクトリから自動的にロード"""
+    # RAGデータのベースディレクトリ
+    base_dir = Path("/mnt/c/Users/bdigd/OneDrive/Desktop/persona_render/rag/各診療科")
+    
+    if not base_dir.exists():
+        print(f"RAG directory not found: {base_dir}")
+        return
+    
+    # データベース接続
+    conn = sqlite3.connect(str(RAG_DB_PATH))
+    cursor = conn.cursor()
+    
+    try:
+        # 既存のデータがあるかチェック
+        cursor.execute("SELECT COUNT(*) FROM rag_data")
+        if cursor.fetchone()[0] > 0:
+            print("RAG data already exists in database. Skipping CSV load.")
+            conn.close()
+            return
+        
+        # 各診療科のディレクトリを処理
+        loaded_departments = []
+        for dept_dir in base_dir.iterdir():
+            if dept_dir.is_dir():
+                department_name = dept_dir.name
+                csv_file = dept_dir / f"{department_name}_全体.csv"
+                
+                if csv_file.exists():
+                    print(f"Loading CSV for department: {department_name}")
+                    try:
+                        # CSVファイルを読み込み
+                        df = pd.read_csv(csv_file, encoding='utf-8-sig')
+                        
+                        # save_rag_data関数を使用してデータを保存
+                        result = save_rag_data(department_name, df, csv_file.name)
+                        
+                        if result['success']:
+                            loaded_departments.append({
+                                'department': department_name,
+                                'inserted_count': result['inserted_count'],
+                                'skipped_count': result['skipped_count']
+                            })
+                        else:
+                            print(f"Failed to load data for {department_name}: {result.get('error', 'Unknown error')}")
+                            
+                    except Exception as e:
+                        print(f"Error loading CSV file {csv_file}: {e}")
+                        continue
+        
+        # 成功したロードの概要を表示
+        if loaded_departments:
+            print("\nCSV data loading summary:")
+            for dept in loaded_departments:
+                print(f"  - {dept['department']}: {dept['inserted_count']} records loaded")
+            print(f"\nTotal departments loaded: {len(loaded_departments)}")
+        else:
+            print("No CSV data was loaded.")
+            
+    except Exception as e:
+        print(f"Error during CSV loading: {e}")
+        conn.close()
+        raise
+
+def reload_csv_data():
+    """CSVデータを再ロード（開発/更新用）"""
+    conn = sqlite3.connect(str(RAG_DB_PATH))
+    cursor = conn.cursor()
+    
+    try:
+        # 既存のデータを削除
+        cursor.execute("DELETE FROM rag_data")
+        cursor.execute("DELETE FROM upload_history")
+        conn.commit()
+        print("Existing RAG data cleared.")
+        
+    except Exception as e:
+        print(f"Error clearing existing data: {e}")
+        conn.rollback()
+        conn.close()
+        raise
+    finally:
+        conn.close()
+    
+    # CSVデータを再ロード
+    load_csv_data_from_directory()
 
 # テスト用関数
 if __name__ == "__main__":
