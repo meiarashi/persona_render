@@ -30,7 +30,6 @@ DEPARTMENT_MAP = {
 # すべての環境でコードベースのapp_settingsディレクトリを使用
 PERSISTENT_DISK_MOUNT_PATH = Path("./app_settings")
 RAG_DB_PATH = PERSISTENT_DISK_MOUNT_PATH / "rag_data.db"
-UPLOADED_FILES_DIR = PERSISTENT_DISK_MOUNT_PATH / "uploaded_files"
 
 # 本番環境でもローカルDBを使用することを明示
 print(f"[RAG] Using code-based database at: {RAG_DB_PATH}")
@@ -39,7 +38,6 @@ def ensure_rag_directories():
     """RAG関連のディレクトリを確保"""
     try:
         PERSISTENT_DISK_MOUNT_PATH.mkdir(parents=True, exist_ok=True)
-        UPLOADED_FILES_DIR.mkdir(parents=True, exist_ok=True)
         print(f"RAG directories ensured: {PERSISTENT_DISK_MOUNT_PATH}")
     except Exception as e:
         print(f"Error creating RAG directories: {e}")
@@ -108,8 +106,8 @@ def init_rag_database():
         print(f"Error initializing RAG database: {e}")
         raise
 
-def save_rag_data(specialty: str, df: pd.DataFrame, original_filename: str) -> Dict:
-    """RAGデータをデータベースに保存"""
+def _save_rag_data_internal(specialty: str, df: pd.DataFrame, original_filename: str) -> Dict:
+    """内部使用のみ: CSVファイルからRAGデータをデータベースに保存"""
     conn = None
     try:
         # データベース接続
@@ -200,45 +198,6 @@ def save_rag_data(specialty: str, df: pd.DataFrame, original_filename: str) -> D
             "error": str(e)
         }
 
-def get_uploaded_rag_data() -> List[Dict]:
-    """アップロード済みのRAGデータ一覧を取得"""
-    try:
-        conn = sqlite3.connect(RAG_DB_PATH)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT 
-                h.specialty,
-                h.filename,
-                h.record_count,
-                h.uploaded_at,
-                COUNT(r.id) as current_records
-            FROM upload_history h
-            LEFT JOIN rag_data r ON h.specialty = r.specialty
-            GROUP BY h.specialty, h.filename, h.record_count, h.uploaded_at
-            ORDER BY h.uploaded_at DESC
-        ''')
-        
-        results = []
-        for row in cursor.fetchall():
-            # 診療科を日本語に変換
-            specialty_ja = DEPARTMENT_MAP.get(row[0], row[0])
-            results.append({
-                "specialty": specialty_ja,
-                "specialty_code": row[0],  # 元の英語コードも保持
-                "filename": row[1],
-                "record_count": row[2],
-                "uploaded_at": row[3],
-                "current_records": row[4]
-            })
-        
-        conn.close()
-        return results
-        
-    except Exception as e:
-        print(f"Error getting uploaded RAG data: {e}")
-        return []
-
 def search_rag_data(specialty: str, age_group: str = None, gender: str = None, limit: int = 10) -> List[Dict]:
     """RAGデータから関連キーワードを検索"""
     try:
@@ -300,93 +259,9 @@ def search_rag_data(specialty: str, age_group: str = None, gender: str = None, l
         print(f"Error searching RAG data: {e}")
         return []
 
-def delete_rag_data(specialty: str) -> bool:
-    """指定した診療科のRAGデータを削除"""
-    try:
-        conn = sqlite3.connect(RAG_DB_PATH)
-        cursor = conn.cursor()
-        
-        cursor.execute("DELETE FROM rag_data WHERE specialty = ?", (specialty,))
-        cursor.execute("DELETE FROM upload_history WHERE specialty = ?", (specialty,))
-        
-        conn.commit()
-        conn.close()
-        
-        return True
-        
-    except Exception as e:
-        print(f"Error deleting RAG data: {e}")
-        return False
 
-def upload_csv_to_db(df, table_name: str) -> bool:
-    """CSVデータをRAGデータベースにアップロード"""
-    try:
-        conn = sqlite3.connect(str(RAG_DB_PATH))
-        
-        # データフレームをSQLiteテーブルに保存
-        df.to_sql(table_name, conn, if_exists='replace', index=False)
-        
-        conn.close()
-        print(f"Successfully uploaded data to table '{table_name}'")
-        return True
-    except Exception as e:
-        print(f"Error uploading CSV to database: {e}")
-        return False
 
-def list_tables():
-    """RAGデータベース内のすべてのテーブル情報を取得"""
-    conn = sqlite3.connect(str(RAG_DB_PATH))
-    cursor = conn.cursor()
-    
-    try:
-        # SQLiteのマスターテーブルからテーブル一覧を取得
-        cursor.execute("""
-            SELECT name FROM sqlite_master 
-            WHERE type='table' AND name NOT LIKE 'sqlite_%'
-        """)
-        tables = cursor.fetchall()
-        
-        table_info = []
-        for (table_name,) in tables:
-            # 各テーブルの行数を取得
-            cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
-            row_count = cursor.fetchone()[0]
-            
-            table_info.append({
-                "table_name": table_name,
-                "row_count": row_count,
-                "created_at": None  # SQLiteには作成日時の情報がないため
-            })
-        
-        return table_info
-    finally:
-        conn.close()
 
-def delete_table(table_name: str) -> bool:
-    """指定されたテーブルを削除"""
-    conn = sqlite3.connect(str(RAG_DB_PATH))
-    cursor = conn.cursor()
-    
-    try:
-        # テーブルが存在するか確認
-        cursor.execute("""
-            SELECT name FROM sqlite_master 
-            WHERE type='table' AND name=?
-        """, (table_name,))
-        
-        if cursor.fetchone():
-            cursor.execute(f"DROP TABLE {table_name}")
-            conn.commit()
-            print(f"Table '{table_name}' deleted successfully")
-            return True
-        else:
-            print(f"Table '{table_name}' not found")
-            return False
-    except Exception as e:
-        print(f"Error deleting table: {e}")
-        return False
-    finally:
-        conn.close()
 
 def get_rag_context(department: str) -> str:
     """指定された診療科のRAGコンテキストを取得"""
@@ -474,8 +349,8 @@ def load_csv_data_from_directory():
                         # CSVファイルを読み込み
                         df = pd.read_csv(csv_file, encoding='utf-8-sig')
                         
-                        # save_rag_data関数を使用してデータを保存
-                        result = save_rag_data(department_name, df, csv_file.name)
+                        # _save_rag_data_internal関数を使用してデータを保存
+                        result = _save_rag_data_internal(department_name, df, csv_file.name)
                         
                         if result['success']:
                             loaded_departments.append({

@@ -830,6 +830,14 @@ async def generate_persona(request: Request):
             else:
                 print(f"[RAG] WARNING: No RAG data found for {department}")
         
+        # RAGデータベース情報を追加（フロントエンドで表示するため）
+        rag_info = {
+            "database_path": str(rag_processor.RAG_DB_PATH),
+            "is_local": "app_settings" in str(rag_processor.RAG_DB_PATH),
+            "results_count": len(rag_results) if rag_results else 0,
+            "department": department
+        }
+        
         # 入力データの内容をログ出力
         print(f"[DEBUG] Input data keys: {list(data.keys())}")
         print(f"[DEBUG] Input data sample:")
@@ -1035,7 +1043,8 @@ async def generate_persona(request: Request):
         response_data = {
             "profile": data, # フロントから送られてきた入力データをそのまま返す
             "details": generated_details,
-            "image_url": image_url # DALL-EならURL、GeminiならBase64 Data URI
+            "image_url": image_url, # DALL-EならURL、GeminiならBase64 Data URI
+            "rag_info": rag_info if 'rag_info' in locals() else None # RAGデータベース情報
         }
         return response_data
 

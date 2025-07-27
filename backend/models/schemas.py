@@ -30,14 +30,4 @@ class CharLimitsUpdate(BaseModel):
     # Reflects the structure sent from admin_script.js: { limits: { personality: "500", ... } }
     limits: Dict[str, str]
 
-# --- RAG関連のモデル ---
-class RAGUploadResponse(BaseModel):
-    success: bool
-    message: str
-    table_name: str
-    row_count: int
-
-class RAGTableInfo(BaseModel):
-    table_name: str
-    row_count: int
-    created_at: Optional[str] = None 
+ 

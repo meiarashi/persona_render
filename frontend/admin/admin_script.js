@@ -1,144 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     console.log("Admin panel JS loaded.");
 
-    // RAG data upload form submission
-    const ragForm = document.getElementById('rag-upload-form');
-    const ragStatusMessage = document.getElementById('rag-status-message');
-    const ragDataList = document.getElementById('rag-data-list');
-    
-    if (ragForm) {
-        ragForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            
-            const specialty = document.getElementById('specialty-select').value;
-            const fileInput = document.getElementById('rag-file-upload');
-            
-            if (!specialty || fileInput.files.length === 0) {
-                alert('診療科を選択し、ファイルを選んでください。');
-                return;
-            }
-            
-            const formData = new FormData();
-            formData.append('specialty', specialty);
-            formData.append('file', fileInput.files[0]);
-            
-            if (ragStatusMessage) {
-                ragStatusMessage.textContent = 'アップロード中...';
-                ragStatusMessage.style.color = 'orange';
-            }
-            
-            try {
-                const response = await fetch('/api/admin/rag/upload-specialty', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const result = await response.json();
-                
-                if (response.ok) {
-                    if (ragStatusMessage) {
-                        ragStatusMessage.textContent = `${result.message} (${result.inserted_count}件のデータを登録)`;
-                        ragStatusMessage.style.color = 'green';
-                    }
-                    
-                    // フォームをリセット
-                    ragForm.reset();
-                    
-                    // RAGデータ一覧を更新
-                    await loadRAGDataList();
-                } else {
-                    throw new Error(result.detail || 'RAGデータのアップロードに失敗しました。');
-                }
-            } catch (error) {
-                console.error('Error uploading RAG data:', error);
-                if (ragStatusMessage) {
-                    ragStatusMessage.textContent = `エラー: ${error.message}`;
-                    ragStatusMessage.style.color = 'red';
-                }
-            }
-        });
-    }
-    
-    // RAGデータ一覧の読み込み
-    async function loadRAGDataList() {
-        if (!ragDataList) return;
-        
-        try {
-            const response = await fetch('/api/admin/rag/tables');
-            if (response.ok) {
-                const data = await response.json();
-                displayRAGDataList(data);
-            } else {
-                console.error('Failed to load RAG data list');
-            }
-        } catch (error) {
-            console.error('Error loading RAG data list:', error);
-        }
-    }
-    
-    // RAGデータ一覧の表示
-    function displayRAGDataList(ragData) {
-        if (!ragDataList) return;
-        
-        ragDataList.innerHTML = '';
-        
-        if (ragData.length === 0) {
-            ragDataList.innerHTML = '<tr><td colspan="5" style="text-align: center;">登録されたRAGデータはありません</td></tr>';
-            return;
-        }
-        
-        ragData.forEach(item => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${escapeHTML(item.table_name)}</td>
-                <td>${escapeHTML(item.filename || '-')}</td>
-                <td>${item.row_count}</td>
-                <td>${item.created_at ? new Date(item.created_at).toLocaleString('ja-JP') : '-'}</td>
-                <td>
-                    <button class="delete-rag-btn" data-table="${escapeHTML(item.specialty_code || item.table_name)}">削除</button>
-                </td>
-            `;
-            ragDataList.appendChild(row);
-        });
-        
-        // 削除ボタンのイベントリスナー追加
-        document.querySelectorAll('.delete-rag-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const tableName = e.target.dataset.table;
-                if (confirm(`テーブル「${tableName}」を削除しますか？`)) {
-                    await deleteRAGData(tableName);
-                }
-            });
-        });
-    }
-    
-    // RAGデータの削除
-    async function deleteRAGData(tableName) {
-        try {
-            const response = await fetch(`/api/admin/rag/tables/${encodeURIComponent(tableName)}`, {
-                method: 'DELETE'
-            });
-            
-            const result = await response.json();
-            
-            if (response.ok) {
-                if (ragStatusMessage) {
-                    ragStatusMessage.textContent = result.message;
-                    ragStatusMessage.style.color = 'green';
-                }
-                await loadRAGDataList();
-            } else {
-                throw new Error(result.detail || 'RAGデータの削除に失敗しました。');
-            }
-        } catch (error) {
-            console.error('Error deleting RAG data:', error);
-            if (ragStatusMessage) {
-                ragStatusMessage.textContent = `エラー: ${error.message}`;
-                ragStatusMessage.style.color = 'red';
-            }
-        }
-    }
-
     // Example: Handle API Model Selection Save
     const saveApiSettingsBtn = document.getElementById('save-api-settings-btn');
     const apiStatusMessage = document.getElementById('api-status-message');
@@ -437,22 +299,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const departments = await response.json();
                 
-                // Populate specialty dropdown for RAG upload
-                const specialtySelect = document.getElementById('specialty-select');
-                if (specialtySelect) {
-                    // Keep the first option
-                    const firstOption = specialtySelect.options[0];
-                    specialtySelect.innerHTML = '';
-                    specialtySelect.appendChild(firstOption);
-                    
-                    // Add departments
-                    departments.forEach(dept => {
-                        const option = document.createElement('option');
-                        option.value = dept.id;
-                        option.textContent = dept.name_ja;
-                        specialtySelect.appendChild(option);
-                    });
-                }
             }
         } catch (error) {
             console.error('Error loading departments:', error);
@@ -531,9 +377,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Even if config loading fails, try to load settings
         loadAllSettings();
     });
-    
-    // Load RAG data list on page load
-    loadRAGDataList();
 
     // saveOutputBtn and outputStatusMessage related logic removed
 

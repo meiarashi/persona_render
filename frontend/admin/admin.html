@@ -15,38 +15,6 @@
     </header>
 
     <main class="admin-container">
-        <section id="rag-management">
-            <h2>RAGデータ管理</h2>
-            <form id="rag-upload-form">
-                <label for="specialty-select">診療科:</label>
-                <select id="specialty-select" name="specialty">
-                    <option value="">選択してください</option>
-                    <!-- Options will be loaded dynamically -->
-                </select>
-                <label for="rag-file-upload">データファイル:</label>
-                <input type="file" id="rag-file-upload" name="rag_file" accept=".txt,.csv,.json">
-                <button type="submit">アップロード</button>
-            </form>
-            <div class="data-list">
-                <h3>登録済みデータ</h3>
-                <div id="rag-status-message" class="status-message"></div>
-                <table class="rag-data-table">
-                    <thead>
-                        <tr>
-                            <th>診療科</th>
-                            <th>ファイル名</th>
-                            <th>データ数</th>
-                            <th>アップロード日時</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="rag-data-list">
-                        <tr><td colspan="5" style="text-align: center;">読み込み中...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
         <section id="api-management">
             <h2>生成モデル設定</h2>
 

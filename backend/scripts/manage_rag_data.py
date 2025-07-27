@@ -12,15 +12,14 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from services.rag_processor import init_rag_database, reload_csv_data, get_uploaded_rag_data
+from services.rag_processor import init_rag_database, reload_csv_data
 
 def main():
     """メイン処理"""
     if len(sys.argv) < 2:
-        print("Usage: python manage_rag_data.py [init|reload|status]")
+        print("Usage: python manage_rag_data.py [init|reload]")
         print("  init   - Initialize database and load CSV data")
         print("  reload - Clear existing data and reload from CSV files")
-        print("  status - Show current loaded data status")
         sys.exit(1)
     
     command = sys.argv[1].lower()
@@ -34,24 +33,10 @@ def main():
         print("Reloading RAG data from CSV files...")
         reload_csv_data()
         print("Done!")
-        
-    elif command == "status":
-        print("Current RAG data status:")
-        uploaded_data = get_uploaded_rag_data()
-        
-        if uploaded_data:
-            print(f"\nTotal departments: {len(uploaded_data)}")
-            print("\nDepartment details:")
-            for data in uploaded_data:
-                print(f"  - {data['specialty']}: {data['record_count']} records")
-                print(f"    File: {data['filename']}")
-                print(f"    Uploaded: {data['uploaded_at']}")
-        else:
-            print("No RAG data found in database.")
             
     else:
         print(f"Unknown command: {command}")
-        print("Use: init, reload, or status")
+        print("Use: init or reload")
         sys.exit(1)
 
 if __name__ == "__main__":

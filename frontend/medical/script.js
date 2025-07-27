@@ -1701,6 +1701,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const result = await response.json();
                 console.log('[DEBUG] API Response:', result); // デバッグ用
+                
+                // RAGデータベース情報をコンソールに表示
+                if (result.rag_info) {
+                    console.log('[RAG] ===== RAG DATABASE INFO =====');
+                    console.log('[RAG] Database Path:', result.rag_info.database_path);
+                    console.log('[RAG] Database Type:', result.rag_info.is_local ? 'LOCAL (Code-based)' : 'REMOTE (Render)');
+                    console.log('[RAG] Department:', result.rag_info.department);
+                    console.log('[RAG] Results Found:', result.rag_info.results_count);
+                    console.log('[RAG] =============================');
+                }
+                
                 currentPersonaResult = result; // Store the result
                 
                 // Complete progress animation
