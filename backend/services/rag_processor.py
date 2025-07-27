@@ -26,8 +26,15 @@ DEPARTMENT_MAP = {
     "beauty_surgery": "美容外科", "endocrinology": "内分泌科"
 }
 
-# 永続ストレージのパス（既存設定と同じ場所）
-PERSISTENT_DISK_MOUNT_PATH = Path(os.getenv("PERSISTENT_DISK_PATH", "/var/app_settings"))
+# データベースパスの設定
+# ローカル開発環境ではapp_settingsディレクトリを使用
+if os.name == 'nt' or "microsoft" in platform.release().lower():
+    # Windows/WSL環境
+    PERSISTENT_DISK_MOUNT_PATH = Path("./app_settings")
+else:
+    # 本番環境（Render）では環境変数から取得
+    PERSISTENT_DISK_MOUNT_PATH = Path(os.getenv("PERSISTENT_DISK_PATH", "./app_settings"))
+
 RAG_DB_PATH = PERSISTENT_DISK_MOUNT_PATH / "rag_data.db"
 UPLOADED_FILES_DIR = PERSISTENT_DISK_MOUNT_PATH / "uploaded_files"
 
@@ -44,6 +51,12 @@ def ensure_rag_directories():
 def init_rag_database():
     """RAGデータベースの初期化"""
     ensure_rag_directories()
+    
+    # 使用するデータベースパスを明示的にログ出力
+    print("="*60)
+    print(f"[RAG] Database Path: {RAG_DB_PATH}")
+    print(f"[RAG] Using {'LOCAL' if 'app_settings' in str(RAG_DB_PATH) else 'RENDER'} database")
+    print("="*60)
     
     try:
         conn = sqlite3.connect(RAG_DB_PATH)
