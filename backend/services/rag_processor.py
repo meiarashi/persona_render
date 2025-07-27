@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import List, Dict, Optional
 import json
 import glob
+import platform
 
 # 診療科の英語→日本語マッピング
 DEPARTMENT_MAP = {
@@ -416,10 +417,17 @@ def get_rag_context(department: str) -> str:
     finally:
         conn.close()
 
+def get_rag_base_dir():
+    """プラットフォームに応じたRAGディレクトリパスを取得"""
+    if platform.system() == "Windows" or "microsoft" in platform.release().lower():
+        return Path("C:/Users/bdigd/OneDrive/Desktop/persona_render/rag/各診療科")
+    else:
+        return Path("/mnt/c/Users/bdigd/OneDrive/Desktop/persona_render/rag/各診療科")
+
 def load_csv_data_from_directory():
     """CSVファイルをディレクトリから自動的にロード"""
     # RAGデータのベースディレクトリ
-    base_dir = Path("/mnt/c/Users/bdigd/OneDrive/Desktop/persona_render/rag/各診療科")
+    base_dir = get_rag_base_dir()
     
     if not base_dir.exists():
         print(f"RAG directory not found: {base_dir}")
@@ -430,12 +438,20 @@ def load_csv_data_from_directory():
     cursor = conn.cursor()
     
     try:
-        # 既存のデータがあるかチェック
-        cursor.execute("SELECT COUNT(*) FROM rag_data")
-        if cursor.fetchone()[0] > 0:
-            print("RAG data already exists in database. Skipping CSV load.")
-            conn.close()
-            return
+        # CSVファイルの更新をチェック
+        if should_update_rag_data(conn, base_dir):
+            print("[RAG] CSV files have been updated. Reloading data...")
+            # 既存データをクリア
+            cursor.execute("DELETE FROM rag_data")
+            cursor.execute("DELETE FROM upload_history")
+            conn.commit()
+        else:
+            # 既存のデータがあり、更新も不要な場合
+            cursor.execute("SELECT COUNT(*) FROM rag_data")
+            if cursor.fetchone()[0] > 0:
+                print("[RAG] Data is up to date. Skipping CSV load.")
+                conn.close()
+                return
         
         # 各診療科のディレクトリを処理
         loaded_departments = []
@@ -479,6 +495,42 @@ def load_csv_data_from_directory():
         print(f"Error during CSV loading: {e}")
         conn.close()
         raise
+
+def should_update_rag_data(conn, base_dir):
+    """CSVファイルが更新されているかチェック"""
+    cursor = conn.cursor()
+    
+    # アップロード履歴から最終更新時刻を取得
+    cursor.execute("""
+        SELECT specialty, uploaded_at 
+        FROM upload_history 
+        ORDER BY uploaded_at DESC 
+        LIMIT 1
+    """)
+    
+    result = cursor.fetchone()
+    if not result:
+        # データがない場合は更新が必要
+        return True
+    
+    # 最後のアップロード時刻を取得
+    last_upload_str = result[1]
+    last_upload = datetime.fromisoformat(last_upload_str.replace(' ', 'T'))
+    
+    # CSVファイルの最終更新時刻をチェック
+    for dept_dir in base_dir.iterdir():
+        if dept_dir.is_dir():
+            csv_file = dept_dir / f"{dept_dir.name}_全体.csv"
+            if csv_file.exists():
+                # ファイルの更新時刻を取得
+                file_mtime = datetime.fromtimestamp(csv_file.stat().st_mtime)
+                
+                # CSVファイルがデータベースより新しい場合
+                if file_mtime > last_upload:
+                    print(f"[RAG] Updated CSV found: {csv_file.name} (modified: {file_mtime})")
+                    return True
+    
+    return False
 
 def reload_csv_data():
     """CSVデータを再ロード（開発/更新用）"""

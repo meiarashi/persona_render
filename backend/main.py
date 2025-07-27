@@ -816,6 +816,19 @@ async def generate_persona(request: Request):
                 for i, result in enumerate(rag_results, 1):
                     rag_context += f"{i}. {result['keyword']} (検索数: {result['search_volume']}人)\n"
                     # カテゴリーフィールドは削除（CSVに存在しないため）
+                
+                # RAGデータ使用の詳細ログ
+                print("[RAG] ===== RAG DATA USAGE REPORT =====")
+                print(f"[RAG] Department: {department}")
+                print(f"[RAG] Age Group: {age_group}")
+                print(f"[RAG] Gender: {gender}")
+                print(f"[RAG] Results Found: {len(rag_results)}")
+                print("[RAG] Keywords:")
+                for result in rag_results:
+                    print(f"[RAG]   - {result['keyword']} (volume: {result['search_volume']})")
+                print("[RAG] ================================")
+            else:
+                print(f"[RAG] WARNING: No RAG data found for {department}")
         
         # 入力データの内容をログ出力
         print(f"[DEBUG] Input data keys: {list(data.keys())}")
