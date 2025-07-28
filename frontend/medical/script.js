@@ -2092,6 +2092,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('Ensured dynamically created PDF button is visible');
         }
         */
+        
+        // タブ機能を初期化
+        initializeTabFunctionality();
+        
+        // タイムライン分析データを取得して表示
+        if (result.profile && result.profile.department && result.profile.chief_complaint) {
+            loadTimelineAnalysis(result.profile);
+        }
     }
 
 
@@ -3226,5 +3234,290 @@ function stopProgressAnimation() {
 
 // 画像を表示するコード箇所
 // 関数は他の場所で定義されているため、この重複した定義は削除しました
+
+// タブ機能を初期化
+function initializeTabFunctionality() {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const targetTab = this.getAttribute('data-tab');
+            
+            // すべてのタブボタンから active クラスを削除
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active');
+                btn.style.borderBottom = '3px solid transparent';
+                btn.style.color = '#666';
+            });
+            
+            // クリックされたボタンに active クラスを追加
+            this.classList.add('active');
+            this.style.borderBottom = '3px solid #007bff';
+            this.style.color = '#007bff';
+            
+            // すべてのタブコンテンツを非表示
+            tabContents.forEach(content => {
+                content.style.display = 'none';
+            });
+            
+            // 対応するタブコンテンツを表示
+            const targetContent = document.getElementById(`${targetTab}-tab`);
+            if (targetContent) {
+                targetContent.style.display = 'block';
+            }
+        });
+    });
+}
+
+// タイムライン分析データを取得して表示
+async function loadTimelineAnalysis(profile) {
+    try {
+        // 年齢を適切な形式に変換（年代形式に）
+        let ageFormatted = profile.age;
+        if (ageFormatted) {
+            // 数値を抽出
+            const ageMatch = ageFormatted.match(/(\d+)/);
+            if (ageMatch) {
+                const ageNum = parseInt(ageMatch[1]);
+                if (ageNum < 20) {
+                    ageFormatted = "10代";
+                } else {
+                    const decade = Math.floor(ageNum / 10) * 10;
+                    ageFormatted = `${decade}代`;
+                }
+            }
+        }
+        
+        // 性別を日本語に変換（APIが期待する形式）
+        let genderFormatted = profile.gender;
+        if (genderFormatted === 'male') {
+            genderFormatted = '男性';
+        } else if (genderFormatted === 'female') {
+            genderFormatted = '女性';
+        }
+        
+        // 検索タイムラインデータを取得
+        const timelineResponse = await fetch('/api/search-timeline', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                department: profile.department,
+                chief_complaint: profile.chief_complaint,
+                gender: genderFormatted,
+                age: ageFormatted
+            })
+        });
+        
+        if (!timelineResponse.ok) {
+            const errorText = await timelineResponse.text();
+            throw new Error(`Timeline API error: ${timelineResponse.status} - ${errorText}`);
+        }
+        
+        const timelineData = await timelineResponse.json();
+        
+        // エラーチェック
+        if (timelineData.error) {
+            throw new Error(timelineData.error);
+        }
+        
+        // チャートを描画
+        if (timelineData.filtered_keywords && timelineData.filtered_keywords.length > 0) {
+            drawTimelineChart(timelineData.filtered_keywords);
+        } else {
+            const ctx = document.getElementById('timeline-chart');
+            if (ctx) {
+                // canvas要素は残してメッセージを隣に表示
+                const container = ctx.parentElement;
+                if (container) {
+                    // 既存のメッセージを削除
+                    const existingMsg = container.querySelector('.no-data-message');
+                    if (existingMsg) existingMsg.remove();
+                    
+                    // 新しいメッセージを追加
+                    const message = document.createElement('div');
+                    message.className = 'no-data-message';
+                    message.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666; padding: 20px;';
+                    message.textContent = 'この主訴に関する検索データがありません。';
+                    container.style.position = 'relative';
+                    container.appendChild(message);
+                }
+            }
+        }
+        
+        // AI分析を取得
+        const analysisResponse = await fetch('/api/search-timeline-analysis', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                department: profile.department,
+                chief_complaint: profile.chief_complaint,
+                gender: genderFormatted,
+                age: ageFormatted,
+                name: profile.name,
+                occupation: profile.occupation,
+                family: profile.family,
+                income: profile.income,
+                prefecture: profile.prefecture,
+                municipality: profile.municipality,
+                hobby: profile.hobby,
+                life_events: profile.life_events,
+                patient_type: profile.patient_type,
+                timeline_data: timelineData
+            })
+        });
+        
+        if (!analysisResponse.ok) {
+            const errorText = await analysisResponse.text();
+            throw new Error(`Analysis API error: ${analysisResponse.status} - ${errorText}`);
+        }
+        
+        const analysisData = await analysisResponse.json();
+        
+        // AI分析レポートを表示（XSS対策のためtextContentを使用）
+        const analysisContent = document.getElementById('timeline-analysis-content');
+        if (analysisContent && analysisData.analysis) {
+            // HTMLエスケープしてから改行をbrタグに変換
+            const escapeHtml = (text) => {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            };
+            analysisContent.innerHTML = escapeHtml(analysisData.analysis).replace(/\n/g, '<br>');
+        }
+        
+    } catch (error) {
+        console.error('Error loading timeline analysis:', error);
+        const analysisContent = document.getElementById('timeline-analysis-content');
+        if (analysisContent) {
+            analysisContent.innerHTML = '<p style="color: #dc3545;">タイムライン分析の読み込みに失敗しました。</p>';
+        }
+    }
+}
+
+// Chart.js インスタンスを保持するグローバル変数
+let timelineChartInstance = null;
+
+// Chart.jsで散布図を描画
+function drawTimelineChart(keywords) {
+    // Chart.jsライブラリが読み込まれているか確認
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js library is not loaded');
+        const container = document.querySelector('.chart-container');
+        if (container) {
+            container.innerHTML = '<p style="text-align: center; color: #dc3545; padding: 40px 0;">チャートライブラリの読み込みに失敗しました。</p>';
+        }
+        return;
+    }
+    
+    const ctx = document.getElementById('timeline-chart');
+    if (!ctx) return;
+    
+    // 既存のチャートインスタンスがあれば破棄
+    if (timelineChartInstance) {
+        timelineChartInstance.destroy();
+        timelineChartInstance = null;
+    }
+    
+    // データを準備（診断前後で色分け）
+    const preDiagnosisData = keywords
+        .filter(k => k.time_diff_days < 0)
+        .map(k => ({
+            x: k.time_diff_days,
+            y: k.estimated_volume,
+            label: k.keyword
+        }));
+    
+    const postDiagnosisData = keywords
+        .filter(k => k.time_diff_days >= 0)
+        .map(k => ({
+            x: k.time_diff_days,
+            y: k.estimated_volume,
+            label: k.keyword
+        }));
+    
+    timelineChartInstance = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [
+                {
+                    label: '診断前',
+                    data: preDiagnosisData,
+                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                },
+                {
+                    label: '診断後',
+                    data: postDiagnosisData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: '検索キーワードタイムライン',
+                    font: {
+                        size: 16
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const point = context.raw;
+                            return [
+                                `キーワード: ${point.label}`,
+                                `検索時期: ${point.x > 0 ? '+' : ''}${point.x}日`,
+                                `推定検索数: ${point.y.toLocaleString()}人`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: '診断からの日数'
+                    },
+                    grid: {
+                        color: function(context) {
+                            if (context.tick.value === 0) {
+                                return 'rgba(0, 0, 0, 0.5)';
+                            }
+                            return 'rgba(0, 0, 0, 0.1)';
+                        },
+                        lineWidth: function(context) {
+                            if (context.tick.value === 0) {
+                                return 2;
+                            }
+                            return 1;
+                        }
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: '推定検索ボリューム（人）'
+                    },
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
 
 }); // DOMContentLoaded終了 

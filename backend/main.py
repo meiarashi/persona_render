@@ -49,6 +49,7 @@ except ImportError:
 
 # Import from new structure
 from .api import admin_settings, config
+from .services import timeline_analyzer
 from .services import crud, rag_processor
 from .middleware.auth import verify_admin_credentials, verify_department_credentials
 from .models import schemas as models
@@ -1251,6 +1252,164 @@ async def health_check():
     Simple health check endpoint to confirm the API is running.
     """
     return {"status": "ok"}
+
+@app.post("/api/search-timeline")
+async def get_search_timeline(request: Request):
+    """検索キーワードの時系列データを取得"""
+    try:
+        data = await request.json()
+        
+        # 必須パラメータの確認
+        department = data.get('department')
+        chief_complaint = data.get('chief_complaint')
+        
+        if not department or not chief_complaint:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "department and chief_complaint are required"}
+            )
+        
+        # オプションパラメータ
+        gender = data.get('gender')
+        age = data.get('age')
+        
+        # 時系列データを分析
+        result = timeline_analyzer.analyze_search_timeline(
+            department=department,
+            chief_complaint=chief_complaint,
+            gender=gender,
+            age=age
+        )
+        
+        return result
+        
+    except Exception as e:
+        print(f"Error in search-timeline: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Failed to analyze timeline: {str(e)}"}
+        )
+
+@app.post("/api/search-timeline-analysis")
+async def analyze_search_behavior(request: Request):
+    """検索行動をAIで分析"""
+    try:
+        data = await request.json()
+        
+        # 必須パラメータの確認
+        filtered_keywords = data.get('filtered_keywords', [])
+        persona_profile = data.get('persona_profile', {})
+        
+        if not filtered_keywords or not persona_profile:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "filtered_keywords and persona_profile are required"}
+            )
+        
+        # 診断前後のキーワードを分類
+        pre_diagnosis = [k for k in filtered_keywords if k['time_diff_days'] < 0]
+        post_diagnosis = [k for k in filtered_keywords if k['time_diff_days'] >= 0]
+        
+        # プロンプトを構築
+        prompt = f"""あなたは医療マーケティングの専門家です。
+提供されたペルソナの全情報と検索行動データを総合的に分析し、深い洞察を提供してください。
+
+【ペルソナ詳細情報】
+■ 基本属性
+- 性別：{persona_profile.get('gender')}、年齢：{persona_profile.get('age')}
+- 職業：{persona_profile.get('occupation')}、年収：{persona_profile.get('income')}
+- 居住地：{persona_profile.get('prefecture')}{persona_profile.get('municipality', '')}
+
+■ 性格・価値観
+- 性格：{persona_profile.get('personality_keywords')}
+- 座右の銘：{persona_profile.get('motto')}
+- キャッチフレーズ：{persona_profile.get('catchphrase')}
+- 患者タイプ：{persona_profile.get('patient_type')}
+
+■ ライフスタイル
+- 趣味：{persona_profile.get('hobby')}
+- 休日の過ごし方：{persona_profile.get('holiday_activities')}
+- 利用メディア/SNS：{persona_profile.get('media_sns')}
+- 好きな有名人：{persona_profile.get('favorite_person')}
+- 家族関係：{persona_profile.get('family')}
+- 健康への取り組み：{persona_profile.get('health_actions')}
+- 悩み事：{persona_profile.get('concerns')}
+- 最近のライフイベント：{persona_profile.get('life_events')}
+
+■ 生成された詳細情報
+- 個性・性格：{persona_profile.get('personality')}
+- 来院理由：{persona_profile.get('reason')}
+- 医療機関への期待：{persona_profile.get('demands')}
+- 口コミの見方：{persona_profile.get('reviews')}
+- 医療に対する価値観：{persona_profile.get('values')}
+- 行動特性：{persona_profile.get('behavior')}
+
+【{persona_profile.get('chief_complaint')}に関する検索行動データ】
+診断前の検索（時系列順）：
+"""
+        
+        for k in sorted(pre_diagnosis, key=lambda x: x['time_diff_days']):
+            prompt += f"- {k['keyword']} ({abs(k['time_diff_days']):.1f}日前、推定{k['estimated_volume']}人)\n"
+        
+        prompt += "\n診断後の検索（時系列順）：\n"
+        for k in sorted(post_diagnosis, key=lambda x: x['time_diff_days']):
+            prompt += f"- {k['keyword']} ({k['time_diff_days']:.1f}日後、推定{k['estimated_volume']}人)\n"
+        
+        prompt += """
+【分析項目】
+上記のペルソナ情報すべてを考慮して、以下を分析してください：
+
+1. 心理変化の分析（200文字）
+提供されたすべての情報から読み取れる、このペルソナの{chief_complaint}診断前後の心理状態の変化を分析してください。
+特に性格、価値観、家族関係、ライフイベントなどがどのように影響しているかを含めてください。
+
+2. 隠れたニーズ（200文字）
+ペルソナの全体像（職業、年収、趣味、悩み事、健康への取り組みなど）と検索行動を照らし合わせ、
+表面化していない潜在的なニーズを洞察してください。
+
+3. マーケティング提案（200文字）
+このペルソナの特性（性格、価値観、ライフスタイル、経済状況など）を総合的に考慮し、
+{department}がどのようなサービスやコミュニケーション戦略を取るべきか、具体的に提案してください。
+""".replace("{chief_complaint}", persona_profile.get('chief_complaint', '')).replace("{department}", persona_profile.get('department', ''))
+        
+        # AI分析を実行
+        try:
+            # モデル設定を取得
+            app_settings = crud.get_admin_settings()
+            selected_text_model = app_settings.models.get("text_generation", os.getenv("DEFAULT_TEXT_MODEL", "gpt-4o-mini"))
+            
+            # テキスト生成
+            analysis_result = await generate_text_response(
+                prompt=prompt,
+                model=selected_text_model,
+                response_format="""
+{
+    "psychological_changes": "心理変化の分析内容",
+    "hidden_needs": "隠れたニーズの分析内容",
+    "marketing_suggestions": "マーケティング提案内容"
+}
+"""
+            )
+            
+            return {
+                "analysis": analysis_result,
+                "keywords_analyzed": len(filtered_keywords),
+                "model_used": selected_text_model
+            }
+            
+        except Exception as ai_error:
+            print(f"AI analysis error: {ai_error}")
+            return JSONResponse(
+                status_code=500,
+                content={"error": f"AI analysis failed: {str(ai_error)}"}
+            )
+            
+    except Exception as e:
+        print(f"Error in search-timeline-analysis: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Failed to analyze behavior: {str(e)}"}
+        )
 
 
 # To run this app locally (from the 'backend' directory, assuming main.py is in 'app'):
