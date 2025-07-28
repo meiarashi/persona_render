@@ -1377,7 +1377,7 @@ async def analyze_search_behavior(request: Request):
             # モデル設定を取得
             from .api.admin_settings import get_admin_settings
             app_settings = await get_admin_settings()
-            selected_text_model = app_settings.models.get("text_generation", os.getenv("DEFAULT_TEXT_MODEL", "gpt-4o-mini"))
+            selected_text_model = app_settings.models.text_api_model or os.getenv("DEFAULT_TEXT_MODEL", "gpt-4o-mini")
             
             # テキスト生成
             analysis_result = await generate_text_response(
