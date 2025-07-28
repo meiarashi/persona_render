@@ -3354,6 +3354,8 @@ async function loadTimelineAnalysis(profile) {
         
         const data = await response.json();
         console.log('[DEBUG] Timeline data received:', data);
+        console.log('[DEBUG] Data has error?', data.error);
+        console.log('[DEBUG] Filtered keywords count:', data.filtered_keywords ? data.filtered_keywords.length : 'undefined');
         
         // AI分析を表示
         const analysisContent = document.getElementById('timeline-analysis-content');
