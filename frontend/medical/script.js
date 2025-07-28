@@ -2146,7 +2146,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // 編集可能フィールドのセットアップ
-        setupEditableFields();
+        try {
+            setupEditableFields();
+        } catch (error) {
+            console.error('[ERROR] Failed to setup editable fields:', error);
+        }
         
         // DEBUG: Final check of download buttons after population
         console.log('After dynamic population - PDF Button by ID:', document.getElementById('download-pdf-result'));
@@ -2163,20 +2167,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         console.log('[DEBUG] Setting up setTimeout for tab initialization');
         
-        // タブ機能を初期化（少し遅延させてDOMが確実に更新されるのを待つ）
-        setTimeout(() => {
-            try {
-                console.log('[DEBUG] About to initialize tab functionality');
-                initializeTabFunctionality();
-            } catch (error) {
-                console.error('[ERROR] Failed to initialize tab functionality:', error);
+        // 即座にタブを初期化（デバッグのため遅延を無くす）
+        try {
+            console.log('[DEBUG] About to initialize tab functionality IMMEDIATELY');
+            if (typeof window.initializeTabFunctionality === 'function') {
+                window.initializeTabFunctionality();
+            } else {
+                console.error('[ERROR] window.initializeTabFunctionality is not a function');
             }
-            
-            // タイムライン分析データを取得して表示
+        } catch (error) {
+            console.error('[ERROR] Failed to initialize tab functionality:', error);
+        }
+        
+        // タイムライン分析は少し遅延させる
+        setTimeout(() => {
             try {
                 if (result.profile && result.profile.department && result.profile.chief_complaint) {
                     console.log('[DEBUG] About to load timeline analysis');
-                    loadTimelineAnalysis(result.profile);
+                    if (typeof window.loadTimelineAnalysis === 'function') {
+                        window.loadTimelineAnalysis(result.profile);
+                    } else {
+                        console.error('[ERROR] window.loadTimelineAnalysis is not a function');
+                    }
                 } else {
                     console.log('[DEBUG] Skipping timeline analysis - missing required data:', result.profile);
                 }
