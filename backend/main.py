@@ -1381,19 +1381,13 @@ async def analyze_search_behavior(request: Request):
             
             # テキスト生成
             analysis_result = await generate_text_response(
-                prompt=prompt,
-                model=selected_text_model,
-                response_format="""
-{
-    "psychological_changes": "心理変化の分析内容",
-    "hidden_needs": "隠れたニーズの分析内容",
-    "marketing_suggestions": "マーケティング提案内容"
-}
-"""
+                prompt_text=prompt,
+                model_name=selected_text_model,
+                api_key=os.getenv("OPENAI_API_KEY")
             )
             
             return {
-                "analysis": analysis_result,
+                "ai_analysis": analysis_result,
                 "keywords_analyzed": len(filtered_keywords),
                 "model_used": selected_text_model
             }
