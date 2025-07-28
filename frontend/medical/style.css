@@ -1727,4 +1727,45 @@ footer {
 
 .tab-content.active {
     display: block;
+}
+
+/* Timeline Analysis Styles */
+.timeline-container {
+    display: grid;
+    grid-template-rows: auto auto;
+    gap: 20px;
+    max-width: 100%;
+    margin: 0 auto;
+    padding-right: 20px; /* 右側の余白を追加 */
+}
+
+#timeline-analysis-content {
+    max-width: calc(100% - 40px); /* 左右の余白を確保 */
+    margin: 0 auto;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.chart-container {
+    position: relative;
+    min-height: 600px;
+    height: 600px;
+    width: 100%;
+}
+
+.analysis-container {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+    width: 100%;
+}
+
+/* Responsive design for timeline */
+@media (max-width: 768px) {
+    .chart-container {
+        min-height: 400px;
+        height: 400px;
+    }
 } 

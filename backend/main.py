@@ -1360,22 +1360,23 @@ async def analyze_search_behavior(request: Request):
         for k in sorted(post_diagnosis, key=lambda x: x['time_diff_days']):
             prompt += f"- {k['keyword']} ({k['time_diff_days']:.1f}日後、推定{k['estimated_volume']}人)\n"
         
-        prompt += """
+        prompt += f"""
 【分析項目】
-上記のペルソナ情報すべてを考慮して、以下を分析してください：
+以下の形式で簡潔に回答してください：
 
-1. 心理変化の分析（200文字）
-提供されたすべての情報から読み取れる、このペルソナの{chief_complaint}診断前後の心理状態の変化を分析してください。
-特に性格、価値観、家族関係、ライフイベントなどがどのように影響しているかを含めてください。
+心理変化の分析：
+{persona_profile.get('chief_complaint', '')}診断前後の心理状態の変化を、性格、価値観、家族関係、ライフイベントなどから分析（200文字程度）
 
-2. 隠れたニーズ（200文字）
-ペルソナの全体像（職業、年収、趣味、悩み事、健康への取り組みなど）と検索行動を照らし合わせ、
-表面化していない潜在的なニーズを洞察してください。
+隠れたニーズ：
+職業、年収、趣味、悩み事、健康への取り組みと検索行動から、潜在的なニーズを洞察（200文字程度）
 
-3. マーケティング提案（200文字）
-このペルソナの特性（性格、価値観、ライフスタイル、経済状況など）を総合的に考慮し、
-{department}がどのようなサービスやコミュニケーション戦略を取るべきか、具体的に提案してください。
-""".replace("{chief_complaint}", persona_profile.get('chief_complaint', '')).replace("{department}", persona_profile.get('department', ''))
+マーケティング提案：
+性格、価値観、ライフスタイル、経済状況を考慮し、{persona_profile.get('department', '')}がとるべき具体的な戦略（200文字程度）
+
+重要：
+- 各項目は「項目名：」の後に内容を書く形式にすること
+- 番号、記号（###、-など）、文字数表記は含めない
+- 前置きや挨拶は不要"""
         
         # AI分析を実行
         try:
