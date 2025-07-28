@@ -3475,16 +3475,16 @@ function drawTimelineChart(keywords) {
                     data: preDiagnosisData,
                     backgroundColor: 'rgba(59, 130, 246, 0.6)',
                     borderColor: 'rgba(59, 130, 246, 1)',
-                    pointRadius: 8,
-                    pointHoverRadius: 10
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 },
                 {
                     label: '診断後',
                     data: postDiagnosisData,
                     backgroundColor: 'rgba(239, 68, 68, 0.6)',
                     borderColor: 'rgba(239, 68, 68, 1)',
-                    pointRadius: 8,
-                    pointHoverRadius: 10
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 }
             ]
         },

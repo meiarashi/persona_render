@@ -1651,7 +1651,7 @@ footer {
 /* Timeline Analysis Styles */
 .timeline-container {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
     gap: 20px;
     max-width: 100%;
     margin: 0 auto;
@@ -1659,30 +1659,29 @@ footer {
 
 .chart-container {
     position: relative;
-    min-height: 400px;
+    min-height: 600px;
+    height: 600px;
+    width: 100%;
 }
 
 .analysis-container {
     background: #f8f9fa;
     padding: 20px;
     border-radius: 8px;
-    max-height: 450px;
+    max-height: 400px;
     overflow-y: auto;
+    width: 100%;
 }
 
 /* Responsive design for timeline */
-@media (max-width: 1200px) {
-    .timeline-container {
-        grid-template-columns: 1fr;
-    }
-    
+@media (max-width: 768px) {
     .chart-container {
-        min-height: 350px;
+        min-height: 400px;
+        height: 400px;
     }
     
     .analysis-container {
-        max-height: none;
-        margin-top: 20px;
+        max-height: 300px;
     }
 }
 
