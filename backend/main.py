@@ -1315,6 +1315,18 @@ async def analyze_search_behavior(request: Request):
         pre_diagnosis = [k for k in filtered_keywords if k['time_diff_days'] < 0]
         post_diagnosis = [k for k in filtered_keywords if k['time_diff_days'] >= 0]
         
+        # キーワード分析を実行
+        from .services.keyword_analyzer import analyze_search_patterns, extract_emotional_keywords, calculate_demographic_match
+        pattern_analysis = analyze_search_patterns(pre_diagnosis, post_diagnosis)
+        emotional_keywords = extract_emotional_keywords(filtered_keywords)
+        
+        # デモグラフィックマッチ度を計算
+        demographic_match = calculate_demographic_match(
+            filtered_keywords, 
+            persona_profile.get('gender', ''),
+            persona_profile.get('age', '')
+        )
+        
         # プロンプトを構築
         prompt = f"""あなたは医療マーケティングの専門家です。
 提供されたペルソナの全情報と検索行動データを総合的に分析し、深い洞察を提供してください。
@@ -1359,6 +1371,16 @@ async def analyze_search_behavior(request: Request):
         prompt += "\n診断後の検索（時系列順）：\n"
         for k in sorted(post_diagnosis, key=lambda x: x['time_diff_days']):
             prompt += f"- {k['keyword']} ({k['time_diff_days']:.1f}日後、推定{k['estimated_volume']}人)\n"
+        
+        # 検索パターン分析を追加
+        prompt += f"\n【検索行動の分析結果】\n"
+        prompt += f"- 診断前の主な関心: {', '.join(pattern_analysis['pre_diagnosis_focus']) or 'なし'}\n"
+        prompt += f"- 診断後の主な関心: {', '.join(pattern_analysis['post_diagnosis_focus']) or 'なし'}\n"
+        prompt += f"- 緊急度: {pattern_analysis['urgency_level']}\n"
+        prompt += f"- 解決志向度: {pattern_analysis['solution_seeking_rate']:.1%}\n"
+        prompt += f"- ペルソナ属性との一致度: {demographic_match:.1%}\n"
+        if emotional_keywords:
+            prompt += f"- 感情的キーワード: {', '.join(emotional_keywords[:5])}\n"
         
         prompt += f"""
 【分析項目】
