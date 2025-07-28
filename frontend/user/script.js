@@ -3357,7 +3357,16 @@ async function loadTimelineAnalysis(profile) {
         console.log('[DEBUG] Data has error?', data.error);
         console.log('[DEBUG] Filtered keywords count:', data.filtered_keywords ? data.filtered_keywords.length : 'undefined');
         
-        // AI分析を表示
+        // AI分析を取得
+        const analysisResponse = await fetch('/api/search-timeline-analysis', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                filtered_keywords: data.filtered_keywords,
+                persona_profile: profile
+            })
+        });
+        
         const analysisContent = document.getElementById('timeline-analysis-content');
         if (analysisContent) {
             // HTMLエスケープ関数
@@ -3367,14 +3376,22 @@ async function loadTimelineAnalysis(profile) {
                 return div.innerHTML;
             };
             
-            analysisContent.innerHTML = data.ai_analysis ? 
-                escapeHtml(data.ai_analysis).replace(/\n/g, '<br>') : 
-                '<p style="color: #666;">分析データがありません</p>';
+            if (analysisResponse.ok) {
+                const analysisData = await analysisResponse.json();
+                console.log('[DEBUG] AI analysis received:', analysisData);
+                analysisContent.innerHTML = analysisData.ai_analysis ? 
+                    escapeHtml(analysisData.ai_analysis).replace(/\n/g, '<br>') : 
+                    '<p style="color: #666;">AI分析データがありません</p>';
+            } else {
+                const errorText = await analysisResponse.text();
+                console.log('[ERROR] AI analysis failed:', errorText);
+                analysisContent.innerHTML = '<p style="color: #666;">AI分析の取得に失敗しました</p>';
+            }
         }
         
         // 散布図を描画
-        if (data.timeline_data && data.timeline_data.filtered_keywords) {
-            drawTimelineChart(data.timeline_data.filtered_keywords);
+        if (data.filtered_keywords && data.filtered_keywords.length > 0) {
+            drawTimelineChart(data.filtered_keywords);
         } else {
             const ctx = document.getElementById('timeline-chart');
             if (ctx) {
