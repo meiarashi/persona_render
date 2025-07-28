@@ -3331,7 +3331,7 @@ async function loadTimelineAnalysis(profile) {
             }
         }
         
-        const response = await fetch('/api/timeline-analysis', {
+        const response = await fetch('/api/search-timeline-analysis', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
