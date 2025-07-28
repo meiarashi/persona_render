@@ -21,15 +21,22 @@ def get_timeline_csv_path(department: str, chief_complaint: str) -> Path:
     
     # まずCSVファイルを探す
     csv_path = base_dir / department / "主訴" / f"{chief_complaint}_全体.csv"
+    print(f"[DEBUG] Looking for CSV file: {csv_path.absolute()}")
+    print(f"[DEBUG] CSV file exists: {csv_path.exists()}")
+    
     if csv_path.exists():
         return csv_path
     
     # CSVが見つからない場合はExcelファイルを探す
     xlsx_path = base_dir / department / "主訴" / f"{chief_complaint}_全体.xlsx"
+    print(f"[DEBUG] Looking for Excel file: {xlsx_path.absolute()}")
+    print(f"[DEBUG] Excel file exists: {xlsx_path.exists()}")
+    
     if xlsx_path.exists():
         return xlsx_path
     
     # どちらも見つからない場合はCSVパスを返す（後でエラーハンドリング）
+    print(f"[DEBUG] No file found, returning CSV path: {csv_path.absolute()}")
     return csv_path
 
 def filter_keywords_by_demographics(keywords_df: pd.DataFrame, gender: str, age: str) -> pd.DataFrame:
@@ -123,6 +130,8 @@ def analyze_search_timeline(department: str, chief_complaint: str,
                           gender: Optional[str] = None, 
                           age: Optional[str] = None) -> Dict:
     """検索タイムラインを分析"""
+    
+    print(f"[DEBUG] Analyzing timeline for: department='{department}', chief_complaint='{chief_complaint}'")
     
     csv_path = get_timeline_csv_path(department, chief_complaint)
     
