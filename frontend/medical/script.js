@@ -3325,6 +3325,16 @@ function stopProgressAnimation() {
 // タブ機能を初期化
 function initializeTabFunctionality() {
     console.log('[DEBUG] Initializing tab functionality');
+    
+    // persona-detailsが表示されているか確認
+    const personaDetails = document.querySelector('.persona-details');
+    if (personaDetails) {
+        console.log('[DEBUG] persona-details display:', window.getComputedStyle(personaDetails).display);
+        console.log('[DEBUG] persona-details visibility:', window.getComputedStyle(personaDetails).visibility);
+    } else {
+        console.log('[DEBUG] persona-details element not found!');
+    }
+    
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
     console.log('[DEBUG] Found tab buttons:', tabButtons.length);
@@ -3349,12 +3359,15 @@ function initializeTabFunctionality() {
             // すべてのタブコンテンツを非表示
             tabContents.forEach(content => {
                 content.style.display = 'none';
+                content.classList.remove('active');
             });
             
             // 対応するタブコンテンツを表示
             const targetContent = document.getElementById(`${targetTab}-tab`);
             if (targetContent) {
                 targetContent.style.display = 'block';
+                targetContent.classList.add('active');
+                console.log('[DEBUG] Showing tab content:', targetTab);
             }
         });
     });
