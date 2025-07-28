@@ -709,14 +709,8 @@
                                 <button type="button" id="download-pdf-result" style="display: inline-block !important; background-color: #ff0000 !important; color: white !important; border: none !important; padding: 6px 16px !important; border-radius: 4px !important; margin: 0 5px !important; cursor: pointer !important;">PDF</button>
                             </div>
                             
-                            <!-- タブナビゲーション -->
-                            <div class="tab-navigation" style="margin-bottom: 20px; border-bottom: 2px solid #e0e0e0;">
-                                <button type="button" class="tab-button active" data-tab="persona" style="padding: 10px 20px; background: none; border: none; border-bottom: 3px solid #007bff; color: #007bff; font-weight: bold; cursor: pointer; margin-right: 10px;">生成されたペルソナ</button>
-                                <button type="button" class="tab-button" data-tab="timeline" style="padding: 10px 20px; background: none; border: none; border-bottom: 3px solid transparent; color: #666; cursor: pointer;">検索タイムライン分析</button>
-                            </div>
-                            
-                            <!-- ペルソナタブコンテンツ -->
-                            <div class="tab-content" id="persona-tab" style="display: block;">
+                            <!-- ペルソナコンテンツ -->
+                            <div id="persona-content">
                                 <h3 class="persona-title">生成されたペルソナ</h3>
                             <h4>性格（価値観・人生観）</h4>
                             <p id="result-personality"></p>
@@ -732,8 +726,8 @@
                             <p id="result-demands"></p>
                             </div>
                             
-                            <!-- タイムラインタブコンテンツ -->
-                            <div class="tab-content" id="timeline-tab" style="display: none;">
+                            <!-- タイムラインコンテンツ（常に表示） -->
+                            <div id="timeline-content" style="margin-top: 40px; border-top: 2px solid #e0e0e0; padding-top: 30px;">
                                 <h3 class="timeline-title">検索キーワード時系列分析</h3>
                                 
                                 <div class="timeline-container" style="display: flex; gap: 20px;">

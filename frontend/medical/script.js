@@ -1277,15 +1277,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     console.warn('[DEBUG] showStep: .result-step .prev-step-btn not found inside resultStep element.');
                 }
                 
-                // 結果画面が表示されたらタブを初期化
-                setTimeout(() => {
-                    console.log('[DEBUG] Initializing tabs from showStep');
-                    if (typeof window.initializeTabFunctionality === 'function') {
-                        window.initializeTabFunctionality();
-                    } else {
-                        console.error('[ERROR] initializeTabFunctionality is not defined');
-                    }
-                }, 300); // populateResultsの実行を待つため少し遅延
             }
             currentStep = stepNumberToShow;
             return;
@@ -2165,37 +2156,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         */
         
-        console.log('[DEBUG] Setting up setTimeout for tab initialization');
+        console.log('[DEBUG] Setting up timeline analysis');
         
-        // 即座にタブを初期化（デバッグのため遅延を無くす）
-        try {
-            console.log('[DEBUG] About to initialize tab functionality IMMEDIATELY');
-            if (typeof window.initializeTabFunctionality === 'function') {
-                window.initializeTabFunctionality();
-            } else {
-                console.error('[ERROR] window.initializeTabFunctionality is not a function');
-            }
-        } catch (error) {
-            console.error('[ERROR] Failed to initialize tab functionality:', error);
-        }
-        
-        // タイムライン分析は少し遅延させる
+        // タイムライン分析を自動的に読み込む
         setTimeout(() => {
-            try {
-                if (result.profile && result.profile.department && result.profile.chief_complaint) {
-                    console.log('[DEBUG] About to load timeline analysis');
-                    if (typeof window.loadTimelineAnalysis === 'function') {
-                        window.loadTimelineAnalysis(result.profile);
-                    } else {
-                        console.error('[ERROR] window.loadTimelineAnalysis is not a function');
-                    }
+            if (result.profile && result.profile.department && result.profile.chief_complaint) {
+                console.log('[DEBUG] Loading timeline analysis automatically');
+                if (typeof window.loadTimelineAnalysis === 'function') {
+                    window.loadTimelineAnalysis(result.profile);
                 } else {
-                    console.log('[DEBUG] Skipping timeline analysis - missing required data:', result.profile);
+                    console.error('[ERROR] window.loadTimelineAnalysis is not a function');
                 }
-            } catch (error) {
-                console.error('[ERROR] Failed to load timeline analysis:', error);
+            } else {
+                console.log('[DEBUG] Skipping timeline analysis - missing required data:', result.profile);
             }
-        }, 100);
+        }, 100); // DOM更新を待つため少し遅延
     }
 
 
