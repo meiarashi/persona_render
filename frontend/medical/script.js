@@ -1119,6 +1119,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         'endocrinology': '内分泌科'
     };
 
+    // 主訴データのキャッシュ
+    const chiefComplaintsCache = {};
+    
     // 主訴を動的に読み込む関数
     async function loadChiefComplaints(departmentValue) {
         console.log('[DEBUG] loadChiefComplaints called with:', departmentValue);
@@ -1130,21 +1133,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         try {
-            // カテゴリーを判定（医科固定）
-            const category = 'medical';
-            const apiUrl = `/api/chief-complaints/${category}/${departmentName}`;
+            let chiefComplaints;
             
-            console.log('[DEBUG] Fetching from API:', apiUrl);
-            
-            // APIから主訴リストを取得
-            const response = await fetch(apiUrl);
-            if (!response.ok) {
-                throw new Error('Failed to fetch chief complaints');
+            // キャッシュを確認
+            if (chiefComplaintsCache[departmentValue]) {
+                console.log('[DEBUG] Using cached chief complaints for:', departmentValue);
+                chiefComplaints = chiefComplaintsCache[departmentValue];
+            } else {
+                // カテゴリーを判定（医科固定）
+                const category = 'medical';
+                const apiUrl = `/api/chief-complaints/${category}/${departmentName}`;
+                
+                console.log('[DEBUG] Fetching from API:', apiUrl);
+                
+                // APIから主訴リストを取得
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch chief complaints');
+                }
+                
+                const data = await response.json();
+                console.log('[DEBUG] API Response:', data);
+                chiefComplaints = data.chief_complaints;
+                
+                // キャッシュに保存
+                chiefComplaintsCache[departmentValue] = chiefComplaints;
             }
-            
-            const data = await response.json();
-            console.log('[DEBUG] API Response:', data);
-            const chiefComplaints = data.chief_complaints;
             
             // 主訴選択画面のコンテナを取得
             const chiefComplaintStep = document.querySelector('[data-step="2"]');
@@ -1195,6 +1209,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             console.error('Error loading chief complaints:', error);
             alert('主訴の読み込みに失敗しました。');
+        }
+    }
+    
+    // 主訴を事前読み込みする関数
+    async function preloadChiefComplaints(departmentValue) {
+        console.log('[DEBUG] preloadChiefComplaints called with:', departmentValue);
+        
+        const departmentName = departmentDisplayNamesForAPI[departmentValue];
+        if (!departmentName) {
+            console.error('Department display name not found for:', departmentValue);
+            return;
+        }
+        
+        // すでにキャッシュにある場合はスキップ
+        if (chiefComplaintsCache[departmentValue]) {
+            console.log('[DEBUG] Chief complaints already cached for:', departmentValue);
+            return;
+        }
+        
+        try {
+            // カテゴリーを判定（医科固定）
+            const category = 'medical';
+            const apiUrl = `/api/chief-complaints/${category}/${departmentName}`;
+            
+            console.log('[DEBUG] Preloading from API:', apiUrl);
+            
+            // APIから主訴リストを取得
+            const response = await fetch(apiUrl);
+            if (!response.ok) {
+                throw new Error('Failed to fetch chief complaints');
+            }
+            
+            const data = await response.json();
+            console.log('[DEBUG] Preloaded API Response:', data);
+            
+            // キャッシュに保存
+            chiefComplaintsCache[departmentValue] = data.chief_complaints;
+        } catch (error) {
+            console.error('Error preloading chief complaints:', error);
+            // エラーは黙って処理（ユーザーがまだ次へ進んでいないため）
         }
     }
     
@@ -1516,11 +1570,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     window.showStep(2);
                 }
                 
-                // DOMが更新されるのを待ってから主訴リストを読み込む
-                // requestAnimationFrameを使用してより効率的に待機
-                requestAnimationFrame(async () => {
-                    await loadChiefComplaints(selectedDept.value);
-                });
+                // 主訴選択画面のコンテナを取得してローディング表示
+                const chiefComplaintContainer = document.querySelector('[data-step="2"] .chief-complaint-options');
+                if (chiefComplaintContainer) {
+                    chiefComplaintContainer.innerHTML = '<div style="text-align: center; padding: 20px;">読み込み中...</div>';
+                }
+                
+                // 主訴リストを即座に読み込む（キャッシュがあれば高速）
+                await loadChiefComplaints(selectedDept.value);
                 
                 return; // ここで処理を終了（showStepは既に実行済み）
             }
@@ -3248,6 +3305,9 @@ function stopProgressAnimation() {
 // 画像を表示するコード箇所
 // 関数は他の場所で定義されているため、この重複した定義は削除しました
 
+}); // DOMContentLoaded終了
+
+// グローバルスコープに関数を定義（DOMContentLoaded外）
 // タブ機能を初期化
 function initializeTabFunctionality() {
     console.log('[DEBUG] Initializing tab functionality');

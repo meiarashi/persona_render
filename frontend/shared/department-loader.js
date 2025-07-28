@@ -73,6 +73,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const selectedDept = document.querySelector('input[name="department"]:checked');
                     step1NextBtn.disabled = !selectedDept;
                 }
+                
+                // 主訴を事前読み込み（診療科が選択されたタイミング）
+                if (typeof preloadChiefComplaints === 'function') {
+                    console.log('[DEBUG] Preloading chief complaints for department:', this.value);
+                    preloadChiefComplaints(this.value);
+                }
             });
         });
         
