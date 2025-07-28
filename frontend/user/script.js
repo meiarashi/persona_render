@@ -3442,22 +3442,28 @@ function drawTimelineChart(keywords) {
         timelineChartInstance = null;
     }
     
+    // データ構造を確認
+    console.log('[DEBUG] First keyword sample:', keywords[0]);
+    
     // データを準備（診断前後で色分け）
     const preDiagnosisData = keywords
-        .filter(k => k['診断前後'] === '診断前')
+        .filter(k => k.time_diff_days < 0)
         .map(k => ({
-            x: k['検索時期（診断日からの日数）'],
-            y: k['月間検索回数'],
-            label: k['検索キーワード']
+            x: k.time_diff_days,
+            y: k.estimated_volume || k.search_volume,
+            label: k.keyword
         }));
     
     const postDiagnosisData = keywords
-        .filter(k => k['診断前後'] === '診断後')
+        .filter(k => k.time_diff_days >= 0)
         .map(k => ({
-            x: k['検索時期（診断日からの日数）'],
-            y: k['月間検索回数'],
-            label: k['検索キーワード']
+            x: k.time_diff_days,
+            y: k.estimated_volume || k.search_volume,
+            label: k.keyword
         }));
+    
+    console.log('[DEBUG] Pre-diagnosis data count:', preDiagnosisData.length);
+    console.log('[DEBUG] Post-diagnosis data count:', postDiagnosisData.length);
     
     // チャート作成
     timelineChartInstance = new Chart(ctx, {
