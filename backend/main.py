@@ -1384,11 +1384,19 @@ async def analyze_search_behavior(request: Request):
             app_settings = await get_admin_settings()
             selected_text_model = app_settings.models.text_api_model or os.getenv("DEFAULT_TEXT_MODEL", "gpt-4o-mini")
             
+            # モデルに応じて適切なAPIキーを選択
+            if "gemini" in selected_text_model.lower():
+                api_key = os.getenv("GOOGLE_API_KEY")
+            elif "claude" in selected_text_model.lower():
+                api_key = os.getenv("ANTHROPIC_API_KEY")
+            else:
+                api_key = os.getenv("OPENAI_API_KEY")
+            
             # テキスト生成
             analysis_result = await generate_text_response(
                 prompt_text=prompt,
                 model_name=selected_text_model,
-                api_key=os.getenv("OPENAI_API_KEY")
+                api_key=api_key
             )
             
             return {
