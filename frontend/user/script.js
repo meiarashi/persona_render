@@ -3379,8 +3379,14 @@ async function loadTimelineAnalysis(profile) {
             if (analysisResponse.ok) {
                 const analysisData = await analysisResponse.json();
                 console.log('[DEBUG] AI analysis received:', analysisData);
-                analysisContent.innerHTML = analysisData.ai_analysis ? 
-                    escapeHtml(analysisData.ai_analysis).replace(/\n/g, '<br>') : 
+                console.log('[DEBUG] ai_analysis field:', analysisData.ai_analysis);
+                console.log('[DEBUG] analysis field:', analysisData.analysis);
+                
+                const aiText = analysisData.ai_analysis || analysisData.analysis || '';
+                console.log('[DEBUG] Final AI text:', aiText);
+                
+                analysisContent.innerHTML = aiText ? 
+                    escapeHtml(aiText).replace(/\n/g, '<br>') : 
                     '<p style="color: #666;">AI分析データがありません</p>';
             } else {
                 const errorText = await analysisResponse.text();
