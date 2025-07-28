@@ -1276,6 +1276,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else {
                     console.warn('[DEBUG] showStep: .result-step .prev-step-btn not found inside resultStep element.');
                 }
+                
+                // 結果画面が表示されたらタブを初期化
+                setTimeout(() => {
+                    console.log('[DEBUG] Initializing tabs from showStep');
+                    if (typeof window.initializeTabFunctionality === 'function') {
+                        window.initializeTabFunctionality();
+                    } else {
+                        console.error('[ERROR] initializeTabFunctionality is not defined');
+                    }
+                }, 300); // populateResultsの実行を待つため少し遅延
             }
             currentStep = stepNumberToShow;
             return;
@@ -2150,6 +2160,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('Ensured dynamically created PDF button is visible');
         }
         */
+        
+        console.log('[DEBUG] Setting up setTimeout for tab initialization');
         
         // タブ機能を初期化（少し遅延させてDOMが確実に更新されるのを待つ）
         setTimeout(() => {
