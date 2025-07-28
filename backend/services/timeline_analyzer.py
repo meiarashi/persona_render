@@ -9,15 +9,38 @@ import os
 
 def get_timeline_csv_path(department: str, chief_complaint: str) -> Path:
     """主訴別CSVまたはExcelファイルのパスを取得"""
+    print(f"[DEBUG] get_timeline_csv_path called with department='{department}', chief_complaint='{chief_complaint}'")
+    
     # パストラバーサル攻撃を防ぐためのサニタイゼーション
     if not department or not chief_complaint:
         raise ValueError("診療科または主訴が指定されていません")
     
-    # 危険な文字をチェック
-    if any(char in str(department) + str(chief_complaint) for char in ['..', '/', '\\', '\x00']):
+    # 危険な文字をチェック（パス区切り文字は除外）
+    dangerous_chars = ['..', '\x00']
+    if any(char in str(department) + str(chief_complaint) for char in dangerous_chars):
         raise ValueError("不正な文字が含まれています")
     
-    base_dir = Path("./rag/各診療科")
+    # プロジェクトルートからの絶対パスを使用
+    import os
+    project_root = Path(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    base_dir = project_root / "rag" / "各診療科"
+    print(f"[DEBUG] Project root: {project_root}")
+    print(f"[DEBUG] Base directory: {base_dir}")
+    print(f"[DEBUG] Base directory exists: {base_dir.exists()}")
+    
+    # デバッグ: 診療科ディレクトリの内容を確認
+    dept_dir = base_dir / department
+    print(f"[DEBUG] Department directory: {dept_dir}")
+    print(f"[DEBUG] Department directory exists: {dept_dir.exists()}")
+    
+    if dept_dir.exists():
+        print(f"[DEBUG] Contents of {dept_dir}:")
+        for item in dept_dir.iterdir():
+            print(f"[DEBUG]   - {item.name}")
+            if item.name == "主訴" and item.is_dir():
+                print(f"[DEBUG]   Contents of 主訴:")
+                for subitem in item.iterdir():
+                    print(f"[DEBUG]     - {subitem.name}")
     
     # まずCSVファイルを探す
     csv_path = base_dir / department / "主訴" / f"{chief_complaint}_全体.csv"

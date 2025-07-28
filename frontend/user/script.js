@@ -1660,8 +1660,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentPersonaResult = null;
             
             // タイムライン分析用のデータを保存（並列処理のため）
+            // departmentを日本語に変換
+            const departmentJapanese = departmentDisplayNames[data.department] || data.department;
             window.pendingTimelineData = {
-                department: data.department_text || data.department,
+                department: departmentJapanese,
                 chief_complaint: data.chief_complaint,
                 gender: data.gender === 'male' ? '男性' : 
                         data.gender === 'female' ? '女性' : data.gender,
@@ -1726,29 +1728,33 @@ document.addEventListener('DOMContentLoaded', async () => {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(window.pendingTimelineData)
                         }).then(res => res.ok ? res.json() : null).then(timelineData => {
-                            if (timelineData && timelineData.filtered_keywords) {
+                            if (timelineData) {
                                 window.preloadedTimelineData = timelineData;
                                 console.log('[DEBUG] Timeline data preloaded:', timelineData);
                                 
-                                // AI分析も同時に実行
-                                const analysisPayload = {
-                                    filtered_keywords: timelineData.filtered_keywords,
-                                    persona_profile: window.pendingTimelineData
-                                };
-                                console.log('[DEBUG] Preloading AI analysis with:', analysisPayload);
-                                
-                                return fetch('/api/search-timeline-analysis', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(analysisPayload)
-                                }).then(res => res.ok ? res.json() : null).then(analysisData => {
-                                    if (analysisData) {
-                                        window.preloadedAIAnalysis = analysisData;
-                                        console.log('[DEBUG] AI analysis preloaded:', analysisData);
-                                    }
-                                }).catch(err => {
-                                    console.error('[ERROR] AI analysis preload failed:', err);
-                                });
+                                // filtered_keywordsが存在し、かつ空でない場合のみAI分析を実行
+                                if (timelineData.filtered_keywords && timelineData.filtered_keywords.length > 0) {
+                                    const analysisPayload = {
+                                        filtered_keywords: timelineData.filtered_keywords,
+                                        persona_profile: window.pendingTimelineData
+                                    };
+                                    console.log('[DEBUG] Preloading AI analysis with:', analysisPayload);
+                                    
+                                    return fetch('/api/search-timeline-analysis', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify(analysisPayload)
+                                    }).then(res => res.ok ? res.json() : null).then(analysisData => {
+                                        if (analysisData) {
+                                            window.preloadedAIAnalysis = analysisData;
+                                            console.log('[DEBUG] AI analysis preloaded:', analysisData);
+                                        }
+                                    }).catch(err => {
+                                        console.error('[ERROR] AI analysis preload failed:', err);
+                                    });
+                                } else {
+                                    console.log('[DEBUG] No keywords found, skipping AI analysis preload');
+                                }
                             }
                         }).catch(err => {
                             console.error('[ERROR] Timeline preload failed:', err);
@@ -3436,8 +3442,8 @@ async function loadTimelineAnalysis(profile) {
             console.log('[DEBUG] Using preloaded AI analysis');
             analysisData = window.preloadedAIAnalysis;
             window.preloadedAIAnalysis = null; // 使用後はクリア
-        } else {
-            // プリロードされていない場合は通常通り取得
+        } else if (data.filtered_keywords && data.filtered_keywords.length > 0) {
+            // プリロードされていない場合は通常通り取得（キーワードがある場合のみ）
             const fullPersonaProfile = {
                 ...profile,
                 ...window.currentPersonaResult?.details  // 詳細情報も含める
@@ -3459,6 +3465,8 @@ async function loadTimelineAnalysis(profile) {
                 const errorText = await analysisResponse.text();
                 console.log('[ERROR] AI analysis failed:', errorText);
             }
+        } else {
+            console.log('[DEBUG] No keywords found, skipping AI analysis');
         }
         
         const analysisContent = document.getElementById('timeline-analysis-content');
