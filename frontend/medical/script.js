@@ -2095,11 +2095,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         */
         
         // タブ機能を初期化
-        initializeTabFunctionality();
+        try {
+            console.log('[DEBUG] About to initialize tab functionality');
+            initializeTabFunctionality();
+        } catch (error) {
+            console.error('[ERROR] Failed to initialize tab functionality:', error);
+        }
         
         // タイムライン分析データを取得して表示
-        if (result.profile && result.profile.department && result.profile.chief_complaint) {
-            loadTimelineAnalysis(result.profile);
+        try {
+            if (result.profile && result.profile.department && result.profile.chief_complaint) {
+                console.log('[DEBUG] About to load timeline analysis');
+                loadTimelineAnalysis(result.profile);
+            } else {
+                console.log('[DEBUG] Skipping timeline analysis - missing required data:', result.profile);
+            }
+        } catch (error) {
+            console.error('[ERROR] Failed to load timeline analysis:', error);
         }
     }
 
