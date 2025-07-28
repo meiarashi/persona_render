@@ -3331,20 +3331,25 @@ async function loadTimelineAnalysis(profile) {
             }
         }
         
-        const response = await fetch('/api/search-timeline-analysis', {
+        const requestData = {
+            department: profile.department,
+            chief_complaint: profile.chief_complaint,
+            age: ageFormatted,
+            gender: profile.gender === 'male' ? '男性' : 
+                    profile.gender === 'female' ? '女性' : profile.gender
+        };
+        console.log('[DEBUG] Request data:', requestData);
+        
+        const response = await fetch('/api/search-timeline', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                department: profile.department,
-                chief_complaint: profile.chief_complaint,
-                age: ageFormatted,
-                gender: profile.gender === 'male' ? '男性' : 
-                        profile.gender === 'female' ? '女性' : profile.gender
-            })
+            body: JSON.stringify(requestData)
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.log('[ERROR] Server response:', errorText);
+            throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
         }
         
         const data = await response.json();

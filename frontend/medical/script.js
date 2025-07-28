@@ -3439,7 +3439,7 @@ async function loadTimelineAnalysis(profile) {
         }
         
         // AI分析を取得
-        const analysisResponse = await fetch('/api/search-timeline-analysis', {
+        const analysisResponse = await fetch('/api/search-timeline', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
