@@ -1648,3 +1648,78 @@ footer {
 .dots {
   display: none;
 } 
+/* Timeline Analysis Styles */
+.timeline-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.chart-container {
+    position: relative;
+    min-height: 400px;
+}
+
+.analysis-container {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    max-height: 450px;
+    overflow-y: auto;
+}
+
+/* Responsive design for timeline */
+@media (max-width: 1200px) {
+    .timeline-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .chart-container {
+        min-height: 350px;
+    }
+    
+    .analysis-container {
+        max-height: none;
+        margin-top: 20px;
+    }
+}
+
+/* Tab styles */
+.tab-navigation {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 0;
+}
+
+.tab-button {
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    font-size: 16px;
+    cursor: pointer;
+    color: #666;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+}
+
+.tab-button.active {
+    color: #2563eb;
+    font-weight: 600;
+    border-bottom-color: #2563eb;
+}
+
+.tab-button:hover:not(.active) {
+    color: #333;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
