@@ -2151,25 +2151,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         */
         
-        // タブ機能を初期化
-        try {
-            console.log('[DEBUG] About to initialize tab functionality');
-            initializeTabFunctionality();
-        } catch (error) {
-            console.error('[ERROR] Failed to initialize tab functionality:', error);
-        }
-        
-        // タイムライン分析データを取得して表示
-        try {
-            if (result.profile && result.profile.department && result.profile.chief_complaint) {
-                console.log('[DEBUG] About to load timeline analysis');
-                loadTimelineAnalysis(result.profile);
-            } else {
-                console.log('[DEBUG] Skipping timeline analysis - missing required data:', result.profile);
+        // タブ機能を初期化（少し遅延させてDOMが確実に更新されるのを待つ）
+        setTimeout(() => {
+            try {
+                console.log('[DEBUG] About to initialize tab functionality');
+                initializeTabFunctionality();
+            } catch (error) {
+                console.error('[ERROR] Failed to initialize tab functionality:', error);
             }
-        } catch (error) {
-            console.error('[ERROR] Failed to load timeline analysis:', error);
-        }
+            
+            // タイムライン分析データを取得して表示
+            try {
+                if (result.profile && result.profile.department && result.profile.chief_complaint) {
+                    console.log('[DEBUG] About to load timeline analysis');
+                    loadTimelineAnalysis(result.profile);
+                } else {
+                    console.log('[DEBUG] Skipping timeline analysis - missing required data:', result.profile);
+                }
+            } catch (error) {
+                console.error('[ERROR] Failed to load timeline analysis:', error);
+            }
+        }, 100);
     }
 
 
@@ -3597,4 +3599,6 @@ function drawTimelineChart(keywords) {
     });
 }
 
-}); // DOMContentLoaded終了 
+// グローバルスコープに関数を登録
+window.initializeTabFunctionality = initializeTabFunctionality;
+window.loadTimelineAnalysis = loadTimelineAnalysis; 
