@@ -1746,11 +1746,74 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.error('[DEBUG] API Request Data:', JSON.stringify(data, null, 2));
                 console.error('[DEBUG] API Endpoint:', apiEndpoint);
                 
-                const response = await fetch(apiEndpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
+                // タイムライン分析用のデータを準備
+                const timelineData = {
+                    department: data.department,
+                    chief_complaint: data.chief_complaint,
+                    gender: data.gender === 'male' ? '男性' : 
+                           data.gender === 'female' ? '女性' : data.gender,
+                    age: data.age
+                };
+                
+                // 年齢を年代形式に変換
+                if (timelineData.age) {
+                    const ageMatch = timelineData.age.match(/(\d+)/);
+                    if (ageMatch) {
+                        const ageNum = parseInt(ageMatch[1]);
+                        if (ageNum < 20) {
+                            timelineData.age = "10代";
+                        } else {
+                            const decade = Math.floor(ageNum / 10) * 10;
+                            timelineData.age = `${decade}代`;
+                        }
+                    }
+                }
+                
+                // ペルソナ生成とタイムライン分析を並列実行
+                const [response] = await Promise.all([
+                    // ペルソナ生成
+                    fetch(apiEndpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    }),
+                    // タイムライン分析（データ取得とAI分析も並列実行）
+                    data.department && data.chief_complaint ? 
+                        fetch('/api/search-timeline', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(timelineData)
+                        }).then(res => res.ok ? res.json() : null).then(timelineDataResult => {
+                            if (timelineDataResult && timelineDataResult.filtered_keywords) {
+                                window.preloadedTimelineData = timelineDataResult;
+                                console.log('[DEBUG] Timeline data preloaded:', timelineDataResult);
+                                
+                                // AI分析も同時に実行
+                                const analysisPayload = {
+                                    filtered_keywords: timelineDataResult.filtered_keywords,
+                                    persona_profile: {
+                                        ...data,
+                                        gender_display: timelineData.gender,
+                                        age_display: timelineData.age
+                                    }
+                                };
+                                console.log('[DEBUG] Preloading AI analysis with:', analysisPayload);
+                                
+                                return fetch('/api/search-timeline-analysis', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(analysisPayload)
+                                }).then(res => res.ok ? res.json() : null).then(analysisData => {
+                                    if (analysisData) {
+                                        window.preloadedAIAnalysis = analysisData;
+                                        console.log('[DEBUG] AI analysis preloaded:', analysisData);
+                                    }
+                                }).catch(err => console.error('[ERROR] AI analysis preload failed:', err));
+                            }
+                        }).catch(err => console.error('[ERROR] Timeline data preload failed:', err))
+                    : Promise.resolve()
+                ]);
+                
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ detail: 'ペルソナ生成中に不明なエラーが発生しました。' }));
                     console.error('[DEBUG] Error Response Status:', response.status);
@@ -3366,48 +3429,58 @@ function initializeTabFunctionality() {
 async function loadTimelineAnalysis(profile) {
     console.log('[DEBUG] Loading timeline analysis for:', profile.department, profile.chief_complaint);
     try {
-        // 年齢を適切な形式に変換（年代形式に）
-        let ageFormatted = profile.age;
-        if (ageFormatted) {
-            // 数値を抽出
-            const ageMatch = ageFormatted.match(/(\d+)/);
-            if (ageMatch) {
-                const ageNum = parseInt(ageMatch[1]);
-                if (ageNum < 20) {
-                    ageFormatted = "10代";
-                } else {
-                    const decade = Math.floor(ageNum / 10) * 10;
-                    ageFormatted = `${decade}代`;
+        let timelineData;
+        
+        // 既に取得済みのデータがあるか確認
+        if (window.preloadedTimelineData) {
+            console.log('[DEBUG] Using preloaded timeline data');
+            timelineData = window.preloadedTimelineData;
+            window.preloadedTimelineData = null; // 使用後はクリア
+        } else {
+            console.log('[DEBUG] Fetching timeline data from API');
+            // 年齢を適切な形式に変換（年代形式に）
+            let ageFormatted = profile.age;
+            if (ageFormatted) {
+                // 数値を抽出
+                const ageMatch = ageFormatted.match(/(\d+)/);
+                if (ageMatch) {
+                    const ageNum = parseInt(ageMatch[1]);
+                    if (ageNum < 20) {
+                        ageFormatted = "10代";
+                    } else {
+                        const decade = Math.floor(ageNum / 10) * 10;
+                        ageFormatted = `${decade}代`;
+                    }
                 }
             }
+            
+            // 性別を日本語に変換（APIが期待する形式）
+            let genderFormatted = profile.gender;
+            if (genderFormatted === 'male') {
+                genderFormatted = '男性';
+            } else if (genderFormatted === 'female') {
+                genderFormatted = '女性';
+            }
+            
+            // 検索タイムラインデータを取得
+            const timelineResponse = await fetch('/api/search-timeline', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    department: profile.department,
+                    chief_complaint: profile.chief_complaint,
+                    gender: genderFormatted,
+                    age: ageFormatted
+                })
+            });
+            
+            if (!timelineResponse.ok) {
+                const errorText = await timelineResponse.text();
+                throw new Error(`Timeline API error: ${timelineResponse.status} - ${errorText}`);
+            }
+            
+            timelineData = await timelineResponse.json();
         }
-        
-        // 性別を日本語に変換（APIが期待する形式）
-        let genderFormatted = profile.gender;
-        if (genderFormatted === 'male') {
-            genderFormatted = '男性';
-        } else if (genderFormatted === 'female') {
-            genderFormatted = '女性';
-        }
-        
-        // 検索タイムラインデータを取得
-        const timelineResponse = await fetch('/api/search-timeline', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                department: profile.department,
-                chief_complaint: profile.chief_complaint,
-                gender: genderFormatted,
-                age: ageFormatted
-            })
-        });
-        
-        if (!timelineResponse.ok) {
-            const errorText = await timelineResponse.text();
-            throw new Error(`Timeline API error: ${timelineResponse.status} - ${errorText}`);
-        }
-        
-        const timelineData = await timelineResponse.json();
         
         // エラーチェック
         if (timelineData.error) {
@@ -3438,45 +3511,62 @@ async function loadTimelineAnalysis(profile) {
             }
         }
         
-        // AI分析を取得
-        const analysisResponse = await fetch('/api/search-timeline', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                department: profile.department,
-                chief_complaint: profile.chief_complaint,
-                gender: genderFormatted,
-                age: ageFormatted,
-                name: profile.name,
-                occupation: profile.occupation,
-                family: profile.family,
-                income: profile.income,
-                prefecture: profile.prefecture,
-                municipality: profile.municipality,
-                hobby: profile.hobby,
-                life_events: profile.life_events,
-                patient_type: profile.patient_type,
-                timeline_data: timelineData
-            })
-        });
+        // AI分析を取得（プリロード済みがあれば使用）
+        let analysisData = null;
         
-        if (!analysisResponse.ok) {
-            const errorText = await analysisResponse.text();
-            throw new Error(`Analysis API error: ${analysisResponse.status} - ${errorText}`);
+        if (window.preloadedAIAnalysis) {
+            console.log('[DEBUG] Using preloaded AI analysis');
+            analysisData = window.preloadedAIAnalysis;
+            window.preloadedAIAnalysis = null; // 使用後はクリア
+        } else {
+            // プリロードされていない場合は通常通り取得
+            const fullPersonaProfile = {
+                ...profile,
+                ...window.currentPersonaResult?.details  // 詳細情報も含める
+            };
+            console.log('[DEBUG] Full persona profile for AI analysis:', fullPersonaProfile);
+            
+            const analysisResponse = await fetch('/api/search-timeline-analysis', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    filtered_keywords: timelineData.filtered_keywords,
+                    persona_profile: fullPersonaProfile
+                })
+            });
+            
+            if (analysisResponse.ok) {
+                analysisData = await analysisResponse.json();
+            } else {
+                const errorText = await analysisResponse.text();
+                console.log('[ERROR] AI analysis failed:', errorText);
+            }
         }
         
-        const analysisData = await analysisResponse.json();
-        
-        // AI分析レポートを表示（XSS対策のためtextContentを使用）
+        // AI分析レポートを表示
         const analysisContent = document.getElementById('timeline-analysis-content');
-        if (analysisContent && analysisData.analysis) {
-            // HTMLエスケープしてから改行をbrタグに変換
+        if (analysisContent) {
+            // HTMLエスケープ関数
             const escapeHtml = (text) => {
                 const div = document.createElement('div');
                 div.textContent = text;
                 return div.innerHTML;
             };
-            analysisContent.innerHTML = escapeHtml(analysisData.analysis).replace(/\n/g, '<br>');
+            
+            if (analysisData) {
+                console.log('[DEBUG] AI analysis received:', analysisData);
+                console.log('[DEBUG] ai_analysis field:', analysisData.ai_analysis);
+                console.log('[DEBUG] analysis field:', analysisData.analysis);
+                
+                const aiText = analysisData.ai_analysis || analysisData.analysis || '';
+                console.log('[DEBUG] Final AI text:', aiText);
+                
+                analysisContent.innerHTML = aiText ? 
+                    escapeHtml(aiText).replace(/\n/g, '<br>') : 
+                    '<p style="color: #666;">AI分析データがありません</p>';
+            } else {
+                analysisContent.innerHTML = '<p style="color: #666;">AI分析の取得に失敗しました</p>';
+            }
         }
         
     } catch (error) {

@@ -1659,6 +1659,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = getFormData();
             currentPersonaResult = null;
             
+            // タイムライン分析用のデータを保存（並列処理のため）
+            window.pendingTimelineData = {
+                department: data.department_text || data.department,
+                chief_complaint: data.chief_complaint,
+                gender: data.gender === 'male' ? '男性' : 
+                        data.gender === 'female' ? '女性' : data.gender,
+                age: (() => {
+                    const ageValue = data.age;
+                    if (!ageValue) return null;
+                    const ageNum = parseInt(ageValue.replace(/[^\d]/g, ''));
+                    if (ageNum >= 0 && ageNum <= 9) return '10代';
+                    else if (ageNum >= 10 && ageNum <= 19) return '10代';
+                    else if (ageNum >= 20 && ageNum <= 29) return '20代';
+                    else if (ageNum >= 30 && ageNum <= 39) return '30代';
+                    else if (ageNum >= 40 && ageNum <= 49) return '40代';
+                    else if (ageNum >= 50 && ageNum <= 59) return '50代';
+                    else if (ageNum >= 60 && ageNum <= 69) return '60代';
+                    else if (ageNum >= 70) return '70代以上';
+                    return null;
+                })()
+            };
+            
             // 主訴が選択されているかチェック
             const selectedChiefComplaint = data.chief_complaint;
             const apiEndpoint = '/api/generate'; // Always use the same endpoint
@@ -1689,11 +1711,51 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             
             try {
-                const response = await fetch(apiEndpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
+                // ペルソナ生成とタイムライン分析を並列実行
+                const [personaResponse] = await Promise.all([
+                    // ペルソナ生成
+                    fetch(apiEndpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    }),
+                    // タイムライン分析（データ取得とAI分析も並列実行）
+                    window.pendingTimelineData.department && window.pendingTimelineData.chief_complaint ? 
+                        fetch('/api/search-timeline', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(window.pendingTimelineData)
+                        }).then(res => res.ok ? res.json() : null).then(timelineData => {
+                            if (timelineData && timelineData.filtered_keywords) {
+                                window.preloadedTimelineData = timelineData;
+                                console.log('[DEBUG] Timeline data preloaded:', timelineData);
+                                
+                                // AI分析も同時に実行
+                                const analysisPayload = {
+                                    filtered_keywords: timelineData.filtered_keywords,
+                                    persona_profile: window.pendingTimelineData
+                                };
+                                console.log('[DEBUG] Preloading AI analysis with:', analysisPayload);
+                                
+                                return fetch('/api/search-timeline-analysis', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(analysisPayload)
+                                }).then(res => res.ok ? res.json() : null).then(analysisData => {
+                                    if (analysisData) {
+                                        window.preloadedAIAnalysis = analysisData;
+                                        console.log('[DEBUG] AI analysis preloaded:', analysisData);
+                                    }
+                                }).catch(err => {
+                                    console.error('[ERROR] AI analysis preload failed:', err);
+                                });
+                            }
+                        }).catch(err => {
+                            console.error('[ERROR] Timeline preload failed:', err);
+                        }) : null
+                ]);
+                
+                const response = personaResponse;
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ detail: 'ペルソナ生成中に不明なエラーが発生しました。' }));
                     console.error('API Error Response:', errorData);
@@ -3315,6 +3377,15 @@ function initializeTabFunctionality() {
 async function loadTimelineAnalysis(profile) {
     console.log('[DEBUG] Loading timeline analysis for:', profile.department, profile.chief_complaint);
     try {
+        let data;
+        
+        // 既に取得済みのデータがあるか確認
+        if (window.preloadedTimelineData) {
+            console.log('[DEBUG] Using preloaded timeline data');
+            data = window.preloadedTimelineData;
+            window.preloadedTimelineData = null; // 使用後はクリア
+        } else {
+            console.log('[DEBUG] Fetching timeline data from API');
         // 年齢を適切な形式に変換（年代形式に）
         let ageFormatted = profile.age;
         if (ageFormatted) {
@@ -3352,20 +3423,43 @@ async function loadTimelineAnalysis(profile) {
             throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
         }
         
-        const data = await response.json();
-        console.log('[DEBUG] Timeline data received:', data);
-        console.log('[DEBUG] Data has error?', data.error);
-        console.log('[DEBUG] Filtered keywords count:', data.filtered_keywords ? data.filtered_keywords.length : 'undefined');
+            data = await response.json();
+            console.log('[DEBUG] Timeline data received:', data);
+            console.log('[DEBUG] Data has error?', data.error);
+            console.log('[DEBUG] Filtered keywords count:', data.filtered_keywords ? data.filtered_keywords.length : 'undefined');
+        }
         
-        // AI分析を取得
-        const analysisResponse = await fetch('/api/search-timeline-analysis', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                filtered_keywords: data.filtered_keywords,
-                persona_profile: profile
-            })
-        });
+        // AI分析を取得（プリロード済みがあれば使用）
+        let analysisData = null;
+        
+        if (window.preloadedAIAnalysis) {
+            console.log('[DEBUG] Using preloaded AI analysis');
+            analysisData = window.preloadedAIAnalysis;
+            window.preloadedAIAnalysis = null; // 使用後はクリア
+        } else {
+            // プリロードされていない場合は通常通り取得
+            const fullPersonaProfile = {
+                ...profile,
+                ...window.currentPersonaResult?.details  // 詳細情報も含める
+            };
+            console.log('[DEBUG] Full persona profile for AI analysis:', fullPersonaProfile);
+            
+            const analysisResponse = await fetch('/api/search-timeline-analysis', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    filtered_keywords: data.filtered_keywords,
+                    persona_profile: fullPersonaProfile
+                })
+            });
+            
+            if (analysisResponse.ok) {
+                analysisData = await analysisResponse.json();
+            } else {
+                const errorText = await analysisResponse.text();
+                console.log('[ERROR] AI analysis failed:', errorText);
+            }
+        }
         
         const analysisContent = document.getElementById('timeline-analysis-content');
         if (analysisContent) {
@@ -3376,8 +3470,7 @@ async function loadTimelineAnalysis(profile) {
                 return div.innerHTML;
             };
             
-            if (analysisResponse.ok) {
-                const analysisData = await analysisResponse.json();
+            if (analysisData) {
                 console.log('[DEBUG] AI analysis received:', analysisData);
                 console.log('[DEBUG] ai_analysis field:', analysisData.ai_analysis);
                 console.log('[DEBUG] analysis field:', analysisData.analysis);
@@ -3389,8 +3482,6 @@ async function loadTimelineAnalysis(profile) {
                     escapeHtml(aiText).replace(/\n/g, '<br>') : 
                     '<p style="color: #666;">AI分析データがありません</p>';
             } else {
-                const errorText = await analysisResponse.text();
-                console.log('[ERROR] AI analysis failed:', errorText);
                 analysisContent.innerHTML = '<p style="color: #666;">AI分析の取得に失敗しました</p>';
             }
         }

@@ -1659,11 +1659,74 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.error('[DEBUG] API Request Data:', JSON.stringify(data, null, 2));
                 console.error('[DEBUG] API Endpoint:', apiEndpoint);
                 
-                const response = await fetch(apiEndpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
+                // タイムライン分析用のデータを準備
+                const timelineData = {
+                    department: data.department,
+                    chief_complaint: data.chief_complaint,
+                    gender: data.gender === 'male' ? '男性' : 
+                           data.gender === 'female' ? '女性' : data.gender,
+                    age: data.age
+                };
+                
+                // 年齢を年代形式に変換
+                if (timelineData.age) {
+                    const ageMatch = timelineData.age.match(/(\d+)/);
+                    if (ageMatch) {
+                        const ageNum = parseInt(ageMatch[1]);
+                        if (ageNum < 20) {
+                            timelineData.age = "10代";
+                        } else {
+                            const decade = Math.floor(ageNum / 10) * 10;
+                            timelineData.age = `${decade}代`;
+                        }
+                    }
+                }
+                
+                // ペルソナ生成とタイムライン分析を並列実行
+                const [response] = await Promise.all([
+                    // ペルソナ生成
+                    fetch(apiEndpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    }),
+                    // タイムライン分析（データ取得とAI分析も並列実行）
+                    data.department && data.chief_complaint ? 
+                        fetch('/api/search-timeline', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(timelineData)
+                        }).then(res => res.ok ? res.json() : null).then(timelineDataResult => {
+                            if (timelineDataResult && timelineDataResult.filtered_keywords) {
+                                window.preloadedTimelineData = timelineDataResult;
+                                console.log('[DEBUG] Timeline data preloaded:', timelineDataResult);
+                                
+                                // AI分析も同時に実行
+                                const analysisPayload = {
+                                    filtered_keywords: timelineDataResult.filtered_keywords,
+                                    persona_profile: {
+                                        ...data,
+                                        gender_display: timelineData.gender,
+                                        age_display: timelineData.age
+                                    }
+                                };
+                                console.log('[DEBUG] Preloading AI analysis with:', analysisPayload);
+                                
+                                return fetch('/api/search-timeline-analysis', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(analysisPayload)
+                                }).then(res => res.ok ? res.json() : null).then(analysisData => {
+                                    if (analysisData) {
+                                        window.preloadedAIAnalysis = analysisData;
+                                        console.log('[DEBUG] AI analysis preloaded:', analysisData);
+                                    }
+                                }).catch(err => console.error('[ERROR] AI analysis preload failed:', err));
+                            }
+                        }).catch(err => console.error('[ERROR] Timeline data preload failed:', err))
+                    : Promise.resolve()
+                ]);
+                
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ detail: 'ペルソナ生成中に不明なエラーが発生しました。' }));
                     console.error('[DEBUG] Error Response Status:', response.status);

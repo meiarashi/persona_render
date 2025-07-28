@@ -432,16 +432,20 @@ async def generate_text_response(prompt_text, model_name, api_key):
             # Google AI API call
             if hasattr(client, 'models'):
                 # New SDK
+                print(f"[DEBUG] Using new Gemini SDK with model: {model_name}")
                 response = client.models.generate_content(
                     model=model_name,
                     contents=prompt_text
                 )
+                print(f"[DEBUG] Gemini response received: {response}")
                 if response.candidates and response.candidates[0].content.parts:
                     generated_text = response.candidates[0].content.parts[0].text
                 else:
-                    return None
+                    print(f"[ERROR] Gemini response has no candidates or parts")
+                    return f"Gemini APIからの応答が空でした。別のモデルを試してください。"
             else:
                 # Old SDK
+                print(f"[DEBUG] Using old Gemini SDK")
                 response = client.generate_content(prompt_text)
                 generated_text = response.text
             
@@ -468,8 +472,9 @@ async def generate_text_response(prompt_text, model_name, api_key):
                     return await generate_text_response(prompt_text, fallback_model, google_api_key)
             except Exception as fallback_error:
                 print(f"[ERROR] Fallback to Gemini also failed: {fallback_error}")
+                return f"AI生成に失敗しました（フォールバックも失敗）: {str(fallback_error)}"
         
-        return None
+        return f"AI生成に失敗しました: {str(e)}"
 
 # --- Function to build prompts ---
 def build_prompt(data, limit_personality="100", limit_reason="100", limit_behavior="100", 
