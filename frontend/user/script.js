@@ -2087,6 +2087,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('Ensured dynamically created PDF button is visible');
         }
         */
+        
+        // タブ機能を初期化
+        setTimeout(() => {
+            console.log('[DEBUG] Initializing tabs from populateResults');
+            if (typeof window.initializeTabFunctionality === 'function') {
+                window.initializeTabFunctionality();
+            }
+            
+            // タイムライン分析を自動的に読み込む
+            if (result.profile && result.profile.department && result.profile.chief_complaint) {
+                console.log('[DEBUG] Loading timeline analysis automatically');
+                if (typeof window.loadTimelineAnalysis === 'function') {
+                    window.loadTimelineAnalysis(result.profile);
+                } else {
+                    console.error('[ERROR] window.loadTimelineAnalysis is not a function');
+                }
+            } else {
+                console.log('[DEBUG] Skipping timeline analysis - missing required data:', result.profile);
+            }
+        }, 100); // DOM更新を待つため少し遅延
     }
 
 
@@ -3239,4 +3259,258 @@ function stopProgressAnimation() {
 }
 
 // 画像を表示するコード箇所
-// 関数は他の場所で定義されているため、この重複した定義は削除しました 
+// 関数は他の場所で定義されているため、この重複した定義は削除しました
+
+// タイムライン分析用のグローバル変数
+let timelineChartInstance = null;
+
+// タブ機能を初期化
+function initializeTabFunctionality() {
+    console.log('[DEBUG] Initializing tab functionality');
+    
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    if (tabButtons.length === 0) {
+        console.log('[DEBUG] No tab buttons found');
+        return;
+    }
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const targetTab = button.getAttribute('data-tab');
+            console.log('[DEBUG] Tab clicked:', targetTab);
+            
+            // すべてのタブボタンとコンテンツから active クラスを削除
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active');
+                btn.style.borderBottom = 'none';
+                btn.style.color = '#666';
+                btn.style.fontWeight = 'normal';
+            });
+            
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+                content.style.display = 'none';
+            });
+            
+            // クリックされたタブをアクティブに
+            button.classList.add('active');
+            button.style.borderBottom = '3px solid #2563eb';
+            button.style.color = '#2563eb';
+            button.style.fontWeight = '600';
+            
+            // 対応するコンテンツを表示
+            const targetContent = document.getElementById(`${targetTab}-content`);
+            if (targetContent) {
+                targetContent.classList.add('active');
+                targetContent.style.display = 'block';
+                console.log('[DEBUG] Content displayed:', targetTab);
+            }
+        });
+    });
+}
+
+// タイムライン分析データを取得して表示
+async function loadTimelineAnalysis(profile) {
+    console.log('[DEBUG] Loading timeline analysis for:', profile.department, profile.chief_complaint);
+    try {
+        // 年齢を適切な形式に変換（年代形式に）
+        let ageFormatted = profile.age;
+        if (ageFormatted) {
+            // 数値を抽出
+            const ageMatch = ageFormatted.match(/(\d+)/);
+            if (ageMatch) {
+                const ageNum = parseInt(ageMatch[1]);
+                if (ageNum < 20) {
+                    ageFormatted = '10代';
+                } else {
+                    const decade = Math.floor(ageNum / 10) * 10;
+                    ageFormatted = `${decade}代`;
+                }
+            }
+        }
+        
+        const response = await fetch('/api/timeline-analysis', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                department: profile.department,
+                chief_complaint: profile.chief_complaint,
+                age: ageFormatted,
+                gender: profile.gender === 'male' ? '男性' : 
+                        profile.gender === 'female' ? '女性' : profile.gender
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('[DEBUG] Timeline data received:', data);
+        
+        // AI分析を表示
+        const analysisContent = document.getElementById('timeline-analysis-content');
+        if (analysisContent) {
+            // HTMLエスケープ関数
+            const escapeHtml = (text) => {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            };
+            
+            analysisContent.innerHTML = data.ai_analysis ? 
+                escapeHtml(data.ai_analysis).replace(/\n/g, '<br>') : 
+                '<p style="color: #666;">分析データがありません</p>';
+        }
+        
+        // 散布図を描画
+        if (data.timeline_data && data.timeline_data.filtered_keywords) {
+            drawTimelineChart(data.timeline_data.filtered_keywords);
+        } else {
+            const ctx = document.getElementById('timeline-chart');
+            if (ctx) {
+                // canvas要素は残してメッセージを隣に表示
+                const container = ctx.parentElement;
+                if (container) {
+                    // 既存のメッセージを削除
+                    const existingMsg = container.querySelector('.no-data-message');
+                    if (existingMsg) existingMsg.remove();
+                    
+                    // 新しいメッセージを追加
+                    const message = document.createElement('div');
+                    message.className = 'no-data-message';
+                    message.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #666; text-align: center;';
+                    message.innerHTML = '<p>該当する時系列データがありません</p>';
+                    container.style.position = 'relative';
+                    container.appendChild(message);
+                }
+            }
+        }
+        
+    } catch (error) {
+        console.error('[ERROR] Failed to load timeline analysis:', error);
+        
+        // エラー時の表示
+        const analysisContent = document.getElementById('timeline-analysis-content');
+        if (analysisContent) {
+            analysisContent.innerHTML = '<p style="color: #dc2626;">分析の読み込みに失敗しました</p>';
+        }
+    }
+}
+
+// 散布図を描画
+function drawTimelineChart(keywords) {
+    console.log('[DEBUG] Drawing timeline chart with keywords:', keywords);
+    
+    if (!keywords || keywords.length === 0) {
+        console.log('[DEBUG] No keywords to display');
+        return;
+    }
+    
+    const ctx = document.getElementById('timeline-chart');
+    if (!ctx) return;
+    
+    // 既存のチャートインスタンスがあれば破棄
+    if (timelineChartInstance) {
+        timelineChartInstance.destroy();
+        timelineChartInstance = null;
+    }
+    
+    // データを準備（診断前後で色分け）
+    const preDiagnosisData = keywords
+        .filter(k => k['診断前後'] === '診断前')
+        .map(k => ({
+            x: k['検索時期（診断日からの日数）'],
+            y: k['月間検索回数'],
+            label: k['検索キーワード']
+        }));
+    
+    const postDiagnosisData = keywords
+        .filter(k => k['診断前後'] === '診断後')
+        .map(k => ({
+            x: k['検索時期（診断日からの日数）'],
+            y: k['月間検索回数'],
+            label: k['検索キーワード']
+        }));
+    
+    // チャート作成
+    timelineChartInstance = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [
+                {
+                    label: '診断前',
+                    data: preDiagnosisData,
+                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    pointRadius: 8,
+                    pointHoverRadius: 10
+                },
+                {
+                    label: '診断後',
+                    data: postDiagnosisData,
+                    backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    pointRadius: 8,
+                    pointHoverRadius: 10
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const point = context.raw;
+                            return `${point.label}: ${point.y}回 (${point.x}日)`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'linear',
+                    position: 'bottom',
+                    title: {
+                        display: true,
+                        text: '診断日からの日数'
+                    },
+                    grid: {
+                        drawBorder: true,
+                        color: function(context) {
+                            if (context.tick.value === 0) {
+                                return '#000';
+                            }
+                            return '#e0e0e0';
+                        },
+                        lineWidth: function(context) {
+                            if (context.tick.value === 0) {
+                                return 2;
+                            }
+                            return 1;
+                        }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '月間検索回数'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// グローバルスコープに関数を登録
+window.initializeTabFunctionality = initializeTabFunctionality;
+window.loadTimelineAnalysis = loadTimelineAnalysis; 

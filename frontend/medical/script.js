@@ -3334,14 +3334,16 @@ function initializeTabFunctionality() {
             // すべてのタブボタンから active クラスを削除
             tabButtons.forEach(btn => {
                 btn.classList.remove('active');
-                btn.style.borderBottom = '3px solid transparent';
+                btn.style.borderBottom = 'none';
                 btn.style.color = '#666';
+                btn.style.fontWeight = 'normal';
             });
             
             // クリックされたボタンに active クラスを追加
             this.classList.add('active');
-            this.style.borderBottom = '3px solid #007bff';
-            this.style.color = '#007bff';
+            this.style.borderBottom = '3px solid #2563eb';
+            this.style.color = '#2563eb';
+            this.style.fontWeight = '600';
             
             // すべてのタブコンテンツを非表示
             tabContents.forEach(content => {
@@ -3350,7 +3352,7 @@ function initializeTabFunctionality() {
             });
             
             // 対応するタブコンテンツを表示
-            const targetContent = document.getElementById(`${targetTab}-tab`);
+            const targetContent = document.getElementById(`${targetTab}-content`);
             if (targetContent) {
                 targetContent.style.display = 'block';
                 targetContent.classList.add('active');

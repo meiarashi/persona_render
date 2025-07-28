@@ -708,19 +708,49 @@
                             <div class="download-options" style="position: absolute; top: 20px; right: 20px; z-index: 100; display: flex !important;">
                                 <button type="button" id="download-pdf-result" style="display: inline-block !important; background-color: #ff0000 !important; color: white !important; border: none !important; padding: 6px 16px !important; border-radius: 4px !important; margin: 0 5px !important; cursor: pointer !important;">PDF</button>
                             </div>
-                            <h3 class="persona-title">生成されたペルソナ</h3>
-                            <h4>性格（価値観・人生観）</h4>
-                            <p id="result-personality"></p>
-                            <h4>通院理由</h4>
-                            <p id="result-reason"></p>
-                            <h4>症状通院頻度・行動パターン</h4>
-                            <p id="result-behavior"></p>
-                            <h4>口コミの重視ポイント</h4>
-                            <p id="result-reviews"></p>
-                            <h4>医療機関への価値観・行動傾向</h4>
-                            <p id="result-values"></p>
-                            <h4>医療機関に求めるもの</h4>
-                            <p id="result-demands"></p>
+                            
+                            <!-- タブナビゲーション -->
+                            <div class="tab-navigation" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; padding-bottom: 0;">
+                                <button type="button" class="tab-button active" data-tab="persona" style="padding: 10px 20px; border: none; background: transparent; font-size: 16px; cursor: pointer; border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 600;">ペルソナ分析</button>
+                                <button type="button" class="tab-button" data-tab="timeline" style="padding: 10px 20px; border: none; background: transparent; font-size: 16px; cursor: pointer; color: #666;">タイムライン分析</button>
+                            </div>
+                            
+                            <!-- ペルソナコンテンツ -->
+                            <div id="persona-content" class="tab-content active" style="display: block;">
+                                <h3 class="persona-title">生成されたペルソナ</h3>
+                                <h4>性格（価値観・人生観）</h4>
+                                <p id="result-personality"></p>
+                                <h4>通院理由</h4>
+                                <p id="result-reason"></p>
+                                <h4>症状通院頻度・行動パターン</h4>
+                                <p id="result-behavior"></p>
+                                <h4>口コミの重視ポイント</h4>
+                                <p id="result-reviews"></p>
+                                <h4>医療機関への価値観・行動傾向</h4>
+                                <p id="result-values"></p>
+                                <h4>医療機関に求めるもの</h4>
+                                <p id="result-demands"></p>
+                            </div>
+                            
+                            <!-- タイムラインコンテンツ -->
+                            <div id="timeline-content" class="tab-content" style="display: none;">
+                                <h3 class="timeline-title">検索キーワード時系列分析</h3>
+                                
+                                <div class="timeline-container" style="display: flex; gap: 20px;">
+                                    <!-- 左側: 散布図 -->
+                                    <div class="chart-container" style="flex: 1; min-width: 500px;">
+                                        <canvas id="timeline-chart" style="max-width: 100%; height: 400px;"></canvas>
+                                    </div>
+                                    
+                                    <!-- 右側: AI分析レポート -->
+                                    <div class="analysis-container" style="flex: 1; min-width: 400px; background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                                        <h4 style="margin-top: 0;">AI分析レポート</h4>
+                                        <div id="timeline-analysis-content" style="white-space: pre-wrap; line-height: 1.6;">
+                                            <p style="color: #666; text-align: center; padding: 40px 0;">分析を読み込み中...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                      </div>
                      <div class="result-navigation">
@@ -739,5 +769,6 @@
 
     <script src="/static/user/script.js"></script>
     <script src="/static/shared/department-loader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
 </html> 
