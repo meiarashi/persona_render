@@ -1516,10 +1516,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     window.showStep(2);
                 }
                 
-                // 少し待ってから主訴リストを読み込む（DOMが更新されるのを待つ）
-                setTimeout(async () => {
+                // DOMが更新されるのを待ってから主訴リストを読み込む
+                // requestAnimationFrameを使用してより効率的に待機
+                requestAnimationFrame(async () => {
                     await loadChiefComplaints(selectedDept.value);
-                }, 100);
+                });
                 
                 return; // ここで処理を終了（showStepは既に実行済み）
             }
@@ -3237,8 +3238,11 @@ function stopProgressAnimation() {
 
 // タブ機能を初期化
 function initializeTabFunctionality() {
+    console.log('[DEBUG] Initializing tab functionality');
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
+    console.log('[DEBUG] Found tab buttons:', tabButtons.length);
+    console.log('[DEBUG] Found tab contents:', tabContents.length);
     
     tabButtons.forEach(button => {
         button.addEventListener('click', function() {
@@ -3272,6 +3276,7 @@ function initializeTabFunctionality() {
 
 // タイムライン分析データを取得して表示
 async function loadTimelineAnalysis(profile) {
+    console.log('[DEBUG] Loading timeline analysis for:', profile.department, profile.chief_complaint);
     try {
         // 年齢を適切な形式に変換（年代形式に）
         let ageFormatted = profile.age;
