@@ -1683,43 +1683,22 @@ def generate_timeline_graph(timeline_data, output_path):
         plt.scatter(pre_x, pre_y, c='#3b82f6', alpha=0.6, s=40, label='Pre-diagnosis')
         plt.scatter(post_x, post_y, c='#ef4444', alpha=0.6, s=40, label='Post-diagnosis')
         
-        # 上位10キーワードにラベルを追加
+        # 上位10キーワードに番号付きマーカーを追加（日本語を避けて番号のみ表示）
         top_keywords = keywords[:10]  # 上位10件を取得
+        colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan']
+        
         for i, kw in enumerate(top_keywords):
             x = kw.get('time_diff_days', 0)
             y = kw.get('estimated_volume', kw.get('search_volume', 0))
-            if y > 0:  # ボリュームが0より大きい場合のみラベルを表示
-                # キーワードを短縮（20文字まで）
-                label = kw.get('keyword', '')
-                
-                # 日本語フォントが利用できない場合は、簡略化したラベルを使用
-                if not use_japanese:
-                    # 英語表記として番号とボリュームのみ表示
-                    label = f"KW{i+1} (Vol:{int(y)})"
-                else:
-                    if len(label) > 20:
-                        label = label[:18] + '...'
-                
-                # ラベルの位置を少しずらす（重ならないように工夫）
-                offset_x = 5 + (i % 3) * 10  # 横方向のオフセットを変える
-                offset_y = 5 + (i % 2) * 10  # 縦方向のオフセットを変える
-                
+            if y > 0:  # ボリュームが0より大きい場合のみ表示
+                # 番号のみをマーカーとして表示
                 try:
-                    plt.annotate(label, 
-                               xy=(x, y), 
-                               xytext=(offset_x, offset_y),
-                               textcoords='offset points',
-                               fontsize=8,
-                               bbox=dict(boxstyle='round,pad=0.3', fc='white', ec='gray', alpha=0.7),
-                               arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0.1', color='gray', alpha=0.5))
+                    plt.scatter(x, y, c=colors[i % len(colors)], s=100, marker='o', 
+                              edgecolors='black', linewidths=1.5, zorder=5)
+                    plt.text(x, y, str(i+1), fontsize=10, ha='center', va='center', 
+                            color='white', weight='bold', zorder=6)
                 except Exception as e:
-                    print(f"[WARNING] Failed to add annotation for keyword {i+1}: {e}")
-                    # フォールバック：矢印なしでテキストのみ配置
-                    try:
-                        plt.text(x, y, f"KW{i+1}", fontsize=8, 
-                                bbox=dict(boxstyle='round,pad=0.3', fc='white', ec='gray', alpha=0.7))
-                    except Exception as e2:
-                        print(f"[ERROR] Failed to add text for keyword {i+1}: {e2}")
+                    print(f"[WARNING] Failed to add marker for keyword {i+1}: {e}")
         
         # 診断日に縦線を追加
         plt.axvline(x=0, color='gray', linestyle='--', alpha=0.5, label='Diagnosis Date')
@@ -1727,7 +1706,7 @@ def generate_timeline_graph(timeline_data, output_path):
         # グラフの装飾（英語で統一）
         plt.xlabel('Days from Diagnosis', fontsize=12)
         plt.ylabel('Search Volume', fontsize=12)
-        plt.title('Timeline Analysis of Search Keywords', fontsize=14, fontweight='bold')
+        plt.title('Timeline Analysis of Search Keywords (Numbers = Top 10 Keywords)', fontsize=14, fontweight='bold')
         plt.legend(loc='upper right')
         plt.grid(True, alpha=0.3)
         
@@ -2084,7 +2063,22 @@ def generate_pdf(data):
         pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 6, f'診断後の検索キーワード数: {post_count}件', 0, 1)
         pdf.ln(5)
         
-        # キーワードリストは削除（グラフ内に表示するため）
+        # 主要検索キーワード（上位10件）を表示（グラフの番号と対応）
+        if timeline_analysis.get('keywords'):
+            pdf.set_font("ipa", "B", 11)
+            pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 7, '主要検索キーワード（上位10件 - グラフの番号と対応）', 0, 1)
+            pdf.set_font("ipa", "", 9)
+            
+            keywords = timeline_analysis['keywords'][:10]
+            for i, kw in enumerate(keywords, 1):
+                keyword_text = f"{i}. {kw['keyword']} ({kw['time_diff_days']:.1f}日"
+                if kw['time_diff_days'] < 0:
+                    keyword_text += "前)"
+                else:
+                    keyword_text += "後)"
+                keyword_text += f" - 検索ボリューム: {kw.get('estimated_volume', kw.get('search_volume', 0)):,}"
+                pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 5, keyword_text, 0, 1)
+            pdf.ln(8)  # キーワードリストの後にスペース
         
         # AI分析レポート
         pdf.set_font("ipa", "B", 11)
@@ -2435,7 +2429,25 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
         add_text_to_shape(overview_shape, overview_text, font_size=Pt(10), font_name='Meiryo UI')
         left_column_y += Cm(2.5)
         
-        # キーワードリストは削除（グラフ内に表示するため）
+        # 主要キーワード（上位5件 - グラフの番号と対応）
+        if timeline_analysis.get('keywords'):
+            keywords_title = slide.shapes.add_textbox(left_margin_ppt, left_column_y, left_width, Cm(0.8))
+            add_text_to_shape(keywords_title, '主要検索キーワード（グラフ番号対応）', font_size=Pt(12), is_bold=True, 
+                             font_name='Meiryo UI', fill_color=RGBColor(200, 230, 200))
+            left_column_y += Cm(1)
+            
+            keywords = timeline_analysis['keywords'][:5]
+            keywords_text = ""
+            for i, kw in enumerate(keywords, 1):
+                keyword_text = f"{i}. {kw['keyword']} ("
+                if kw['time_diff_days'] < 0:
+                    keyword_text += f"{abs(kw['time_diff_days']):.1f}日前)"
+                else:
+                    keyword_text += f"{kw['time_diff_days']:.1f}日後)"
+                keywords_text += keyword_text + "\n"
+            
+            keywords_shape = slide.shapes.add_textbox(left_margin_ppt, left_column_y, left_width, Cm(3))
+            add_text_to_shape(keywords_shape, keywords_text.strip(), font_size=Pt(9), font_name='Meiryo UI')
         
         # 右カラム：AI分析レポート（グラフの下に配置）
         right_column_y = Cm(9.5)  # 左カラムと同じ高さから開始
