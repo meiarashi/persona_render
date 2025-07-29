@@ -1645,26 +1645,51 @@ def generate_timeline_graph(timeline_data, output_path):
         return False
         
     try:
-        # 日本語フォントが利用可能かチェック
+        # フォントデバッグ情報を出力
         import matplotlib.font_manager as fm
+        print(f"[DEBUG] matplotlib font cache: {fm.get_cachedir()}")
+        
+        # 利用可能なフォントを確認
         available_fonts = [f.name for f in fm.fontManager.ttflist]
+        print(f"[DEBUG] Total available fonts: {len(available_fonts)}")
         
-        # 優先順位でフォントを探す
-        japanese_fonts = ['IPAexGothic', 'IPAGothic', 'Noto Sans CJK JP', 'Yu Gothic', 'Hiragino Sans']
-        selected_font = None
-        for font in japanese_fonts:
-            if font in available_fonts:
-                selected_font = font
-                print(f"[INFO] Using Japanese font: {font}")
-                break
+        # IPAフォントを探す
+        ipa_fonts = [f for f in available_fonts if 'IPA' in f]
+        print(f"[DEBUG] IPA fonts found: {ipa_fonts}")
         
-        # 日本語フォントが見つかった場合は設定、見つからない場合は英語を使用
-        use_japanese = selected_font is not None
-        if use_japanese:
-            plt.rcParams['font.family'] = selected_font
-        else:
-            print("[INFO] No Japanese font found, using English labels")
-            plt.rcParams['font.family'] = 'DejaVu Sans'
+        # フォントファイルの存在確認
+        import os
+        font_paths = [
+            '/usr/share/fonts/opentype/ipaexfont-gothic/ipaexg.ttf',
+            '/usr/share/fonts/truetype/fonts-japanese-gothic.ttf',
+            '/usr/share/fonts/opentype/ipafont-gothic/ipag.ttf'
+        ]
+        for path in font_paths:
+            if os.path.exists(path):
+                print(f"[DEBUG] Font file exists: {path}")
+                # 直接フォントを追加
+                try:
+                    fm.fontManager.addfont(path)
+                    print(f"[DEBUG] Added font: {path}")
+                except Exception as e:
+                    print(f"[DEBUG] Failed to add font {path}: {e}")
+        
+        # japanize-matplotlibが機能しているか確認
+        try:
+            import japanize_matplotlib
+            print("[DEBUG] japanize-matplotlib imported successfully")
+            # 強制的に日本語フォントを設定
+            plt.rcParams['font.family'] = 'IPAexGothic'
+            use_japanese = True
+        except Exception as e:
+            print(f"[DEBUG] japanize-matplotlib error: {e}")
+            # 英語フォールバック
+            use_japanese = False
+        
+        # 最終的な判断：render環境では安全のため英語を使用
+        if 'RENDER' in os.environ:
+            print("[INFO] Running on Render, forcing English labels for compatibility")
+            use_japanese = False
         
         # グラフのサイズとスタイル設定
         plt.figure(figsize=(12, 6))
@@ -1710,13 +1735,42 @@ def generate_timeline_graph(timeline_data, output_path):
                 offset_y = 5 + (i % 2) * 10  # 縦方向のオフセットを変える
                 
                 try:
-                    plt.annotate(label, 
-                               xy=(x, y), 
-                               xytext=(offset_x, offset_y),
-                               textcoords='offset points',
-                               fontsize=8,
-                               bbox=dict(boxstyle='round,pad=0.3', fc='white', ec='gray', alpha=0.7),
-                               arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0.1', color='gray', alpha=0.5))
+                    # フォントプロパティを明示的に設定
+                    if use_japanese:
+                        from matplotlib.font_manager import FontProperties
+                        # 複数のフォントパスを試す
+                        font_paths = [
+                            '/usr/share/fonts/opentype/ipaexfont-gothic/ipaexg.ttf',
+                            '/usr/share/fonts/opentype/ipafont-gothic/ipag.ttf',
+                            '/usr/share/fonts/truetype/fonts-japanese-gothic.ttf'
+                        ]
+                        font_prop = None
+                        for fpath in font_paths:
+                            if os.path.exists(fpath):
+                                try:
+                                    font_prop = FontProperties(fname=fpath, size=8)
+                                    break
+                                except:
+                                    continue
+                        
+                        if font_prop:
+                            plt.annotate(label, 
+                                       xy=(x, y), 
+                                       xytext=(offset_x, offset_y),
+                                       textcoords='offset points',
+                                       fontproperties=font_prop,
+                                       bbox=dict(boxstyle='round,pad=0.3', fc='white', ec='gray', alpha=0.7),
+                                       arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0.1', color='gray', alpha=0.5))
+                        else:
+                            raise Exception("No Japanese font found")
+                    else:
+                        plt.annotate(label, 
+                                   xy=(x, y), 
+                                   xytext=(offset_x, offset_y),
+                                   textcoords='offset points',
+                                   fontsize=8,
+                                   bbox=dict(boxstyle='round,pad=0.3', fc='white', ec='gray', alpha=0.7),
+                                   arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0.1', color='gray', alpha=0.5))
                 except Exception as e:
                     print(f"[WARNING] Failed to add annotation for keyword {i+1}: {e}")
                     # フォールバック：矢印なしでテキストのみ配置
