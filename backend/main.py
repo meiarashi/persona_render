@@ -1170,6 +1170,11 @@ async def download_ppt(request: Request):
         for key, value in data.get('details', {}).items():
             persona_data[key] = value
         
+        # timeline_analysisデータを転送
+        if 'timeline_analysis' in data:
+            persona_data['timeline_analysis'] = data['timeline_analysis']
+            print(f"[DEBUG] PPT: timeline_analysis included with keys: {list(data['timeline_analysis'].keys())}")
+        
         # 画像URL
         image_url = data.get('image_url')
         image_path = None
@@ -1633,7 +1638,7 @@ def add_text_to_shape(shape, text, font_size=Pt(9), is_bold=False, alignment=PP_
     return Cm(estimated_height / 28.3465 / 2.54) # Convert points to cm (rough estimate)
 
 def generate_timeline_graph(timeline_data, output_path):
-    """タイムライン分析用のグラフを生成"""
+    """タイムライン分析用の散布図を生成"""
     if not GRAPH_ENABLED:
         print("[WARNING] Graph generation is disabled (matplotlib not installed)")
         return False
@@ -1643,12 +1648,8 @@ def generate_timeline_graph(timeline_data, output_path):
         print(f"[DEBUG] Timeline data keys: {list(timeline_data.keys()) if timeline_data else 'None'}")
         
         # グラフのサイズとスタイル設定
-        plt.figure(figsize=(10, 6))
-        # seaborn-v0_8スタイルが使えない場合のフォールバック
-        try:
-            plt.style.use('seaborn-v0_8-whitegrid')
-        except:
-            plt.style.use('default')
+        plt.figure(figsize=(12, 6))
+        plt.style.use('default')
         
         # データ取得（フロントエンドからの構造に合わせる）
         keywords = timeline_data.get('keywords', [])
@@ -1660,71 +1661,34 @@ def generate_timeline_graph(timeline_data, output_path):
         print(f"[DEBUG] Pre-diagnosis keywords: {len(pre_keywords)}")
         print(f"[DEBUG] Post-diagnosis keywords: {len(post_keywords)}")
         
-        # カテゴリ別にデータを集計
-        categories = {
-            '症状・治療': 0,
-            '医療機関': 0,
-            '費用・保険': 0,
-            '生活影響': 0,
-            'その他': 0
-        }
+        # 散布図データの準備
+        pre_x = [kw.get('time_diff_days', 0) for kw in pre_keywords]
+        pre_y = [kw.get('estimated_volume', kw.get('search_volume', 0)) for kw in pre_keywords]
         
-        # キーワードをカテゴリに分類（簡易版）
-        def categorize_keyword(keyword):
-            if any(term in keyword for term in ['痛み', '症状', '治療', '手術', '薬']):
-                return '症状・治療'
-            elif any(term in keyword for term in ['病院', 'クリニック', '医師', '診療']):
-                return '医療機関'
-            elif any(term in keyword for term in ['費用', '料金', '保険', '価格']):
-                return '費用・保険'
-            elif any(term in keyword for term in ['仕事', '生活', '日常', '影響']):
-                return '生活影響'
-            else:
-                return 'その他'
+        post_x = [kw.get('time_diff_days', 0) for kw in post_keywords]
+        post_y = [kw.get('estimated_volume', kw.get('search_volume', 0)) for kw in post_keywords]
         
-        # 診断前後のカテゴリ別集計
-        pre_categories = categories.copy()
-        post_categories = categories.copy()
+        # 散布図を描画
+        plt.scatter(pre_x, pre_y, c='#3b82f6', alpha=0.6, s=40, label='診断前')
+        plt.scatter(post_x, post_y, c='#ef4444', alpha=0.6, s=40, label='診断後')
         
-        for kw_data in pre_keywords[:20]:  # 上位20件
-            keyword = kw_data.get('keyword', '')
-            category = categorize_keyword(keyword)
-            pre_categories[category] += 1
-            
-        for kw_data in post_keywords[:20]:  # 上位20件
-            keyword = kw_data.get('keyword', '')
-            category = categorize_keyword(keyword)
-            post_categories[category] += 1
+        # 診断日に縦線を追加
+        plt.axvline(x=0, color='gray', linestyle='--', alpha=0.5, label='診断日')
         
-        # グラフ作成
-        x = list(categories.keys())
-        width = 0.35
+        # グラフの装飾
+        plt.xlabel('診断からの日数', fontsize=12)
+        plt.ylabel('検索ボリューム', fontsize=12)
+        plt.title('検索キーワードの時系列分析', fontsize=14, fontweight='bold')
+        plt.legend(loc='upper right')
+        plt.grid(True, alpha=0.3)
         
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
-        
-        # 棒グラフ
-        x_pos = range(len(x))
-        ax1.bar([p - width/2 for p in x_pos], list(pre_categories.values()), 
-                width, label='診断前', color='#3498db', alpha=0.8)
-        ax1.bar([p + width/2 for p in x_pos], list(post_categories.values()), 
-                width, label='診断後', color='#e74c3c', alpha=0.8)
-        
-        ax1.set_xlabel('カテゴリ', fontsize=12)
-        ax1.set_ylabel('キーワード数', fontsize=12)
-        ax1.set_title('診断前後の検索キーワードカテゴリ分析', fontsize=14, fontweight='bold')
-        ax1.set_xticks(x_pos)
-        ax1.set_xticklabels(x, rotation=45, ha='right')
-        ax1.legend()
-        ax1.grid(True, alpha=0.3)
-        
-        # 円グラフ（診断後のフォーカス）
-        post_values = [v for v in post_categories.values() if v > 0]
-        post_labels = [k for k, v in post_categories.items() if v > 0]
-        
-        colors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6']
-        ax2.pie(post_values, labels=post_labels, colors=colors[:len(post_values)], 
-                autopct='%1.1f%%', startangle=90)
-        ax2.set_title('診断後の検索フォーカス', fontsize=14, fontweight='bold')
+        # Y軸を対数スケールに設定（検索ボリュームの範囲が広い場合）
+        if pre_y + post_y:  # データが存在する場合
+            max_volume = max(pre_y + post_y)
+            min_volume = min([v for v in pre_y + post_y if v > 0] or [1])
+            if max_volume / min_volume > 100:  # 100倍以上の差がある場合
+                plt.yscale('log')
+                plt.ylabel('検索ボリューム（対数スケール）', fontsize=12)
         
         plt.tight_layout()
         plt.savefig(output_path, dpi=150, bbox_inches='tight')
@@ -1733,6 +1697,8 @@ def generate_timeline_graph(timeline_data, output_path):
         return True
     except Exception as e:
         print(f"Error generating graph: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def generate_pdf(data):
