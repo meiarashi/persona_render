@@ -26,11 +26,17 @@ from pptx.dml.color import RGBColor
 try:
     import matplotlib
     matplotlib.use('Agg')  # Use non-interactive backend
+    # Set font configuration before importing pyplot
+    matplotlib.rcParams['font.family'] = 'DejaVu Sans'
+    matplotlib.rcParams['axes.unicode_minus'] = False
     import matplotlib.pyplot as plt
-    import japanize_matplotlib  # Enable Japanese font support
+    try:
+        import japanize_matplotlib  # Try to import but don't fail if not available
+    except ImportError:
+        pass
     GRAPH_ENABLED = True
 except ImportError:
-    print("Warning: matplotlib or japanize_matplotlib not installed. Graph generation disabled.")
+    print("Warning: matplotlib not installed. Graph generation disabled.")
     GRAPH_ENABLED = False
 
 # For AI clients
@@ -1647,30 +1653,8 @@ def generate_timeline_graph(timeline_data, output_path):
         # デバッグ: データ構造を確認
         print(f"[DEBUG] Timeline data keys: {list(timeline_data.keys()) if timeline_data else 'None'}")
         
-        # 日本語フォントの設定
-        import matplotlib.font_manager as fm
-        # システムにインストールされているフォントを探す
-        font_paths = [
-            '/usr/share/fonts/opentype/ipaexfont-gothic/ipaexg.ttf',
-            '/usr/share/fonts/truetype/fonts-japanese-gothic.ttf',
-            '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
-            './assets/fonts/ipaexg.ttf'  # プロジェクト内のフォント
-        ]
-        
-        font_path = None
-        for path in font_paths:
-            import os
-            if os.path.exists(path):
-                font_path = path
-                break
-        
-        if font_path:
-            prop = fm.FontProperties(fname=font_path)
-            plt.rcParams['font.family'] = prop.get_name()
-            print(f"[DEBUG] Using font: {font_path}")
-        else:
-            # フォントが見つからない場合は英語で表示
-            print("[WARNING] No Japanese font found, using English labels")
+        # フォント設定は上部で既に行われているため、ここでは上書きしない
+        print(f"[INFO] Current font family: {plt.rcParams['font.family']}")
         
         # グラフのサイズとスタイル設定
         plt.figure(figsize=(12, 6))
@@ -1693,29 +1677,17 @@ def generate_timeline_graph(timeline_data, output_path):
         post_x = [kw.get('time_diff_days', 0) for kw in post_keywords]
         post_y = [kw.get('estimated_volume', kw.get('search_volume', 0)) for kw in post_keywords]
         
-        # 散布図を描画
-        if font_path:
-            plt.scatter(pre_x, pre_y, c='#3b82f6', alpha=0.6, s=40, label='診断前')
-            plt.scatter(post_x, post_y, c='#ef4444', alpha=0.6, s=40, label='診断後')
-            # 診断日に縦線を追加
-            plt.axvline(x=0, color='gray', linestyle='--', alpha=0.5, label='診断日')
-        else:
-            plt.scatter(pre_x, pre_y, c='#3b82f6', alpha=0.6, s=40, label='Pre-diagnosis')
-            plt.scatter(post_x, post_y, c='#ef4444', alpha=0.6, s=40, label='Post-diagnosis')
-            # 診断日に縦線を追加
-            plt.axvline(x=0, color='gray', linestyle='--', alpha=0.5, label='Diagnosis Date')
+        # 散布図を描画（英語ラベルで統一）
+        plt.scatter(pre_x, pre_y, c='#3b82f6', alpha=0.6, s=40, label='Pre-diagnosis')
+        plt.scatter(post_x, post_y, c='#ef4444', alpha=0.6, s=40, label='Post-diagnosis')
+        # 診断日に縦線を追加
+        plt.axvline(x=0, color='gray', linestyle='--', alpha=0.5, label='Diagnosis Date')
         
-        # グラフの装飾（日本語フォントがない場合は英語）
-        if font_path:
-            plt.xlabel('診断からの日数', fontsize=12)
-            plt.ylabel('検索ボリューム', fontsize=12)
-            plt.title('検索キーワードの時系列分析', fontsize=14, fontweight='bold')
-            plt.legend(['診断前', '診断後', '診断日'], loc='upper right')
-        else:
-            plt.xlabel('Days from Diagnosis', fontsize=12)
-            plt.ylabel('Search Volume', fontsize=12)
-            plt.title('Timeline Analysis of Search Keywords', fontsize=14, fontweight='bold')
-            plt.legend(['Pre-diagnosis', 'Post-diagnosis', 'Diagnosis Date'], loc='upper right')
+        # グラフの装飾（英語で統一）
+        plt.xlabel('Days from Diagnosis', fontsize=12)
+        plt.ylabel('Search Volume', fontsize=12)
+        plt.title('Timeline Analysis of Search Keywords', fontsize=14, fontweight='bold')
+        plt.legend(loc='upper right')
         plt.grid(True, alpha=0.3)
         
         # Y軸を対数スケールに設定（検索ボリュームの範囲が広い場合）
@@ -1724,10 +1696,7 @@ def generate_timeline_graph(timeline_data, output_path):
             min_volume = min([v for v in pre_y + post_y if v > 0] or [1])
             if max_volume / min_volume > 100:  # 100倍以上の差がある場合
                 plt.yscale('log')
-                if font_path:
-                    plt.ylabel('検索ボリューム（対数スケール）', fontsize=12)
-                else:
-                    plt.ylabel('Search Volume (Log Scale)', fontsize=12)
+                plt.ylabel('Search Volume (Log Scale)', fontsize=12)
         
         plt.tight_layout()
         plt.savefig(output_path, dpi=150, bbox_inches='tight')
@@ -1768,6 +1737,10 @@ def generate_pdf(data):
     profile = data.get('profile', {})
     details = data.get('details', {})
     image_url = data.get('image_url')
+    
+    print(f"[DEBUG] PDF data keys: {list(data.keys())}")
+    print(f"[DEBUG] Details keys: {list(details.keys()) if details else 'No details'}")
+    print(f"[DEBUG] Details personality preview: {str(details.get('personality', ''))[:100] if details else 'No personality'}")
 
     # --- 定数定義 ---
     name_line_height = 6  # ペルソナ名の行の高さ (mm)
@@ -2057,6 +2030,20 @@ def generate_pdf(data):
         except Exception as e:
             print(f"Error adding graph to PDF: {e}")
         
+        # 現在のY座標を確認
+        current_y_after_graph = pdf.get_y()
+        print(f"[DEBUG] Y position after graph: {current_y_after_graph}")
+        print(f"[DEBUG] Page height: {pdf.h}, Bottom margin: {pdf.b_margin}")
+        
+        # ページの残りスペースを確認
+        remaining_space = pdf.h - pdf.b_margin - current_y_after_graph
+        print(f"[DEBUG] Remaining space on page: {remaining_space}mm")
+        
+        # スペースが不足している場合は新しいページを追加
+        if remaining_space < 50:  # 50mm以下の場合
+            print("[DEBUG] Adding new page for AI analysis")
+            pdf.add_page()
+        
         # 検索キーワード統計
         pdf.set_font("ipa", "B", 11)
         pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 7, '検索行動の概要', 0, 1)
@@ -2069,6 +2056,10 @@ def generate_pdf(data):
         pdf.ln(5)
         
         # AI分析レポート
+        pdf.ln(5)  # セクション間のスペース
+        current_y_before_ai = pdf.get_y()
+        print(f"[DEBUG] Y position before AI analysis section: {current_y_before_ai}")
+        
         pdf.set_font("ipa", "B", 11)
         pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 7, 'AI分析レポート', 0, 1)
         pdf.set_font("ipa", "", 9)
@@ -2086,6 +2077,14 @@ def generate_pdf(data):
                     pdf.multi_cell(pdf.w - pdf.l_margin - pdf.r_margin, 5, line.strip(), 0, 'L')
                 else:
                     pdf.ln(3)
+        else:
+            print("[WARNING] AI analysis text is empty!")
+            pdf.multi_cell(pdf.w - pdf.l_margin - pdf.r_margin, 5, "AI分析データがありません", 0, 'L')
+        
+        # AI分析後のY座標を確認
+        current_y_after_ai = pdf.get_y()
+        print(f"[DEBUG] Y position after AI analysis: {current_y_after_ai}")
+        print(f"[DEBUG] AI analysis section height: {current_y_after_ai - current_y_before_ai}mm")
         
         # 主要キーワード（上位10件）
         if timeline_analysis.get('keywords'):
