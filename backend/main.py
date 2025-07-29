@@ -1668,6 +1668,27 @@ def generate_timeline_graph(timeline_data, output_path):
         # 散布図を描画（英語ラベルで統一）
         plt.scatter(pre_x, pre_y, c='#3b82f6', alpha=0.6, s=40, label='Pre-diagnosis')
         plt.scatter(post_x, post_y, c='#ef4444', alpha=0.6, s=40, label='Post-diagnosis')
+        
+        # 上位10キーワードにラベルを追加
+        top_keywords = keywords[:10]  # 上位10件を取得
+        for kw in top_keywords:
+            x = kw.get('time_diff_days', 0)
+            y = kw.get('estimated_volume', kw.get('search_volume', 0))
+            if y > 0:  # ボリュームが0より大きい場合のみラベルを表示
+                # キーワードを短縮（20文字まで）
+                label = kw.get('keyword', '')
+                if len(label) > 20:
+                    label = label[:18] + '...'
+                
+                # ラベルの位置を少しずらす
+                plt.annotate(label, 
+                           xy=(x, y), 
+                           xytext=(5, 5),  # 右上にずらす
+                           textcoords='offset points',
+                           fontsize=8,
+                           bbox=dict(boxstyle='round,pad=0.3', fc='white', ec='gray', alpha=0.7),
+                           arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0.1', color='gray', alpha=0.5))
+        
         # 診断日に縦線を追加
         plt.axvline(x=0, color='gray', linestyle='--', alpha=0.5, label='Diagnosis Date')
         
@@ -2031,21 +2052,7 @@ def generate_pdf(data):
         pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 6, f'診断後の検索キーワード数: {post_count}件', 0, 1)
         pdf.ln(5)
         
-        # 主要検索キーワード（上位10件）を先に表示
-        if timeline_analysis.get('keywords'):
-            pdf.set_font("ipa", "B", 11)
-            pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 7, '主要検索キーワード（上位10件）', 0, 1)
-            pdf.set_font("ipa", "", 9)
-            
-            keywords = timeline_analysis['keywords'][:10]
-            for i, kw in enumerate(keywords, 1):
-                keyword_text = f"{i}. {kw['keyword']} ({kw['time_diff_days']:.1f}日"
-                if kw['time_diff_days'] < 0:
-                    keyword_text += "前)"
-                else:
-                    keyword_text += "後)"
-                pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 5, keyword_text, 0, 1)
-            pdf.ln(8)  # キーワードリストの後にスペース
+        # キーワードリストは削除（グラフ内に表示するため）
         
         # AI分析レポート
         pdf.set_font("ipa", "B", 11)
@@ -2354,7 +2361,7 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
         # タイトル
         title_shape = slide.shapes.add_textbox(left_margin_ppt, Cm(1), prs.slide_width - left_margin_ppt * 2, Cm(1.5))
         add_text_to_shape(title_shape, 'タイムライン分析', font_size=Pt(20), is_bold=True, 
-                         font_name='Meiryo UI', fill_color=RGBColor(47, 84, 150))
+                         font_name='Meiryo UI')
         
         # グラフを生成して追加
         try:
@@ -2396,25 +2403,7 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
         add_text_to_shape(overview_shape, overview_text, font_size=Pt(10), font_name='Meiryo UI')
         left_column_y += Cm(2.5)
         
-        # 主要キーワード（上位5件）
-        if timeline_analysis.get('keywords'):
-            keywords_title = slide.shapes.add_textbox(left_margin_ppt, left_column_y, left_width, Cm(0.8))
-            add_text_to_shape(keywords_title, '主要検索キーワード', font_size=Pt(12), is_bold=True, 
-                             font_name='Meiryo UI', fill_color=RGBColor(200, 230, 200))
-            left_column_y += Cm(1)
-            
-            keywords = timeline_analysis['keywords'][:5]
-            keywords_text = ""
-            for i, kw in enumerate(keywords, 1):
-                keyword_text = f"{i}. {kw['keyword']} ("
-                if kw['time_diff_days'] < 0:
-                    keyword_text += f"{abs(kw['time_diff_days']):.1f}日前)"
-                else:
-                    keyword_text += f"{kw['time_diff_days']:.1f}日後)"
-                keywords_text += keyword_text + "\n"
-            
-            keywords_shape = slide.shapes.add_textbox(left_margin_ppt, left_column_y, left_width, Cm(3))
-            add_text_to_shape(keywords_shape, keywords_text.strip(), font_size=Pt(9), font_name='Meiryo UI')
+        # キーワードリストは削除（グラフ内に表示するため）
         
         # 右カラム：AI分析レポート（グラフの下に配置）
         right_column_y = Cm(9.5)  # 左カラムと同じ高さから開始
