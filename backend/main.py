@@ -1691,21 +1691,11 @@ def generate_timeline_graph(timeline_data, output_path):
             y = kw.get('estimated_volume', kw.get('search_volume', 0))
             if y > 0:  # ボリュームが0より大きい場合のみ表示
                 try:
-                    # Y軸のスケールに応じて位置を調整
-                    ax = plt.gca()
-                    y_scale = ax.get_yscale()
-                    
-                    if y_scale == 'log':
-                        # 対数スケールの場合
-                        y_offset = y * 1.2
-                    else:
-                        # 線形スケールの場合
-                        y_range = ax.get_ylim()[1] - ax.get_ylim()[0]
-                        y_offset = y + y_range * 0.02  # Y軸範囲の2%分上に配置
-                    
-                    # プロットの少し上に番号を表示
-                    plt.text(x, y_offset, str(i+1), fontsize=9, ha='center', va='bottom', 
-                            color='black', weight='bold', zorder=6)
+                    # プロットのすぐ右上に番号を表示（オフセットを小さく）
+                    plt.text(x + 0.5, y, str(i+1), fontsize=8, ha='left', va='center', 
+                            color='black', weight='bold', 
+                            bbox=dict(boxstyle='circle,pad=0.2', facecolor='white', edgecolor='black', alpha=0.8),
+                            zorder=6)
                 except Exception as e:
                     print(f"[WARNING] Failed to add number for keyword {i+1}: {e}")
         
@@ -2061,16 +2051,6 @@ def generate_pdf(data):
         if remaining_space < 50:  # 50mm以下の場合
             pdf.add_page()
         
-        # 検索キーワード統計
-        pdf.set_font("ipa", "B", 11)
-        pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 7, '検索行動の概要', 0, 1)
-        pdf.set_font("ipa", "", 9)
-        
-        pre_count = timeline_analysis.get('pre_diagnosis_count', 0)
-        post_count = timeline_analysis.get('post_diagnosis_count', 0)
-        pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 6, f'診断前の検索キーワード数: {pre_count}件', 0, 1)
-        pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 6, f'診断後の検索キーワード数: {post_count}件', 0, 1)
-        pdf.ln(5)
         
         # 主要検索キーワード（上位10件）を表示（グラフの番号と対応）
         if timeline_analysis.get('keywords'):
@@ -2420,23 +2400,10 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
         except Exception as e:
             print(f"Error adding graph to PPT: {e}")
         
-        # 左カラム：検索行動の概要と主要キーワード（グラフの下に配置）
+        # 左カラム：主要キーワード（グラフの下に配置）
         # グラフが2.0cmから始まり、7cm高さなので、9.0cmで終わる
         left_column_y = Cm(9.5)  # グラフの下0.5cmの余白
         left_width = content_width * 0.35  # 左カラムの幅を定義
-        
-        # 検索行動の概要
-        overview_title = slide.shapes.add_textbox(left_margin_ppt, left_column_y, left_width, Cm(0.8))
-        add_text_to_shape(overview_title, '検索行動の概要', font_size=Pt(12), is_bold=True, 
-                         font_name='Meiryo UI', fill_color=RGBColor(200, 230, 200))
-        left_column_y += Cm(1)
-        
-        pre_count = timeline_analysis.get('pre_diagnosis_count', 0)
-        post_count = timeline_analysis.get('post_diagnosis_count', 0)
-        overview_text = f"診断前の検索キーワード数: {pre_count}件\n診断後の検索キーワード数: {post_count}件"
-        overview_shape = slide.shapes.add_textbox(left_margin_ppt, left_column_y, left_width, Cm(2))
-        add_text_to_shape(overview_shape, overview_text, font_size=Pt(10), font_name='Meiryo UI')
-        left_column_y += Cm(2.5)
         
         # 主要キーワード（上位5件 - グラフの番号と対応）
         if timeline_analysis.get('keywords'):
