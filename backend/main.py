@@ -1645,7 +1645,26 @@ def generate_timeline_graph(timeline_data, output_path):
         return False
         
     try:
-        # フォント設定は上部で既に行われているため、ここでは上書きしない
+        # 日本語フォントが利用可能かチェック
+        import matplotlib.font_manager as fm
+        available_fonts = [f.name for f in fm.fontManager.ttflist]
+        
+        # 優先順位でフォントを探す
+        japanese_fonts = ['IPAexGothic', 'IPAGothic', 'Noto Sans CJK JP', 'Yu Gothic', 'Hiragino Sans']
+        selected_font = None
+        for font in japanese_fonts:
+            if font in available_fonts:
+                selected_font = font
+                print(f"[INFO] Using Japanese font: {font}")
+                break
+        
+        # 日本語フォントが見つかった場合は設定、見つからない場合は英語を使用
+        use_japanese = selected_font is not None
+        if use_japanese:
+            plt.rcParams['font.family'] = selected_font
+        else:
+            print("[INFO] No Japanese font found, using English labels")
+            plt.rcParams['font.family'] = 'DejaVu Sans'
         
         # グラフのサイズとスタイル設定
         plt.figure(figsize=(12, 6))
@@ -1671,23 +1690,41 @@ def generate_timeline_graph(timeline_data, output_path):
         
         # 上位10キーワードにラベルを追加
         top_keywords = keywords[:10]  # 上位10件を取得
-        for kw in top_keywords:
+        for i, kw in enumerate(top_keywords):
             x = kw.get('time_diff_days', 0)
             y = kw.get('estimated_volume', kw.get('search_volume', 0))
             if y > 0:  # ボリュームが0より大きい場合のみラベルを表示
                 # キーワードを短縮（20文字まで）
                 label = kw.get('keyword', '')
-                if len(label) > 20:
-                    label = label[:18] + '...'
                 
-                # ラベルの位置を少しずらす
-                plt.annotate(label, 
-                           xy=(x, y), 
-                           xytext=(5, 5),  # 右上にずらす
-                           textcoords='offset points',
-                           fontsize=8,
-                           bbox=dict(boxstyle='round,pad=0.3', fc='white', ec='gray', alpha=0.7),
-                           arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0.1', color='gray', alpha=0.5))
+                # 日本語フォントが利用できない場合は、簡略化したラベルを使用
+                if not use_japanese:
+                    # 英語表記として番号とボリュームのみ表示
+                    label = f"KW{i+1} (Vol:{int(y)})"
+                else:
+                    if len(label) > 20:
+                        label = label[:18] + '...'
+                
+                # ラベルの位置を少しずらす（重ならないように工夫）
+                offset_x = 5 + (i % 3) * 10  # 横方向のオフセットを変える
+                offset_y = 5 + (i % 2) * 10  # 縦方向のオフセットを変える
+                
+                try:
+                    plt.annotate(label, 
+                               xy=(x, y), 
+                               xytext=(offset_x, offset_y),
+                               textcoords='offset points',
+                               fontsize=8,
+                               bbox=dict(boxstyle='round,pad=0.3', fc='white', ec='gray', alpha=0.7),
+                               arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0.1', color='gray', alpha=0.5))
+                except Exception as e:
+                    print(f"[WARNING] Failed to add annotation for keyword {i+1}: {e}")
+                    # フォールバック：矢印なしでテキストのみ配置
+                    try:
+                        plt.text(x, y, f"KW{i+1}", fontsize=8, 
+                                bbox=dict(boxstyle='round,pad=0.3', fc='white', ec='gray', alpha=0.7))
+                    except Exception as e2:
+                        print(f"[ERROR] Failed to add text for keyword {i+1}: {e2}")
         
         # 診断日に縦線を追加
         plt.axvline(x=0, color='gray', linestyle='--', alpha=0.5, label='Diagnosis Date')

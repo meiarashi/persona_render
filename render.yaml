@@ -3,8 +3,11 @@ services:
     name: persona-render
     runtime: python
     buildCommand: |
-      apt-get update && apt-get install -y fonts-ipaexfont
+      apt-get update && apt-get install -y fonts-ipaexfont fonts-ipafont-gothic fonts-ipafont-mincho
+      fc-cache -f -v
+      rm -rf ~/.cache/matplotlib
       pip install --upgrade pip && pip install -r requirements.txt
+      python -c "import matplotlib.font_manager; matplotlib.font_manager._rebuild()"
     startCommand: cd backend && gunicorn main:app --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 120
     envVars:
       - key: PYTHON_VERSION
