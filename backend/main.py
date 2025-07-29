@@ -23,10 +23,15 @@ from pptx.enum.text import PP_ALIGN, MSO_AUTO_SIZE, MSO_VERTICAL_ANCHOR
 from pptx.dml.color import RGBColor
 
 # For graph generation
-import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend
-import matplotlib.pyplot as plt
-import japanize_matplotlib  # Enable Japanese font support
+try:
+    import matplotlib
+    matplotlib.use('Agg')  # Use non-interactive backend
+    import matplotlib.pyplot as plt
+    import japanize_matplotlib  # Enable Japanese font support
+    GRAPH_ENABLED = True
+except ImportError:
+    print("Warning: matplotlib or japanize_matplotlib not installed. Graph generation disabled.")
+    GRAPH_ENABLED = False
 
 # For AI clients
 try:
@@ -1114,7 +1119,16 @@ async def download_pdf(request: Request):
             print(f"[DEBUG] timeline_analysis sample: {str(data.get('timeline_analysis'))[:200]}")
 
         # PDF生成
-        pdf_buffer = generate_pdf(data)
+        try:
+            pdf_buffer = generate_pdf(data)
+        except Exception as pdf_error:
+            print(f"[ERROR] PDF generation failed: {pdf_error}")
+            import traceback
+            traceback.print_exc()
+            return JSONResponse(
+                status_code=500,
+                content={"error": f"PDF generation failed: {str(pdf_error)}"}
+            )
         
         # ファイル名の設定
         profile_name = data.get('profile', {}).get('name', 'persona')
@@ -1231,7 +1245,16 @@ async def download_ppt(request: Request):
                 image_path = None
         
         # PPTX生成
-        pptx_buffer = generate_ppt(persona_data, image_path, department_text, purpose_text)
+        try:
+            pptx_buffer = generate_ppt(persona_data, image_path, department_text, purpose_text)
+        except Exception as ppt_error:
+            print(f"[ERROR] PPT generation failed: {ppt_error}")
+            import traceback
+            traceback.print_exc()
+            return JSONResponse(
+                status_code=500,
+                content={"error": f"PPT generation failed: {str(ppt_error)}"}
+            )
         
         # ファイル名の設定
         profile_name = data.get('profile', {}).get('name', 'persona')
@@ -1611,6 +1634,10 @@ def add_text_to_shape(shape, text, font_size=Pt(9), is_bold=False, alignment=PP_
 
 def generate_timeline_graph(timeline_data, output_path):
     """タイムライン分析用のグラフを生成"""
+    if not GRAPH_ENABLED:
+        print("[WARNING] Graph generation is disabled (matplotlib not installed)")
+        return False
+        
     try:
         # デバッグ: データ構造を確認
         print(f"[DEBUG] Timeline data keys: {list(timeline_data.keys()) if timeline_data else 'None'}")
