@@ -22,6 +22,12 @@ from pptx.util import Inches, Pt, Cm
 from pptx.enum.text import PP_ALIGN, MSO_AUTO_SIZE, MSO_VERTICAL_ANCHOR
 from pptx.dml.color import RGBColor
 
+# For graph generation
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
+import matplotlib.pyplot as plt
+import japanize_matplotlib  # Enable Japanese font support
+
 # For AI clients
 try:
     from openai import OpenAI
@@ -1100,6 +1106,12 @@ async def download_pdf(request: Request):
                 status_code=400,
                 content={"error": "No data provided"}
             )
+        
+        # デバッグ: データ構造を確認
+        print(f"[DEBUG] PDF download data keys: {list(data.keys())}")
+        if 'timeline_analysis' in data:
+            print(f"[DEBUG] timeline_analysis keys: {list(data.get('timeline_analysis', {}).keys())}")
+            print(f"[DEBUG] timeline_analysis sample: {str(data.get('timeline_analysis'))[:200]}")
 
         # PDF生成
         pdf_buffer = generate_pdf(data)
@@ -1597,6 +1609,105 @@ def add_text_to_shape(shape, text, font_size=Pt(9), is_bold=False, alignment=PP_
     estimated_height = num_lines * font_size.pt * 1.5 # Approximate line height factor
     return Cm(estimated_height / 28.3465 / 2.54) # Convert points to cm (rough estimate)
 
+def generate_timeline_graph(timeline_data, output_path):
+    """タイムライン分析用のグラフを生成"""
+    try:
+        # デバッグ: データ構造を確認
+        print(f"[DEBUG] Timeline data keys: {list(timeline_data.keys()) if timeline_data else 'None'}")
+        
+        # グラフのサイズとスタイル設定
+        plt.figure(figsize=(10, 6))
+        # seaborn-v0_8スタイルが使えない場合のフォールバック
+        try:
+            plt.style.use('seaborn-v0_8-whitegrid')
+        except:
+            plt.style.use('default')
+        
+        # データ取得（フロントエンドからの構造に合わせる）
+        keywords = timeline_data.get('keywords', [])
+        
+        # 診断前後でキーワードを分割
+        pre_keywords = [kw for kw in keywords if kw.get('time_diff_days', 0) < 0]
+        post_keywords = [kw for kw in keywords if kw.get('time_diff_days', 0) >= 0]
+        
+        print(f"[DEBUG] Pre-diagnosis keywords: {len(pre_keywords)}")
+        print(f"[DEBUG] Post-diagnosis keywords: {len(post_keywords)}")
+        
+        # カテゴリ別にデータを集計
+        categories = {
+            '症状・治療': 0,
+            '医療機関': 0,
+            '費用・保険': 0,
+            '生活影響': 0,
+            'その他': 0
+        }
+        
+        # キーワードをカテゴリに分類（簡易版）
+        def categorize_keyword(keyword):
+            if any(term in keyword for term in ['痛み', '症状', '治療', '手術', '薬']):
+                return '症状・治療'
+            elif any(term in keyword for term in ['病院', 'クリニック', '医師', '診療']):
+                return '医療機関'
+            elif any(term in keyword for term in ['費用', '料金', '保険', '価格']):
+                return '費用・保険'
+            elif any(term in keyword for term in ['仕事', '生活', '日常', '影響']):
+                return '生活影響'
+            else:
+                return 'その他'
+        
+        # 診断前後のカテゴリ別集計
+        pre_categories = categories.copy()
+        post_categories = categories.copy()
+        
+        for kw_data in pre_keywords[:20]:  # 上位20件
+            keyword = kw_data.get('keyword', '')
+            category = categorize_keyword(keyword)
+            pre_categories[category] += 1
+            
+        for kw_data in post_keywords[:20]:  # 上位20件
+            keyword = kw_data.get('keyword', '')
+            category = categorize_keyword(keyword)
+            post_categories[category] += 1
+        
+        # グラフ作成
+        x = list(categories.keys())
+        width = 0.35
+        
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+        
+        # 棒グラフ
+        x_pos = range(len(x))
+        ax1.bar([p - width/2 for p in x_pos], list(pre_categories.values()), 
+                width, label='診断前', color='#3498db', alpha=0.8)
+        ax1.bar([p + width/2 for p in x_pos], list(post_categories.values()), 
+                width, label='診断後', color='#e74c3c', alpha=0.8)
+        
+        ax1.set_xlabel('カテゴリ', fontsize=12)
+        ax1.set_ylabel('キーワード数', fontsize=12)
+        ax1.set_title('診断前後の検索キーワードカテゴリ分析', fontsize=14, fontweight='bold')
+        ax1.set_xticks(x_pos)
+        ax1.set_xticklabels(x, rotation=45, ha='right')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+        
+        # 円グラフ（診断後のフォーカス）
+        post_values = [v for v in post_categories.values() if v > 0]
+        post_labels = [k for k, v in post_categories.items() if v > 0]
+        
+        colors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6']
+        ax2.pie(post_values, labels=post_labels, colors=colors[:len(post_values)], 
+                autopct='%1.1f%%', startangle=90)
+        ax2.set_title('診断後の検索フォーカス', fontsize=14, fontweight='bold')
+        
+        plt.tight_layout()
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        plt.close()
+        
+        return True
+    except Exception as e:
+        print(f"Error generating graph: {e}")
+        return False
+
 def generate_pdf(data):
     # A4サイズ横長に設定、レイアウト最適化
     pdf = FPDF(orientation='L', unit='mm', format='A4')
@@ -1886,6 +1997,29 @@ def generate_pdf(data):
         pdf.set_font("ipa", "B", 14)
         pdf.cell(0, 10, 'タイムライン分析', 0, 1, 'C')
         pdf.ln(5)
+        
+        # グラフを生成して追加
+        try:
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
+                graph_path = tmp_file.name
+                
+            if generate_timeline_graph(timeline_analysis, graph_path):
+                # グラフをPDFに追加（ページ幅の80%を使用）
+                page_width = pdf.w - pdf.l_margin - pdf.r_margin
+                graph_width = page_width * 0.8
+                graph_x = pdf.l_margin + (page_width - graph_width) / 2
+                
+                pdf.image(graph_path, x=graph_x, y=pdf.get_y(), w=graph_width)
+                
+                # グラフの後に適切なスペースを追加
+                pdf.ln(80)  # グラフの高さ分スペースを追加
+                
+                # 一時ファイルを削除
+                import os
+                os.unlink(graph_path)
+        except Exception as e:
+            print(f"Error adding graph to PDF: {e}")
         
         # 検索キーワード統計
         pdf.set_font("ipa", "B", 11)
@@ -2180,8 +2314,30 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
         add_text_to_shape(title_shape, 'タイムライン分析', font_size=Pt(20), is_bold=True, 
                          font_name='Meiryo UI', fill_color=RGBColor(47, 84, 150))
         
-        # 左カラム：検索行動の概要と主要キーワード
-        left_column_y = Cm(3)
+        # グラフを生成して追加
+        try:
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
+                graph_path = tmp_file.name
+                
+            if generate_timeline_graph(timeline_analysis, graph_path):
+                # グラフをスライドに追加（上部中央に配置）
+                slide_width = prs.slide_width
+                graph_width = Cm(20)  # 20cm幅
+                graph_height = Cm(8)  # 8cm高さ
+                graph_x = (slide_width - graph_width) / 2
+                graph_y = Cm(2.5)
+                
+                slide.shapes.add_picture(graph_path, graph_x, graph_y, width=graph_width, height=graph_height)
+                
+                # 一時ファイルを削除
+                import os
+                os.unlink(graph_path)
+        except Exception as e:
+            print(f"Error adding graph to PPT: {e}")
+        
+        # 左カラム：検索行動の概要と主要キーワード（グラフの下に配置）
+        left_column_y = Cm(11)
         
         # 検索行動の概要
         overview_title = slide.shapes.add_textbox(left_margin, left_column_y, left_width, Cm(0.8))

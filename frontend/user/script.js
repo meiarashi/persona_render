@@ -3510,7 +3510,9 @@ async function loadTimelineAnalysis(profile) {
                     keywords: data.filtered_keywords,
                     ai_analysis: aiText,
                     pre_diagnosis_count: pre_count,
-                    post_diagnosis_count: post_count
+                    post_diagnosis_count: post_count,
+                    pre_keywords: data.filtered_keywords.filter(k => k.time_diff_days < 0),
+                    post_keywords: data.filtered_keywords.filter(k => k.time_diff_days >= 0)
                 };
                 
                 analysisContent.innerHTML = aiText ? 
