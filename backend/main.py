@@ -1691,8 +1691,20 @@ def generate_timeline_graph(timeline_data, output_path):
             y = kw.get('estimated_volume', kw.get('search_volume', 0))
             if y > 0:  # ボリュームが0より大きい場合のみ表示
                 try:
-                    # プロットのすぐ右上に番号を表示（背景なし）
-                    plt.text(x + 0.5, y, str(i+1), fontsize=8, ha='left', va='center', 
+                    # プロットの上に番号を表示（距離を2倍に）
+                    # Y軸のスケールに応じて適切なオフセットを計算
+                    ax = plt.gca()
+                    y_scale = ax.get_yscale()
+                    
+                    if y_scale == 'log':
+                        # 対数スケールの場合
+                        y_offset = y * 1.1  # 10%上
+                    else:
+                        # 線形スケールの場合
+                        y_range = ax.get_ylim()[1] - ax.get_ylim()[0]
+                        y_offset = y + y_range * 0.02  # Y軸範囲の2%分上
+                    
+                    plt.text(x, y_offset, str(i+1), fontsize=8, ha='center', va='bottom', 
                             color='black', weight='bold', zorder=6)
                 except Exception as e:
                     print(f"[WARNING] Failed to add number for keyword {i+1}: {e}")
