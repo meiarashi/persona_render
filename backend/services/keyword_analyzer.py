@@ -105,7 +105,7 @@ def analyze_search_patterns(pre_keywords: List[Dict], post_keywords: List[Dict])
             analysis["post_diagnosis_focus"].append(category)
     
     # カテゴリシフトを計算
-    for category in categories.keys():
+    for category in pre_categories.keys():
         pre_ratio = len(pre_categories[category]) / max(len(pre_keywords), 1)
         post_ratio = len(post_categories[category]) / max(len(post_keywords), 1)
         shift = post_ratio - pre_ratio
