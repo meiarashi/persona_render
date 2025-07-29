@@ -2022,7 +2022,7 @@ def generate_pdf(data):
         
         # セクションタイトル
         pdf.set_font("ipa", "B", 14)
-        pdf.cell(0, 10, 'タイムライン分析', 0, 1, 'C')
+        pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 10, 'タイムライン分析', 0, 1, 'C')
         pdf.ln(5)
         
         # グラフを生成して追加
@@ -2050,18 +2050,18 @@ def generate_pdf(data):
         
         # 検索キーワード統計
         pdf.set_font("ipa", "B", 11)
-        pdf.cell(0, 7, '検索行動の概要', 0, 1)
+        pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 7, '検索行動の概要', 0, 1)
         pdf.set_font("ipa", "", 9)
         
         pre_count = timeline_analysis.get('pre_diagnosis_count', 0)
         post_count = timeline_analysis.get('post_diagnosis_count', 0)
-        pdf.cell(0, 6, f'診断前の検索キーワード数: {pre_count}件', 0, 1)
-        pdf.cell(0, 6, f'診断後の検索キーワード数: {post_count}件', 0, 1)
+        pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 6, f'診断前の検索キーワード数: {pre_count}件', 0, 1)
+        pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 6, f'診断後の検索キーワード数: {post_count}件', 0, 1)
         pdf.ln(5)
         
         # AI分析レポート
         pdf.set_font("ipa", "B", 11)
-        pdf.cell(0, 7, 'AI分析レポート', 0, 1)
+        pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 7, 'AI分析レポート', 0, 1)
         pdf.set_font("ipa", "", 9)
         
         ai_analysis_text = timeline_analysis.get('ai_analysis', '')
@@ -2071,7 +2071,7 @@ def generate_pdf(data):
             for line in lines:
                 if line.strip():
                     # 長い行は自動折り返し
-                    pdf.multi_cell(0, 5, line.strip(), 0, 'L')
+                    pdf.multi_cell(pdf.w - pdf.l_margin - pdf.r_margin, 5, line.strip(), 0, 'L')
                 else:
                     pdf.ln(3)
         
@@ -2079,7 +2079,7 @@ def generate_pdf(data):
         if timeline_analysis.get('keywords'):
             pdf.ln(5)
             pdf.set_font("ipa", "B", 11)
-            pdf.cell(0, 7, '主要検索キーワード（上位10件）', 0, 1)
+            pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 7, '主要検索キーワード（上位10件）', 0, 1)
             pdf.set_font("ipa", "", 9)
             
             keywords = timeline_analysis['keywords'][:10]
@@ -2089,7 +2089,7 @@ def generate_pdf(data):
                     keyword_text += "前)"
                 else:
                     keyword_text += "後)"
-                pdf.cell(0, 5, keyword_text, 0, 1)
+                pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 5, keyword_text, 0, 1)
     
     # Generate PDF in memory
     pdf_output = pdf.output() # Get output as bytes directly
@@ -2098,6 +2098,8 @@ def generate_pdf(data):
     return buffer
 
 def generate_ppt(persona_data, image_path=None, department_text=None, purpose_text=None):
+    import os  # osモジュールをインポート
+    
     prs = Presentation()
     prs.slide_width = Inches(11.69)  # A4 Landscape width
     prs.slide_height = Inches(8.27) # A4 Landscape height
