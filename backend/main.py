@@ -1683,31 +1683,7 @@ def generate_timeline_graph(timeline_data, output_path):
         plt.scatter(pre_x, pre_y, c='#3b82f6', alpha=0.6, s=40, label='Pre-diagnosis')
         plt.scatter(post_x, post_y, c='#ef4444', alpha=0.6, s=40, label='Post-diagnosis')
         
-        # キーワードを検索ボリューム順にソートして上位10件を取得
-        sorted_keywords = sorted(keywords, 
-                               key=lambda k: k.get('estimated_volume', k.get('search_volume', 0)), 
-                               reverse=True)
-        top_keywords = sorted_keywords[:10]  # 上位10件を取得
-        
-        for i, kw in enumerate(top_keywords):
-            x = kw.get('time_diff_days', 0)
-            y = kw.get('estimated_volume', kw.get('search_volume', 0))
-            if y > 0:  # ボリュームが0より大きい場合のみ表示
-                try:
-                    # プロットの上に番号を表示（ポイント単位でオフセット）
-                    # annotateを使用してオフセットをポイント単位で指定
-                    plt.annotate(str(i+1), 
-                                xy=(x, y),  # プロットの位置
-                                xytext=(0, 10),  # 10ポイント上（約14ピクセル）
-                                textcoords='offset points',
-                                fontsize=8, 
-                                ha='center', 
-                                va='bottom',
-                                color='black', 
-                                weight='bold', 
-                                zorder=6)
-                except Exception as e:
-                    print(f"[WARNING] Failed to add number for keyword {i+1}: {e}")
+        # 番号表示は削除（主要検索キーワードリストで確認）
         
         # 診断日に縦線を追加
         plt.axvline(x=0, color='gray', linestyle='--', alpha=0.5, label='Diagnosis Date')
@@ -1715,7 +1691,7 @@ def generate_timeline_graph(timeline_data, output_path):
         # グラフの装飾（英語で統一）
         plt.xlabel('Days from Diagnosis', fontsize=12)
         plt.ylabel('Search Volume', fontsize=12)
-        plt.title('Timeline Analysis of Search Keywords (Numbers = Top 10 Keywords)', fontsize=14, fontweight='bold')
+        plt.title('Timeline Analysis of Search Keywords', fontsize=14, fontweight='bold')
         plt.legend(loc='upper right')
         plt.grid(True, alpha=0.3)
         
@@ -2065,7 +2041,7 @@ def generate_pdf(data):
         # 主要検索キーワード（上位10件）を表示（グラフの番号と対応）
         if timeline_analysis.get('keywords'):
             pdf.set_font("ipa", "B", 11)
-            pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 7, '主要検索キーワード（上位10件 - グラフの番号と対応）', 0, 1)
+            pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 7, '主要検索キーワード（上位10件）', 0, 1)
             pdf.set_font("ipa", "", 9)
             
             # 検索ボリューム順にソートして上位10件を取得
@@ -2423,16 +2399,16 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
         # 主要キーワード（上位5件 - グラフの番号と対応）
         if timeline_analysis.get('keywords'):
             keywords_title = slide.shapes.add_textbox(left_margin_ppt, left_column_y, left_width, Cm(0.8))
-            add_text_to_shape(keywords_title, '主要検索キーワード（グラフ番号対応）', font_size=Pt(12), is_bold=True, 
+            add_text_to_shape(keywords_title, '主要検索キーワード', font_size=Pt(12), is_bold=True, 
                              font_name='Meiryo UI', fill_color=RGBColor(200, 230, 200))
             left_column_y += Cm(1)
             
-            # 検索ボリューム順にソートして上位5件を取得
+            # 検索ボリューム順にソートして上位10件を取得
             all_keywords = timeline_analysis['keywords']
             sorted_keywords = sorted(all_keywords, 
                                    key=lambda k: k.get('estimated_volume', k.get('search_volume', 0)), 
                                    reverse=True)
-            keywords = sorted_keywords[:5]
+            keywords = sorted_keywords[:10]
             keywords_text = ""
             for i, kw in enumerate(keywords, 1):
                 keyword_text = f"{i}. {kw['keyword']} ("
@@ -2442,7 +2418,7 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
                     keyword_text += f"{kw['time_diff_days']:.1f}日後)"
                 keywords_text += keyword_text + "\n"
             
-            keywords_shape = slide.shapes.add_textbox(left_margin_ppt, left_column_y, left_width, Cm(3))
+            keywords_shape = slide.shapes.add_textbox(left_margin_ppt, left_column_y, left_width, Cm(5))
             add_text_to_shape(keywords_shape, keywords_text.strip(), font_size=Pt(9), font_name='Meiryo UI')
         
         # 右カラム：AI分析レポート（グラフの下に配置）
