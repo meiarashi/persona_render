@@ -1647,6 +1647,31 @@ def generate_timeline_graph(timeline_data, output_path):
         # デバッグ: データ構造を確認
         print(f"[DEBUG] Timeline data keys: {list(timeline_data.keys()) if timeline_data else 'None'}")
         
+        # 日本語フォントの設定
+        import matplotlib.font_manager as fm
+        # システムにインストールされているフォントを探す
+        font_paths = [
+            '/usr/share/fonts/opentype/ipaexfont-gothic/ipaexg.ttf',
+            '/usr/share/fonts/truetype/fonts-japanese-gothic.ttf',
+            '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+            './assets/fonts/ipaexg.ttf'  # プロジェクト内のフォント
+        ]
+        
+        font_path = None
+        for path in font_paths:
+            import os
+            if os.path.exists(path):
+                font_path = path
+                break
+        
+        if font_path:
+            prop = fm.FontProperties(fname=font_path)
+            plt.rcParams['font.family'] = prop.get_name()
+            print(f"[DEBUG] Using font: {font_path}")
+        else:
+            # フォントが見つからない場合は英語で表示
+            print("[WARNING] No Japanese font found, using English labels")
+        
         # グラフのサイズとスタイル設定
         plt.figure(figsize=(12, 6))
         plt.style.use('default')
@@ -1669,17 +1694,28 @@ def generate_timeline_graph(timeline_data, output_path):
         post_y = [kw.get('estimated_volume', kw.get('search_volume', 0)) for kw in post_keywords]
         
         # 散布図を描画
-        plt.scatter(pre_x, pre_y, c='#3b82f6', alpha=0.6, s=40, label='診断前')
-        plt.scatter(post_x, post_y, c='#ef4444', alpha=0.6, s=40, label='診断後')
+        if font_path:
+            plt.scatter(pre_x, pre_y, c='#3b82f6', alpha=0.6, s=40, label='診断前')
+            plt.scatter(post_x, post_y, c='#ef4444', alpha=0.6, s=40, label='診断後')
+            # 診断日に縦線を追加
+            plt.axvline(x=0, color='gray', linestyle='--', alpha=0.5, label='診断日')
+        else:
+            plt.scatter(pre_x, pre_y, c='#3b82f6', alpha=0.6, s=40, label='Pre-diagnosis')
+            plt.scatter(post_x, post_y, c='#ef4444', alpha=0.6, s=40, label='Post-diagnosis')
+            # 診断日に縦線を追加
+            plt.axvline(x=0, color='gray', linestyle='--', alpha=0.5, label='Diagnosis Date')
         
-        # 診断日に縦線を追加
-        plt.axvline(x=0, color='gray', linestyle='--', alpha=0.5, label='診断日')
-        
-        # グラフの装飾
-        plt.xlabel('診断からの日数', fontsize=12)
-        plt.ylabel('検索ボリューム', fontsize=12)
-        plt.title('検索キーワードの時系列分析', fontsize=14, fontweight='bold')
-        plt.legend(loc='upper right')
+        # グラフの装飾（日本語フォントがない場合は英語）
+        if font_path:
+            plt.xlabel('診断からの日数', fontsize=12)
+            plt.ylabel('検索ボリューム', fontsize=12)
+            plt.title('検索キーワードの時系列分析', fontsize=14, fontweight='bold')
+            plt.legend(['診断前', '診断後', '診断日'], loc='upper right')
+        else:
+            plt.xlabel('Days from Diagnosis', fontsize=12)
+            plt.ylabel('Search Volume', fontsize=12)
+            plt.title('Timeline Analysis of Search Keywords', fontsize=14, fontweight='bold')
+            plt.legend(['Pre-diagnosis', 'Post-diagnosis', 'Diagnosis Date'], loc='upper right')
         plt.grid(True, alpha=0.3)
         
         # Y軸を対数スケールに設定（検索ボリュームの範囲が広い場合）
@@ -1688,7 +1724,10 @@ def generate_timeline_graph(timeline_data, output_path):
             min_volume = min([v for v in pre_y + post_y if v > 0] or [1])
             if max_volume / min_volume > 100:  # 100倍以上の差がある場合
                 plt.yscale('log')
-                plt.ylabel('検索ボリューム（対数スケール）', fontsize=12)
+                if font_path:
+                    plt.ylabel('検索ボリューム（対数スケール）', fontsize=12)
+                else:
+                    plt.ylabel('Search Volume (Log Scale)', fontsize=12)
         
         plt.tight_layout()
         plt.savefig(output_path, dpi=150, bbox_inches='tight')
@@ -2003,10 +2042,14 @@ def generate_pdf(data):
                 graph_width = page_width * 0.8
                 graph_x = pdf.l_margin + (page_width - graph_width) / 2
                 
-                pdf.image(graph_path, x=graph_x, y=pdf.get_y(), w=graph_width)
+                # グラフの高さを計算（幅の約半分）
+                graph_height = graph_width * 0.5
+                current_y = pdf.get_y()
+                
+                pdf.image(graph_path, x=graph_x, y=current_y, w=graph_width, h=graph_height)
                 
                 # グラフの後に適切なスペースを追加
-                pdf.ln(80)  # グラフの高さ分スペースを追加
+                pdf.set_y(current_y + graph_height + 10)  # グラフの高さ + 10mmの余白
                 
                 # 一時ファイルを削除
                 import os
@@ -2031,6 +2074,9 @@ def generate_pdf(data):
         pdf.set_font("ipa", "", 9)
         
         ai_analysis_text = timeline_analysis.get('ai_analysis', '')
+        print(f"[DEBUG] AI analysis text length: {len(ai_analysis_text)}")
+        print(f"[DEBUG] AI analysis text preview: {ai_analysis_text[:100] if ai_analysis_text else 'EMPTY'}")
+        
         if ai_analysis_text:
             # テキストを分割して表示
             lines = ai_analysis_text.split('\n')
@@ -2305,7 +2351,7 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
         slide = prs.slides.add_slide(slide_layout)
         
         # タイトル
-        title_shape = slide.shapes.add_textbox(left_margin, Cm(1), prs.slide_width - left_margin * 2, Cm(1.5))
+        title_shape = slide.shapes.add_textbox(left_margin_ppt, Cm(1), prs.slide_width - left_margin_ppt * 2, Cm(1.5))
         add_text_to_shape(title_shape, 'タイムライン分析', font_size=Pt(20), is_bold=True, 
                          font_name='Meiryo UI', fill_color=RGBColor(47, 84, 150))
         
@@ -2333,9 +2379,10 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
         
         # 左カラム：検索行動の概要と主要キーワード（グラフの下に配置）
         left_column_y = Cm(11)
+        left_width = content_width * 0.35  # 左カラムの幅を定義
         
         # 検索行動の概要
-        overview_title = slide.shapes.add_textbox(left_margin, left_column_y, left_width, Cm(0.8))
+        overview_title = slide.shapes.add_textbox(left_margin_ppt, left_column_y, left_width, Cm(0.8))
         add_text_to_shape(overview_title, '検索行動の概要', font_size=Pt(12), is_bold=True, 
                          font_name='Meiryo UI', fill_color=RGBColor(200, 230, 200))
         left_column_y += Cm(1)
@@ -2343,13 +2390,13 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
         pre_count = timeline_analysis.get('pre_diagnosis_count', 0)
         post_count = timeline_analysis.get('post_diagnosis_count', 0)
         overview_text = f"診断前の検索キーワード数: {pre_count}件\n診断後の検索キーワード数: {post_count}件"
-        overview_shape = slide.shapes.add_textbox(left_margin, left_column_y, left_width, Cm(2))
+        overview_shape = slide.shapes.add_textbox(left_margin_ppt, left_column_y, left_width, Cm(2))
         add_text_to_shape(overview_shape, overview_text, font_size=Pt(10), font_name='Meiryo UI')
         left_column_y += Cm(2.5)
         
         # 主要キーワード（上位5件）
         if timeline_analysis.get('keywords'):
-            keywords_title = slide.shapes.add_textbox(left_margin, left_column_y, left_width, Cm(0.8))
+            keywords_title = slide.shapes.add_textbox(left_margin_ppt, left_column_y, left_width, Cm(0.8))
             add_text_to_shape(keywords_title, '主要検索キーワード', font_size=Pt(12), is_bold=True, 
                              font_name='Meiryo UI', fill_color=RGBColor(200, 230, 200))
             left_column_y += Cm(1)
@@ -2364,7 +2411,7 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
                     keyword_text += f"{kw['time_diff_days']:.1f}日後)"
                 keywords_text += keyword_text + "\n"
             
-            keywords_shape = slide.shapes.add_textbox(left_margin, left_column_y, left_width, Cm(3))
+            keywords_shape = slide.shapes.add_textbox(left_margin_ppt, left_column_y, left_width, Cm(3))
             add_text_to_shape(keywords_shape, keywords_text.strip(), font_size=Pt(9), font_name='Meiryo UI')
         
         # 右カラム：AI分析レポート
