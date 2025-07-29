@@ -14,6 +14,10 @@ const patientTypeDetails = {
     '自律決定型': { description: '自分の治療に主体的に関わり、最終決定権を持ちたいと考える', example: '医療リテラシーが高い患者、自己管理を好む慢性疾患患者' }
 };
 
+// --- Global Variables ---
+let currentPersonaResult = null;
+window.currentTimelineAnalysis = null; // タイムライン分析データを保存
+
 // --- Persona Fields Random Value Settings ---
 // 候補値のリスト
 const personaRandomValues = {
@@ -1887,10 +1891,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             pdfButton.style.cssText = pdfButton.style.cssText.replace('font-size: 14px !important;', 'font-size: 12px !important;');
             pdfButton.style.opacity = '0.7';
             try {
+                // タイムライン分析データも含める
+                const downloadData = {
+                    ...currentPersonaResult,
+                    timeline_analysis: window.currentTimelineAnalysis || null
+                };
+                
                 const response = await fetch('/api/download/pdf', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(currentPersonaResult)
+                    body: JSON.stringify(downloadData)
                 });
                 if (!response.ok) throw new Error(`サーバーエラー ${response.status}`);
                 const blob = await response.blob();
@@ -1930,10 +1940,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             pptButton.style.cssText = pptButton.style.cssText.replace('font-size: 14px !important;', 'font-size: 12px !important;');
             pptButton.style.opacity = '0.7';
             try {
+                // タイムライン分析データも含める
+                const downloadData = {
+                    ...currentPersonaResult,
+                    timeline_analysis: window.currentTimelineAnalysis || null
+                };
+                
                 const response = await fetch('/api/download/ppt', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(currentPersonaResult)
+                    body: JSON.stringify(downloadData)
                 });
                 if (!response.ok) throw new Error(`サーバーエラー ${response.status}`);
                 const blob = await response.blob();
@@ -3485,6 +3501,17 @@ async function loadTimelineAnalysis(profile) {
                 
                 const aiText = analysisData.ai_analysis || analysisData.analysis || '';
                 console.log('[DEBUG] Final AI text:', aiText);
+                
+                // タイムライン分析データを保存
+                const pre_count = data.filtered_keywords.filter(k => k.time_diff_days < 0).length;
+                const post_count = data.filtered_keywords.filter(k => k.time_diff_days >= 0).length;
+                
+                window.currentTimelineAnalysis = {
+                    keywords: data.filtered_keywords,
+                    ai_analysis: aiText,
+                    pre_diagnosis_count: pre_count,
+                    post_diagnosis_count: post_count
+                };
                 
                 analysisContent.innerHTML = aiText ? 
                     escapeHtml(aiText).replace(/\n/g, '<br>') : 

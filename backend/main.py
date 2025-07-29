@@ -1877,6 +1877,59 @@ def generate_pdf(data):
             pdf.ln(5) # セクション間のスペースを3mmから5mmに増加
             right_column_current_y = pdf.get_y() # スペース後のY座標を更新
 
+    # --- タイムライン分析セクション（新しいページに追加） ---
+    timeline_analysis = data.get('timeline_analysis')
+    if timeline_analysis and timeline_analysis.get('ai_analysis'):
+        pdf.add_page()
+        
+        # セクションタイトル
+        pdf.set_font("ipa", "B", 14)
+        pdf.cell(0, 10, 'タイムライン分析', 0, 1, 'C')
+        pdf.ln(5)
+        
+        # 検索キーワード統計
+        pdf.set_font("ipa", "B", 11)
+        pdf.cell(0, 7, '検索行動の概要', 0, 1)
+        pdf.set_font("ipa", "", 9)
+        
+        pre_count = timeline_analysis.get('pre_diagnosis_count', 0)
+        post_count = timeline_analysis.get('post_diagnosis_count', 0)
+        pdf.cell(0, 6, f'診断前の検索キーワード数: {pre_count}件', 0, 1)
+        pdf.cell(0, 6, f'診断後の検索キーワード数: {post_count}件', 0, 1)
+        pdf.ln(5)
+        
+        # AI分析レポート
+        pdf.set_font("ipa", "B", 11)
+        pdf.cell(0, 7, 'AI分析レポート', 0, 1)
+        pdf.set_font("ipa", "", 9)
+        
+        ai_analysis_text = timeline_analysis.get('ai_analysis', '')
+        if ai_analysis_text:
+            # テキストを分割して表示
+            lines = ai_analysis_text.split('\n')
+            for line in lines:
+                if line.strip():
+                    # 長い行は自動折り返し
+                    pdf.multi_cell(0, 5, line.strip(), 0, 'L')
+                else:
+                    pdf.ln(3)
+        
+        # 主要キーワード（上位10件）
+        if timeline_analysis.get('keywords'):
+            pdf.ln(5)
+            pdf.set_font("ipa", "B", 11)
+            pdf.cell(0, 7, '主要検索キーワード（上位10件）', 0, 1)
+            pdf.set_font("ipa", "", 9)
+            
+            keywords = timeline_analysis['keywords'][:10]
+            for i, kw in enumerate(keywords, 1):
+                keyword_text = f"{i}. {kw['keyword']} ({kw['time_diff_days']:.1f}日"
+                if kw['time_diff_days'] < 0:
+                    keyword_text += "前)"
+                else:
+                    keyword_text += "後)"
+                pdf.cell(0, 5, keyword_text, 0, 1)
+    
     # Generate PDF in memory
     pdf_output = pdf.output() # Get output as bytes directly
     buffer = io.BytesIO(pdf_output)
@@ -2115,6 +2168,63 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
             content_shape = slide.shapes.add_textbox(right_column_x, current_y_right, right_width, Cm(2.0))
             add_text_to_shape(content_shape, value, font_size=Pt(10.5), font_name='Meiryo UI')
             current_y_right += Cm(2.0) + item_spacing_ppt * 2
+    
+    # --- タイムライン分析スライド ---
+    timeline_analysis = persona_data.get('timeline_analysis')
+    if timeline_analysis and timeline_analysis.get('ai_analysis'):
+        # 新しいスライドを追加
+        slide = prs.slides.add_slide(slide_layout)
+        
+        # タイトル
+        title_shape = slide.shapes.add_textbox(left_margin, Cm(1), prs.slide_width - left_margin * 2, Cm(1.5))
+        add_text_to_shape(title_shape, 'タイムライン分析', font_size=Pt(20), is_bold=True, 
+                         font_name='Meiryo UI', fill_color=RGBColor(47, 84, 150))
+        
+        # 左カラム：検索行動の概要と主要キーワード
+        left_column_y = Cm(3)
+        
+        # 検索行動の概要
+        overview_title = slide.shapes.add_textbox(left_margin, left_column_y, left_width, Cm(0.8))
+        add_text_to_shape(overview_title, '検索行動の概要', font_size=Pt(12), is_bold=True, 
+                         font_name='Meiryo UI', fill_color=RGBColor(200, 230, 200))
+        left_column_y += Cm(1)
+        
+        pre_count = timeline_analysis.get('pre_diagnosis_count', 0)
+        post_count = timeline_analysis.get('post_diagnosis_count', 0)
+        overview_text = f"診断前の検索キーワード数: {pre_count}件\n診断後の検索キーワード数: {post_count}件"
+        overview_shape = slide.shapes.add_textbox(left_margin, left_column_y, left_width, Cm(2))
+        add_text_to_shape(overview_shape, overview_text, font_size=Pt(10), font_name='Meiryo UI')
+        left_column_y += Cm(2.5)
+        
+        # 主要キーワード（上位5件）
+        if timeline_analysis.get('keywords'):
+            keywords_title = slide.shapes.add_textbox(left_margin, left_column_y, left_width, Cm(0.8))
+            add_text_to_shape(keywords_title, '主要検索キーワード', font_size=Pt(12), is_bold=True, 
+                             font_name='Meiryo UI', fill_color=RGBColor(200, 230, 200))
+            left_column_y += Cm(1)
+            
+            keywords = timeline_analysis['keywords'][:5]
+            keywords_text = ""
+            for i, kw in enumerate(keywords, 1):
+                keyword_text = f"{i}. {kw['keyword']} ("
+                if kw['time_diff_days'] < 0:
+                    keyword_text += f"{abs(kw['time_diff_days']):.1f}日前)"
+                else:
+                    keyword_text += f"{kw['time_diff_days']:.1f}日後)"
+                keywords_text += keyword_text + "\n"
+            
+            keywords_shape = slide.shapes.add_textbox(left_margin, left_column_y, left_width, Cm(3))
+            add_text_to_shape(keywords_shape, keywords_text.strip(), font_size=Pt(9), font_name='Meiryo UI')
+        
+        # 右カラム：AI分析レポート
+        analysis_title = slide.shapes.add_textbox(right_column_x, Cm(3), right_width, Cm(0.8))
+        add_text_to_shape(analysis_title, 'AI分析レポート', font_size=Pt(12), is_bold=True, 
+                         font_name='Meiryo UI', fill_color=RGBColor(200, 230, 200))
+        
+        ai_analysis_text = timeline_analysis.get('ai_analysis', '')
+        if ai_analysis_text:
+            analysis_shape = slide.shapes.add_textbox(right_column_x, Cm(4), right_width, Cm(15))
+            add_text_to_shape(analysis_shape, ai_analysis_text, font_size=Pt(9), font_name='Meiryo UI')
     
     # Save to memory stream
     pptx_buffer = io.BytesIO()

@@ -1000,6 +1000,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     let currentPersonaResult = null;
+    window.currentTimelineAnalysis = null; // タイムライン分析データを保存
     let hasRandomizedDetailsEver = false; // ランダム初期化実行フラグ
     let loadingStep; // <--- loadingStep をここで宣言
 
@@ -1840,10 +1841,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             pdfButton.style.cssText = pdfButton.style.cssText.replace('font-size: 14px !important;', 'font-size: 12px !important;');
             pdfButton.style.opacity = '0.7';
             try {
+                // タイムライン分析データも含める
+                const downloadData = {
+                    ...currentPersonaResult,
+                    timeline_analysis: window.currentTimelineAnalysis || null
+                };
+                
                 const response = await fetch('/api/download/pdf', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(currentPersonaResult)
+                    body: JSON.stringify(downloadData)
                 });
                 if (!response.ok) throw new Error(`サーバーエラー ${response.status}`);
                 const blob = await response.blob();
@@ -1883,10 +1890,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             pptButton.style.cssText = pptButton.style.cssText.replace('font-size: 14px !important;', 'font-size: 12px !important;');
             pptButton.style.opacity = '0.7';
             try {
+                // タイムライン分析データも含める
+                const downloadData = {
+                    ...currentPersonaResult,
+                    timeline_analysis: window.currentTimelineAnalysis || null
+                };
+                
                 const response = await fetch('/api/download/ppt', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(currentPersonaResult)
+                    body: JSON.stringify(downloadData)
                 });
                 if (!response.ok) throw new Error(`サーバーエラー ${response.status}`);
                 const blob = await response.blob();
@@ -2202,12 +2215,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             pdfDownloadBtn.disabled = true;
 
             try {
+                // タイムライン分析データも含める
+                const downloadData = {
+                    ...currentPersonaResult,
+                    timeline_analysis: window.currentTimelineAnalysis || null
+                };
+                
                 const response = await fetch('/api/download/pdf', { // Changed to relative path
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(currentPersonaResult), // Send the stored result
+                    body: JSON.stringify(downloadData), // Send the stored result
                 });
 
                 if (!response.ok) {
