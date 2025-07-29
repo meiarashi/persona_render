@@ -1118,11 +1118,6 @@ async def download_pdf(request: Request):
                 content={"error": "No data provided"}
             )
         
-        # デバッグ: データ構造を確認
-        print(f"[DEBUG] PDF download data keys: {list(data.keys())}")
-        if 'timeline_analysis' in data:
-            print(f"[DEBUG] timeline_analysis keys: {list(data.get('timeline_analysis', {}).keys())}")
-            print(f"[DEBUG] timeline_analysis sample: {str(data.get('timeline_analysis'))[:200]}")
 
         # PDF生成
         try:
@@ -1650,11 +1645,7 @@ def generate_timeline_graph(timeline_data, output_path):
         return False
         
     try:
-        # デバッグ: データ構造を確認
-        print(f"[DEBUG] Timeline data keys: {list(timeline_data.keys()) if timeline_data else 'None'}")
-        
         # フォント設定は上部で既に行われているため、ここでは上書きしない
-        print(f"[INFO] Current font family: {plt.rcParams['font.family']}")
         
         # グラフのサイズとスタイル設定
         plt.figure(figsize=(12, 6))
@@ -1666,9 +1657,6 @@ def generate_timeline_graph(timeline_data, output_path):
         # 診断前後でキーワードを分割
         pre_keywords = [kw for kw in keywords if kw.get('time_diff_days', 0) < 0]
         post_keywords = [kw for kw in keywords if kw.get('time_diff_days', 0) >= 0]
-        
-        print(f"[DEBUG] Pre-diagnosis keywords: {len(pre_keywords)}")
-        print(f"[DEBUG] Post-diagnosis keywords: {len(post_keywords)}")
         
         # 散布図データの準備
         pre_x = [kw.get('time_diff_days', 0) for kw in pre_keywords]
@@ -1737,10 +1725,6 @@ def generate_pdf(data):
     profile = data.get('profile', {})
     details = data.get('details', {})
     image_url = data.get('image_url')
-    
-    print(f"[DEBUG] PDF data keys: {list(data.keys())}")
-    print(f"[DEBUG] Details keys: {list(details.keys()) if details else 'No details'}")
-    print(f"[DEBUG] Details personality preview: {str(details.get('personality', ''))[:100] if details else 'No personality'}")
 
     # --- 定数定義 ---
     name_line_height = 6  # ペルソナ名の行の高さ (mm)
@@ -2030,18 +2014,10 @@ def generate_pdf(data):
         except Exception as e:
             print(f"Error adding graph to PDF: {e}")
         
-        # 現在のY座標を確認
-        current_y_after_graph = pdf.get_y()
-        print(f"[DEBUG] Y position after graph: {current_y_after_graph}")
-        print(f"[DEBUG] Page height: {pdf.h}, Bottom margin: {pdf.b_margin}")
-        
-        # ページの残りスペースを確認
-        remaining_space = pdf.h - pdf.b_margin - current_y_after_graph
-        print(f"[DEBUG] Remaining space on page: {remaining_space}mm")
-        
         # スペースが不足している場合は新しいページを追加
+        current_y_after_graph = pdf.get_y()
+        remaining_space = pdf.h - pdf.b_margin - current_y_after_graph
         if remaining_space < 50:  # 50mm以下の場合
-            print("[DEBUG] Adding new page for AI analysis")
             pdf.add_page()
         
         # 検索キーワード統計
@@ -2055,40 +2031,8 @@ def generate_pdf(data):
         pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 6, f'診断後の検索キーワード数: {post_count}件', 0, 1)
         pdf.ln(5)
         
-        # AI分析レポート
-        pdf.ln(5)  # セクション間のスペース
-        current_y_before_ai = pdf.get_y()
-        print(f"[DEBUG] Y position before AI analysis section: {current_y_before_ai}")
-        
-        pdf.set_font("ipa", "B", 11)
-        pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 7, 'AI分析レポート', 0, 1)
-        pdf.set_font("ipa", "", 9)
-        
-        ai_analysis_text = timeline_analysis.get('ai_analysis', '')
-        print(f"[DEBUG] AI analysis text length: {len(ai_analysis_text)}")
-        print(f"[DEBUG] AI analysis text preview: {ai_analysis_text[:100] if ai_analysis_text else 'EMPTY'}")
-        
-        if ai_analysis_text:
-            # テキストを分割して表示
-            lines = ai_analysis_text.split('\n')
-            for line in lines:
-                if line.strip():
-                    # 長い行は自動折り返し
-                    pdf.multi_cell(pdf.w - pdf.l_margin - pdf.r_margin, 5, line.strip(), 0, 'L')
-                else:
-                    pdf.ln(3)
-        else:
-            print("[WARNING] AI analysis text is empty!")
-            pdf.multi_cell(pdf.w - pdf.l_margin - pdf.r_margin, 5, "AI分析データがありません", 0, 'L')
-        
-        # AI分析後のY座標を確認
-        current_y_after_ai = pdf.get_y()
-        print(f"[DEBUG] Y position after AI analysis: {current_y_after_ai}")
-        print(f"[DEBUG] AI analysis section height: {current_y_after_ai - current_y_before_ai}mm")
-        
-        # 主要キーワード（上位10件）
+        # 主要検索キーワード（上位10件）を先に表示
         if timeline_analysis.get('keywords'):
-            pdf.ln(5)
             pdf.set_font("ipa", "B", 11)
             pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 7, '主要検索キーワード（上位10件）', 0, 1)
             pdf.set_font("ipa", "", 9)
@@ -2101,6 +2045,34 @@ def generate_pdf(data):
                 else:
                     keyword_text += "後)"
                 pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 5, keyword_text, 0, 1)
+            pdf.ln(8)  # キーワードリストの後にスペース
+        
+        # AI分析レポート
+        pdf.set_font("ipa", "B", 11)
+        pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 7, 'AI分析レポート', 0, 1)
+        pdf.ln(2)  # タイトルの後に少しスペース
+        pdf.set_font("ipa", "", 9)
+        
+        ai_analysis_text = timeline_analysis.get('ai_analysis', '')
+        
+        if ai_analysis_text:
+            # 現在のX座標を保存
+            left_x = pdf.l_margin
+            
+            # テキストを段落ごとに処理
+            paragraphs = ai_analysis_text.split('\n\n')
+            for i, paragraph in enumerate(paragraphs):
+                if paragraph.strip():
+                    # X座標を左マージンに設定（左寄せを確実にする）
+                    pdf.set_x(left_x)
+                    # 段落全体を一つのmulti_cellで表示
+                    pdf.multi_cell(pdf.w - pdf.l_margin - pdf.r_margin, 5, paragraph.strip(), 0, 'L')
+                    
+                    # 段落間のスペース（最後の段落以外）
+                    if i < len(paragraphs) - 1:
+                        pdf.ln(3)
+        else:
+            pdf.multi_cell(pdf.w - pdf.l_margin - pdf.r_margin, 5, "AI分析データがありません", 0, 'L')
     
     # Generate PDF in memory
     pdf_output = pdf.output() # Get output as bytes directly
@@ -2114,14 +2086,28 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
     prs = Presentation()
     prs.slide_width = Inches(11.69)  # A4 Landscape width
     prs.slide_height = Inches(8.27) # A4 Landscape height
-    slide_layout = prs.slide_layouts[5]  # Blank layout
+    # Try to use the most blank layout available
+    try:
+        slide_layout = prs.slide_layouts[6]  # Sometimes layout 6 is even more blank
+    except:
+        slide_layout = prs.slide_layouts[5]  # Fall back to layout 5 (blank layout)
     slide = prs.slides.add_slide(slide_layout)
     
     # スライド上のすべてのプレースホルダーを削除
+    shapes_to_remove = []
     for shape in slide.shapes:
         if shape.is_placeholder:
-            sp = shape.element
-            sp.getparent().remove(sp)
+            shapes_to_remove.append(shape)
+    
+    # プレースホルダーを逆順で削除（インデックスの問題を避けるため）
+    for shape in reversed(shapes_to_remove):
+        sp = shape.element
+        sp.getparent().remove(sp)
+    
+    # 余分なテキストフレームをさらに削除
+    for shape in slide.shapes:
+        if hasattr(shape, 'text_frame') and shape.text_frame:
+            shape.text_frame.clear()
 
     # Margins (approximated from PDF's 8mm)
     left_margin_ppt = Cm(0.8)
@@ -2349,6 +2335,22 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
         # 新しいスライドを追加
         slide = prs.slides.add_slide(slide_layout)
         
+        # スライド上のすべてのプレースホルダーを削除
+        shapes_to_remove = []
+        for shape in slide.shapes:
+            if shape.is_placeholder:
+                shapes_to_remove.append(shape)
+        
+        # プレースホルダーを逆順で削除（インデックスの問題を避けるため）
+        for shape in reversed(shapes_to_remove):
+            sp = shape.element
+            sp.getparent().remove(sp)
+        
+        # 余分なテキストフレームをさらに削除
+        for shape in slide.shapes:
+            if hasattr(shape, 'text_frame') and shape.text_frame:
+                shape.text_frame.clear()
+        
         # タイトル
         title_shape = slide.shapes.add_textbox(left_margin_ppt, Cm(1), prs.slide_width - left_margin_ppt * 2, Cm(1.5))
         add_text_to_shape(title_shape, 'タイムライン分析', font_size=Pt(20), is_bold=True, 
@@ -2361,12 +2363,12 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
                 graph_path = tmp_file.name
                 
             if generate_timeline_graph(timeline_analysis, graph_path):
-                # グラフをスライドに追加（上部中央に配置）
+                # グラフをスライドに追加（上部に配置、サイズを調整）
                 slide_width = prs.slide_width
-                graph_width = Cm(20)  # 20cm幅
-                graph_height = Cm(8)  # 8cm高さ
+                graph_width = Cm(18)  # 18cm幅に縮小
+                graph_height = Cm(7)  # 7cm高さに縮小
                 graph_x = (slide_width - graph_width) / 2
-                graph_y = Cm(2.5)
+                graph_y = Cm(2.0)  # 2cmから開始
                 
                 slide.shapes.add_picture(graph_path, graph_x, graph_y, width=graph_width, height=graph_height)
                 
@@ -2377,7 +2379,8 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
             print(f"Error adding graph to PPT: {e}")
         
         # 左カラム：検索行動の概要と主要キーワード（グラフの下に配置）
-        left_column_y = Cm(11)
+        # グラフが2.0cmから始まり、7cm高さなので、9.0cmで終わる
+        left_column_y = Cm(9.5)  # グラフの下0.5cmの余白
         left_width = content_width * 0.35  # 左カラムの幅を定義
         
         # 検索行動の概要
@@ -2413,14 +2416,15 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
             keywords_shape = slide.shapes.add_textbox(left_margin_ppt, left_column_y, left_width, Cm(3))
             add_text_to_shape(keywords_shape, keywords_text.strip(), font_size=Pt(9), font_name='Meiryo UI')
         
-        # 右カラム：AI分析レポート
-        analysis_title = slide.shapes.add_textbox(right_column_x, Cm(3), right_width, Cm(0.8))
+        # 右カラム：AI分析レポート（グラフの下に配置）
+        right_column_y = Cm(9.5)  # 左カラムと同じ高さから開始
+        analysis_title = slide.shapes.add_textbox(right_column_x, right_column_y, right_width, Cm(0.8))
         add_text_to_shape(analysis_title, 'AI分析レポート', font_size=Pt(12), is_bold=True, 
                          font_name='Meiryo UI', fill_color=RGBColor(200, 230, 200))
         
         ai_analysis_text = timeline_analysis.get('ai_analysis', '')
         if ai_analysis_text:
-            analysis_shape = slide.shapes.add_textbox(right_column_x, Cm(4), right_width, Cm(15))
+            analysis_shape = slide.shapes.add_textbox(right_column_x, right_column_y + Cm(1), right_width, Cm(10))
             add_text_to_shape(analysis_shape, ai_analysis_text, font_size=Pt(9), font_name='Meiryo UI')
     
     # Save to memory stream
