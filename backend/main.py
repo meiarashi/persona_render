@@ -1683,29 +1683,29 @@ def generate_timeline_graph(timeline_data, output_path):
         plt.scatter(pre_x, pre_y, c='#3b82f6', alpha=0.6, s=40, label='Pre-diagnosis')
         plt.scatter(post_x, post_y, c='#ef4444', alpha=0.6, s=40, label='Post-diagnosis')
         
-        # 上位10キーワードに番号を追加（プロットの上に黒色で表示）
-        top_keywords = keywords[:10]  # 上位10件を取得
+        # キーワードを検索ボリューム順にソートして上位10件を取得
+        sorted_keywords = sorted(keywords, 
+                               key=lambda k: k.get('estimated_volume', k.get('search_volume', 0)), 
+                               reverse=True)
+        top_keywords = sorted_keywords[:10]  # 上位10件を取得
         
         for i, kw in enumerate(top_keywords):
             x = kw.get('time_diff_days', 0)
             y = kw.get('estimated_volume', kw.get('search_volume', 0))
             if y > 0:  # ボリュームが0より大きい場合のみ表示
                 try:
-                    # プロットの上に番号を表示（距離を2倍に）
-                    # Y軸のスケールに応じて適切なオフセットを計算
-                    ax = plt.gca()
-                    y_scale = ax.get_yscale()
-                    
-                    if y_scale == 'log':
-                        # 対数スケールの場合
-                        y_offset = y * 1.1  # 10%上
-                    else:
-                        # 線形スケールの場合
-                        y_range = ax.get_ylim()[1] - ax.get_ylim()[0]
-                        y_offset = y + y_range * 0.02  # Y軸範囲の2%分上
-                    
-                    plt.text(x, y_offset, str(i+1), fontsize=8, ha='center', va='bottom', 
-                            color='black', weight='bold', zorder=6)
+                    # プロットの上に番号を表示（ポイント単位でオフセット）
+                    # annotateを使用してオフセットをポイント単位で指定
+                    plt.annotate(str(i+1), 
+                                xy=(x, y),  # プロットの位置
+                                xytext=(0, 10),  # 10ポイント上（約14ピクセル）
+                                textcoords='offset points',
+                                fontsize=8, 
+                                ha='center', 
+                                va='bottom',
+                                color='black', 
+                                weight='bold', 
+                                zorder=6)
                 except Exception as e:
                     print(f"[WARNING] Failed to add number for keyword {i+1}: {e}")
         
@@ -2068,7 +2068,12 @@ def generate_pdf(data):
             pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 7, '主要検索キーワード（上位10件 - グラフの番号と対応）', 0, 1)
             pdf.set_font("ipa", "", 9)
             
-            keywords = timeline_analysis['keywords'][:10]
+            # 検索ボリューム順にソートして上位10件を取得
+            all_keywords = timeline_analysis['keywords']
+            sorted_keywords = sorted(all_keywords, 
+                                   key=lambda k: k.get('estimated_volume', k.get('search_volume', 0)), 
+                                   reverse=True)
+            keywords = sorted_keywords[:10]
             for i, kw in enumerate(keywords, 1):
                 keyword_text = f"{i}. {kw['keyword']} ({kw['time_diff_days']:.1f}日"
                 if kw['time_diff_days'] < 0:
@@ -2422,7 +2427,12 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
                              font_name='Meiryo UI', fill_color=RGBColor(200, 230, 200))
             left_column_y += Cm(1)
             
-            keywords = timeline_analysis['keywords'][:5]
+            # 検索ボリューム順にソートして上位5件を取得
+            all_keywords = timeline_analysis['keywords']
+            sorted_keywords = sorted(all_keywords, 
+                                   key=lambda k: k.get('estimated_volume', k.get('search_volume', 0)), 
+                                   reverse=True)
+            keywords = sorted_keywords[:5]
             keywords_text = ""
             for i, kw in enumerate(keywords, 1):
                 keyword_text = f"{i}. {kw['keyword']} ("
