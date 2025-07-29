@@ -1691,11 +1691,9 @@ def generate_timeline_graph(timeline_data, output_path):
             y = kw.get('estimated_volume', kw.get('search_volume', 0))
             if y > 0:  # ボリュームが0より大きい場合のみ表示
                 try:
-                    # プロットのすぐ右上に番号を表示（オフセットを小さく）
+                    # プロットのすぐ右上に番号を表示（背景なし）
                     plt.text(x + 0.5, y, str(i+1), fontsize=8, ha='left', va='center', 
-                            color='black', weight='bold', 
-                            bbox=dict(boxstyle='circle,pad=0.2', facecolor='white', edgecolor='black', alpha=0.8),
-                            zorder=6)
+                            color='black', weight='bold', zorder=6)
                 except Exception as e:
                     print(f"[WARNING] Failed to add number for keyword {i+1}: {e}")
         
