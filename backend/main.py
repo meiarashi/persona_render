@@ -1683,22 +1683,31 @@ def generate_timeline_graph(timeline_data, output_path):
         plt.scatter(pre_x, pre_y, c='#3b82f6', alpha=0.6, s=40, label='Pre-diagnosis')
         plt.scatter(post_x, post_y, c='#ef4444', alpha=0.6, s=40, label='Post-diagnosis')
         
-        # 上位10キーワードに番号付きマーカーを追加（日本語を避けて番号のみ表示）
+        # 上位10キーワードに番号を追加（プロットの上に黒色で表示）
         top_keywords = keywords[:10]  # 上位10件を取得
-        colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan']
         
         for i, kw in enumerate(top_keywords):
             x = kw.get('time_diff_days', 0)
             y = kw.get('estimated_volume', kw.get('search_volume', 0))
             if y > 0:  # ボリュームが0より大きい場合のみ表示
-                # 番号のみをマーカーとして表示
                 try:
-                    plt.scatter(x, y, c=colors[i % len(colors)], s=100, marker='o', 
-                              edgecolors='black', linewidths=1.5, zorder=5)
-                    plt.text(x, y, str(i+1), fontsize=10, ha='center', va='center', 
-                            color='white', weight='bold', zorder=6)
+                    # Y軸のスケールに応じて位置を調整
+                    ax = plt.gca()
+                    y_scale = ax.get_yscale()
+                    
+                    if y_scale == 'log':
+                        # 対数スケールの場合
+                        y_offset = y * 1.2
+                    else:
+                        # 線形スケールの場合
+                        y_range = ax.get_ylim()[1] - ax.get_ylim()[0]
+                        y_offset = y + y_range * 0.02  # Y軸範囲の2%分上に配置
+                    
+                    # プロットの少し上に番号を表示
+                    plt.text(x, y_offset, str(i+1), fontsize=9, ha='center', va='bottom', 
+                            color='black', weight='bold', zorder=6)
                 except Exception as e:
-                    print(f"[WARNING] Failed to add marker for keyword {i+1}: {e}")
+                    print(f"[WARNING] Failed to add number for keyword {i+1}: {e}")
         
         # 診断日に縦線を追加
         plt.axvline(x=0, color='gray', linestyle='--', alpha=0.5, label='Diagnosis Date')
