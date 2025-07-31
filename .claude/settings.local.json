@@ -10,7 +10,9 @@
       "Bash(cp:*)",
       "Bash(git branch:*)",
       "Bash(python:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(ls:*)",
+      "Bash(dir app_settings)"
     ],
     "deny": []
   },
