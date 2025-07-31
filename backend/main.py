@@ -13,6 +13,7 @@ import requests
 from urllib.parse import quote
 from urllib.request import urlopen
 import base64
+import asyncio
 
 # For PDF/PPT generation
 from PIL import Image
@@ -68,6 +69,7 @@ except ImportError:
 from .api import admin_settings, config
 from .services import timeline_analyzer
 from .services import crud, rag_processor
+from .services.async_image_generator import generate_image_async
 from .middleware.auth import verify_admin_credentials, verify_department_credentials
 from .models import schemas as models
 from .utils import config_loader, prompt_builder
@@ -890,6 +892,18 @@ async def generate_persona(request: Request):
         )
         
         
+        # ===== 非同期処理開始 =====
+        # 画像生成タスクを先に開始（バックグラウンドで実行）
+        print("[Async] Starting image generation task in background")
+        image_generation_task = asyncio.create_task(
+            generate_image_async(
+                data=data,
+                selected_image_model=selected_image_model,
+                openai_api_key=openai_api_key,
+                google_api_key=google_api_key
+            )
+        )
+        
         # AIクライアント初期化 (テキスト生成用)
         text_generation_client = None
         client_init_error = None
@@ -900,7 +914,8 @@ async def generate_persona(request: Request):
                 client_init_error = str(e)
         
         generated_text_str = None
-        # テキスト生成実行
+        # テキスト生成実行（画像生成と並列）
+        print("[Async] Starting text generation")
         if text_generation_client:
             try:
                 generated_text_str = await generate_text_response(prompt_text, selected_text_model, text_api_key_to_use)
@@ -922,145 +937,19 @@ async def generate_persona(request: Request):
             }
         else:
             generated_details = parse_ai_response(generated_text_str)
-            
-        # --- 画像生成 ---
-        image_url = "https://placehold.jp/150x150.png" # デフォルトプレースホルダー
-
-        # Enhanced prompt for more realistic images
-        name = data.get('name', 'person')
-        age_raw = data.get('age', 'age unknown')
-        gender = data.get('gender', 'gender unknown')
-        occupation = data.get('occupation', '')
         
-        # Extract numeric age from various formats (e.g., "25y", "25歳", "25")
-        age = age_raw
-        if isinstance(age_raw, str):
-            import re
-            age_match = re.search(r'(\d+)', age_raw)
-            if age_match:
-                age = age_match.group(1)
-            else:
-                age = "30"  # Default age if parsing fails
+        # 画像生成の完了を待つ
+        print("[Async] Waiting for image generation to complete")
+        try:
+            image_url = await image_generation_task
+            print(f"[Async] Image generation completed successfully")
+        except Exception as e:
+            print(f"[Async] Image generation task failed: {e}")
+            traceback.print_exc()
+            image_url = "https://placehold.jp/300x200/FF0000/FFFFFF?text=Async+Error"
         
-        # Convert gender to more natural language
-        gender_text = {
-            'male': 'man',
-            'female': 'woman',
-            '男性': 'man',
-            '女性': 'woman'
-        }.get(gender, gender)
-        
-        # Build detailed prompt for photorealistic image
-        img_prompt_parts = [
-            "Professional headshot portrait photograph,",
-            f"a {age} year old Japanese {gender_text},",
-            "photorealistic, high resolution, natural lighting,",
-            "friendly and approachable expression,",
-            "business casual attire,",
-            "shallow depth of field with blurred background,",
-            "taken with professional camera,"
-        ]
-        
-        # Add occupation-specific details if available
-        if occupation:
-            if '医師' in occupation or '医者' in occupation or 'doctor' in occupation.lower():
-                img_prompt_parts.append("wearing a white coat,")
-            elif '看護' in occupation or 'nurse' in occupation.lower():
-                img_prompt_parts.append("wearing medical scrubs,")
-            else:
-                img_prompt_parts.append(f"dressed appropriately for {occupation},")
-        
-        img_prompt_parts.extend([
-            "centered composition,",
-            "neutral gray background,",
-            "professional photography style"
-        ])
-        
-        img_prompt = " ".join(img_prompt_parts)
-
-        if selected_image_model == "dall-e-3":
-            if openai_api_key:
-                try:
-                    image_client = OpenAI(api_key=openai_api_key)
-                    print(f"Attempting DALL-E 3 image generation with prompt: {img_prompt}")
-                    image_response = image_client.images.generate(
-                        model="dall-e-3",
-                        prompt=img_prompt,
-                        size="1024x1024",  # Square format for consistency
-                        quality="hd",  # Use HD quality for better results
-                        style="natural",  # Natural style for photorealistic images
-                        n=1,
-                    )
-                    image_url = image_response.data[0].url
-                    print(f"DALL-E 3 Image generated successfully: {image_url}")
-                except Exception as img_e:
-                    print(f"DALL-E 3 Image generation failed: {img_e}")
-                    traceback.print_exc()
-                    image_url = "https://placehold.jp/300x200/EEE/777?text=DALL-E+Error"
-            else:
-                print("OpenAI API key not found for DALL-E 3. Skipping image generation.")
-                image_url = "https://placehold.jp/300x200/CCC/555?text=No+OpenAI+Key"
-
-        elif selected_image_model == "gemini-2.0-flash-exp-image-generation":
-            if google_api_key:
-                try:
-                    print(f"[INFO] Attempting Gemini image generation with prompt: {img_prompt}")
-                    
-                    # 新しいSDKが利用可能かチェック
-                    if google_genai_sdk and google_genai_types:
-                        # 新しいSDKでクライアントを作成
-                        client = google_genai_sdk.Client(api_key=google_api_key)
-                        
-                        print(f"[DEBUG] Using new SDK for image generation with model: {selected_image_model}")
-                        
-                        # 画像生成API呼び出し
-                        response = client.models.generate_content(
-                            model=selected_image_model,
-                            contents=img_prompt,
-                            config=google_genai_types.GenerateContentConfig(
-                                response_modalities=['TEXT', 'IMAGE']
-                            )
-                        )
-                        
-                        print(f"[DEBUG] Gemini Raw Response Object: {type(response)}")
-                        
-                        # レスポンスの検査 (より詳細に)
-                        if hasattr(response, 'candidates') and response.candidates:
-                            candidate = response.candidates[0]
-                            if candidate.content and candidate.content.parts:
-                                # 画像データを探す
-                                image_found = False
-                                for part in candidate.content.parts:
-                                    if hasattr(part, 'inline_data') and part.inline_data:
-                                        if hasattr(part.inline_data, 'data'):
-                                            image_data = part.inline_data.data # bytes
-                                            mime_type = getattr(part.inline_data, 'mime_type', 'image/png')
-                                            base64_image = base64.b64encode(image_data).decode('utf-8')
-                                            image_url = f"data:{mime_type};base64,{base64_image}"
-                                            image_found = True
-                                            break
-                                
-                                if not image_found:
-                                    image_url = "https://placehold.jp/300x200/EEE/777?text=No+Image+Data"
-                            else:
-                                image_url = "https://placehold.jp/300x200/EEE/777?text=No+Content"
-                        elif hasattr(response, 'text') and response.text:
-                            image_url = "https://placehold.jp/300x200/EEE/777?text=Text+Response"
-                        else:
-                            image_url = "https://placehold.jp/300x200/EEE/777?text=No+Candidates"
-                            
-                    else:
-                        image_url = "https://placehold.jp/300x200/EEE/777?text=No+SDK"
-
-                except Exception as img_e:
-                    # エラーメッセージに詳細を含める
-                    error_message = str(img_e).replace("\\n", " ") # 改行をスペースに
-                    image_url = f"https://placehold.jp/300x200/EEE/777?text=Gemini+Error"
-            else:
-                image_url = "https://placehold.jp/300x200/CCC/555?text=No+Google+Key"
-        
-        elif selected_image_model == "none":
-            image_url = "https://placehold.jp/150x150.png?text=No+Image" # No Image
+        # ===== 非同期処理完了 =====
+        print(f"[Async] Both text and image generation completed")
         
         # レスポンスデータ作成
         response_data = {
