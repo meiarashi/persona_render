@@ -271,13 +271,17 @@ async def startup_event():
     print("Running startup migration...")
     migrate_image_model_settings()
     
-    # RAGデータベースの初期化
-    print("Initializing RAG database...")
-    try:
-        rag_processor.init_rag_database()
-        print("RAG database initialized successfully")
-    except Exception as e:
-        print(f"Warning: Failed to initialize RAG database: {e}")
+    # RAGデータベースの初期化をスキップ
+    # データベースは既に存在し、読み取り専用でアクセスするため
+    print("[RAG] Skipping database initialization - using read-only access")
+    
+    # データベースファイルの存在確認のみ
+    from pathlib import Path
+    rag_db_path = Path("./app_settings/rag_data.db")
+    if rag_db_path.exists():
+        print(f"[RAG] Database confirmed at: {rag_db_path}")
+    else:
+        print("[RAG] Warning: Database file not found, RAG features may not work")
 
 # --- AI Client Initialization Helper --- 
 def get_ai_client(model_name, api_key):

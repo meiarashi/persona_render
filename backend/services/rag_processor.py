@@ -43,6 +43,17 @@ def ensure_rag_directories():
         print(f"Error creating RAG directories: {e}")
         raise
 
+def create_connection():
+    """WALモードを有効にしたデータベース接続を作成"""
+    conn = sqlite3.connect(str(RAG_DB_PATH), timeout=30.0)
+    # WAL（Write-Ahead Logging）モードを有効化 - 読み書きの同時実行を可能にする
+    conn.execute("PRAGMA journal_mode=WAL")
+    # 同期モードをNORMALに設定（パフォーマンスと安全性のバランス）
+    conn.execute("PRAGMA synchronous=NORMAL")
+    # キャッシュサイズを増やす（パフォーマンス向上）
+    conn.execute("PRAGMA cache_size=-64000")  # 64MB
+    return conn
+
 def init_rag_database():
     """RAGデータベースの初期化"""
     ensure_rag_directories()
@@ -54,7 +65,7 @@ def init_rag_database():
     print("="*60)
     
     try:
-        conn = sqlite3.connect(RAG_DB_PATH)
+        conn = create_connection()
         cursor = conn.cursor()
         
         # RAGデータテーブル作成
@@ -111,7 +122,7 @@ def _save_rag_data_internal(specialty: str, df: pd.DataFrame, original_filename:
     conn = None
     try:
         # データベース接続
-        conn = sqlite3.connect(RAG_DB_PATH)
+        conn = create_connection()
         cursor = conn.cursor()
         
         # トランザクション開始
@@ -201,7 +212,7 @@ def _save_rag_data_internal(specialty: str, df: pd.DataFrame, original_filename:
 def search_rag_data(specialty: str, age_group: str = None, gender: str = None, limit: int = 10) -> List[Dict]:
     """RAGデータから関連キーワードを検索"""
     try:
-        conn = sqlite3.connect(RAG_DB_PATH)
+        conn = create_connection()
         cursor = conn.cursor()
         
         # 基本クエリ
@@ -269,7 +280,7 @@ def get_rag_context(department: str) -> str:
     department_ja = DEPARTMENT_MAP.get(department, department)
     
     try:
-        conn = sqlite3.connect(str(RAG_DB_PATH))
+        conn = create_connection()
         cursor = conn.cursor()
         
         # テーブル名の生成（診療科名を使用）
