@@ -1102,21 +1102,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         try {
-            // カテゴリーを判定（歯科固定）
+            let chiefComplaints;
+            
+            // グローバルキャッシュから取得を試みる
             const category = 'dental';
-            const apiUrl = `/api/chief-complaints/${category}/${departmentName}`;
-            
-            console.log('[DEBUG] Fetching from API:', apiUrl);
-            
-            // APIから主訴リストを取得
-            const response = await fetch(apiUrl);
-            if (!response.ok) {
-                throw new Error('Failed to fetch chief complaints');
+            if (window.chiefComplaintsCache) {
+                const cached = window.chiefComplaintsCache.get(category, departmentName);
+                if (cached) {
+                    console.log('[DEBUG] Using global cache for chief complaints');
+                    chiefComplaints = cached;
+                }
             }
             
-            const data = await response.json();
-            console.log('[DEBUG] API Response:', data);
-            const chiefComplaints = data.chief_complaints;
+            // キャッシュになければAPIから取得
+            if (!chiefComplaints) {
+                const apiUrl = `/api/chief-complaints/${category}/${departmentName}`;
+                
+                console.log('[DEBUG] Fetching from API:', apiUrl);
+                
+                // APIから主訴リストを取得
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch chief complaints');
+                }
+                
+                const data = await response.json();
+                console.log('[DEBUG] API Response:', data);
+                chiefComplaints = data.chief_complaints;
+                
+                // グローバルキャッシュに保存
+                if (window.chiefComplaintsCache) {
+                    window.chiefComplaintsCache.set(category, departmentName, chiefComplaints);
+                }
+            }
             
             // 主訴選択画面のコンテナを取得
             const chiefComplaintStep = document.querySelector('[data-step="2"]');

@@ -1046,6 +1046,8 @@ async function loadChiefComplaints(departmentValue) {
     }
     
     try {
+        let chiefComplaints;
+        
         // カテゴリーを判定
         let category;
         const medicalDepts = ['ophthalmology', 'internal_medicine', 'surgery', 'pediatrics', 'orthopedics', 
@@ -1063,14 +1065,30 @@ async function loadChiefComplaints(departmentValue) {
             throw new Error('Unknown department category');
         }
         
-        // APIから主訴リストを取得
-        const response = await fetch(`/api/chief-complaints/${category}/${departmentName}`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch chief complaints');
+        // グローバルキャッシュから取得を試みる
+        if (window.chiefComplaintsCache) {
+            const cached = window.chiefComplaintsCache.get(category, departmentName);
+            if (cached) {
+                console.log('[DEBUG] Using global cache for chief complaints');
+                chiefComplaints = cached;
+            }
         }
         
-        const data = await response.json();
-        const chiefComplaints = data.chief_complaints;
+        // キャッシュになければAPIから取得
+        if (!chiefComplaints) {
+            const response = await fetch(`/api/chief-complaints/${category}/${departmentName}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch chief complaints');
+            }
+            
+            const data = await response.json();
+            chiefComplaints = data.chief_complaints;
+            
+            // グローバルキャッシュに保存
+            if (window.chiefComplaintsCache) {
+                window.chiefComplaintsCache.set(category, departmentName, chiefComplaints);
+            }
+        }
         
         // 主訴選択画面のコンテナを取得
         const chiefComplaintOptions = document.querySelector('.chief-complaint-options');

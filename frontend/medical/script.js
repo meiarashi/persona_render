@@ -1120,8 +1120,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         'endocrinology': '内分泌科'
     };
 
-    // 主訴データのキャッシュ
-    const chiefComplaintsCache = {};
+    // 主訴データのキャッシュ（グローバルキャッシュを使用するため削除）
+    // const chiefComplaintsCache = {};
     
     // 主訴を動的に読み込む関数
     async function loadChiefComplaints(departmentValue) {
@@ -1136,13 +1136,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             let chiefComplaints;
             
-            // キャッシュを確認
-            if (chiefComplaintsCache[departmentValue]) {
-                console.log('[DEBUG] Using cached chief complaints for:', departmentValue);
-                chiefComplaints = chiefComplaintsCache[departmentValue];
-            } else {
-                // カテゴリーを判定（医科固定）
-                const category = 'medical';
+            // グローバルキャッシュから取得を試みる
+            const category = 'medical';
+            if (window.chiefComplaintsCache) {
+                const cached = window.chiefComplaintsCache.get(category, departmentName);
+                if (cached) {
+                    console.log('[DEBUG] Using global cache for chief complaints');
+                    chiefComplaints = cached;
+                }
+            }
+            
+            // ローカルキャッシュは削除（グローバルキャッシュのみ使用） 
+            
+            // キャッシュになければAPIから取得
+            if (!chiefComplaints) {
                 const apiUrl = `/api/chief-complaints/${category}/${departmentName}`;
                 
                 console.log('[DEBUG] Fetching from API:', apiUrl);
@@ -1158,7 +1165,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 chiefComplaints = data.chief_complaints;
                 
                 // キャッシュに保存
-                chiefComplaintsCache[departmentValue] = chiefComplaints;
+                // グローバルキャッシュに保存済みのため削除
             }
             
             // 主訴選択画面のコンテナを取得
@@ -1223,10 +1230,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
-        // すでにキャッシュにある場合はスキップ
-        if (chiefComplaintsCache[departmentValue]) {
-            console.log('[DEBUG] Chief complaints already cached for:', departmentValue);
-            return;
+        // グローバルキャッシュですでにある場合はスキップ
+        const category = 'medical';
+        if (window.chiefComplaintsCache) {
+            const cached = window.chiefComplaintsCache.get(category, departmentName);
+            if (cached) {
+                console.log('[DEBUG] Chief complaints already cached for:', departmentValue);
+                return;
+            }
         }
         
         try {
@@ -1246,7 +1257,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('[DEBUG] Preloaded API Response:', data);
             
             // キャッシュに保存
-            chiefComplaintsCache[departmentValue] = data.chief_complaints;
+            // グローバルキャッシュに保存
+            if (window.chiefComplaintsCache) {
+                window.chiefComplaintsCache.set(category, departmentName, data.chief_complaints);
+            }
         } catch (error) {
             console.error('Error preloading chief complaints:', error);
             // エラーは黙って処理（ユーザーがまだ次へ進んでいないため）

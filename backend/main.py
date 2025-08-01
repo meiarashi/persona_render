@@ -70,11 +70,18 @@ from .api import admin_settings, config
 from .services import timeline_analyzer
 from .services import crud, rag_processor
 from .services.async_image_generator import generate_image_async
+from .services.cache_manager import get_chief_complaints, preload_cache
 from .middleware.auth import verify_admin_credentials, verify_department_credentials
 from .models import schemas as models
 from .utils import config_loader, prompt_builder
 
 # Create a FastAPI app instance
+# アプリケーション起動時にキャッシュをプリロード
+try:
+    preload_cache()
+except Exception as e:
+    print(f"[Warning] Failed to preload cache: {e}")
+
 app = FastAPI(
     title="Persona Render Admin API",
     description="API for managing Persona Render application settings.",
@@ -200,30 +207,24 @@ if frontend_dir.exists() and frontend_dir.is_dir():
         
         return {"departments": filtered_departments}
     
-    # 主訴リスト取得API
+    # 主訴リスト取得API（キャッシュ使用版）
     @app.get("/api/chief-complaints/{category}/{department}")
-    async def get_chief_complaints(category: str, department: str):
-        """指定された診療科の主訴リストを返す"""
-        chief_complaints_path = project_root_dir / "config" / "chief_complaints.json"
-        if not chief_complaints_path.exists():
-            raise HTTPException(status_code=404, detail="chief_complaints.json not found")
+    async def get_chief_complaints_api(category: str, department: str):
+        """指定された診療科の主訴リストを返す（キャッシュから高速取得）"""
+        # キャッシュから主訴を取得
+        chief_complaints_list = get_chief_complaints(category, department)
         
-        with open(chief_complaints_path, 'r', encoding='utf-8') as f:
-            chief_complaints = json.load(f)
-        
-        # カテゴリーが存在するか確認
-        if category not in chief_complaints:
-            raise HTTPException(status_code=404, detail=f"Category '{category}' not found")
-        
-        # 診療科が存在するか確認
-        if department not in chief_complaints[category]:
-            raise HTTPException(status_code=404, detail=f"Department '{department}' not found in category '{category}'")
+        if not chief_complaints_list:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Chief complaints not found for {category}/{department}"
+            )
         
         # 主訴リストを返す
         return {
             "category": category,
             "department": department,
-            "chief_complaints": chief_complaints[category][department]
+            "chief_complaints": chief_complaints_list
         }
     
     print("User UI, Admin UI, and Department routes are set up.")
