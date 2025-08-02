@@ -477,6 +477,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function displayResult(result) {
         console.log('分析結果:', result);
+        console.log('自院の住所:', result.clinic_info.address);
+        console.log('APIが返した中心座標:', result.center);
+        console.log('競合医院の座標:', result.competitors.map(c => ({name: c.name, location: c.location})));
         
         // Google Maps APIを読み込む
         loadGoogleMapsAPI();

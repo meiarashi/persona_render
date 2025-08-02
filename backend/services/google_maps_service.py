@@ -92,14 +92,21 @@ class GoogleMapsService:
                 logger.error("Google Maps API key is not set")
                 return None
             
+            # 住所の前処理（より正確なジオコーディングのため）
+            # 郵便番号が先頭にある場合は除去（郵便番号だけで検索すると別の場所になることがある）
+            import re
+            cleaned_address = re.sub(r'^〒?\d{3}-?\d{4}\s*', '', address)
+            cleaned_address = cleaned_address.strip()
+            
             async with aiohttp.ClientSession() as session:
                 params = {
-                    "address": address,
+                    "address": cleaned_address,
                     "key": self.api_key,
-                    "language": "ja"
+                    "language": "ja",
+                    "region": "JP"  # 日本の住所を優先
                 }
                 
-                logger.info(f"Geocoding address: {address}")
+                logger.info(f"Geocoding address: {cleaned_address} (original: {address})")
                 
                 async with session.get(self.geocoding_url, params=params) as response:
                     response_text = await response.text()
@@ -116,8 +123,12 @@ class GoogleMapsService:
                     logger.info(f"Geocoding response status: {status}")
                     
                     if status == "OK" and data.get("results"):
-                        location = data["results"][0]["geometry"]["location"]
+                        result = data["results"][0]
+                        location = result["geometry"]["location"]
+                        formatted_address = result.get("formatted_address", "")
                         logger.info(f"Successfully geocoded to: {location}")
+                        logger.info(f"Geocoded address: {formatted_address}")
+                        logger.info(f"Original address: {address}")
                         return {
                             "lat": location["lat"],
                             "lng": location["lng"]
