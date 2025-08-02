@@ -189,14 +189,16 @@ header {
 }
 
 .postal-search-btn {
-    padding: 10px 20px;
+    padding: 10px 12px;
     background-color: #6c757d;
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 5px;
     cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.15s ease;
+    font-size: 1em;
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+    box-sizing: border-box;
 }
 
 .postal-search-btn:hover {
@@ -206,32 +208,59 @@ header {
 /* 診療科チェックボックス */
 .department-checkbox-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(8, 1fr);
     gap: 10px;
     margin-top: 10px;
 }
 
 .department-checkbox {
     display: flex;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+    padding: 10px 5px;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    cursor: pointer;
+    font-size: 0.86em;
+    transition: all 0.2s ease;
+    text-align: center;
+    height: 60px;
+    min-width: 0;
+}
+
+.department-checkbox:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+    transform: translateY(-2px);
+}
+
+.department-checkbox.selected {
+    background-color: rgba(40, 167, 69, 0.15);
+    border-color: rgba(40, 167, 69, 0.6);
+    box-shadow: 0 0 5px rgba(40, 167, 69, 0.3);
 }
 
 .department-checkbox input[type="checkbox"] {
-    margin-right: 8px;
+    display: none;
 }
 
 .department-checkbox label {
-    margin-bottom: 0;
-    font-weight: normal;
+    margin: 0;
+    font-weight: bold;
     cursor: pointer;
+    width: 100%;
+    text-align: center;
 }
 
 /* 分析範囲選択 */
 .analysis-range-options {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    margin: 30px 0;
+    grid-template-columns: repeat(3, 216px);
+    width: 668px;
+    margin: 20px auto;
+    gap: 10px;
 }
 
 .range-option {
@@ -239,40 +268,49 @@ header {
 }
 
 .range-option input[type="radio"] {
-    position: absolute;
-    opacity: 0;
+    display: none;
 }
 
 .range-card {
-    border: 2px solid #dee2e6;
-    border-radius: 10px;
-    padding: 30px 20px;
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    cursor: pointer;
     transition: all 0.3s ease;
-    background-color: #fff;
+    background-color: #ffffff;
+    text-align: center;
 }
 
 .range-option input[type="radio"]:checked + .range-card {
     border-color: #28a745;
-    background-color: #f8f9fa;
-    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.15);
+    background-color: #f8fff9;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.range-card:hover {
+    border-color: #28a745;
+    background-color: #f8fff9;
 }
 
 .range-icon {
     font-size: 3em;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
 }
 
 .range-title {
-    font-size: 1.3em;
+    font-size: 1.1em;
     font-weight: bold;
-    color: #495057;
-    margin-bottom: 8px;
+    color: #333;
+    margin-bottom: 5px;
 }
 
 .range-desc {
     color: #6c757d;
-    font-size: 0.95em;
+    font-size: 0.9em;
 }
 
 /* Navigation Buttons */
@@ -288,18 +326,29 @@ header {
 .prev-step-btn,
 .next-step-btn,
 .analyze-btn {
-    padding: 12px 30px;
+    padding: 10px 12px;
     border: none;
-    border-radius: 25px;
-    font-size: 16px;
-    font-weight: 600;
+    border-radius: 5px;
+    font-size: 1em;
+    font-weight: bold;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: background-color 0.2s ease;
+    margin-top: 10px;
+    box-sizing: border-box;
 }
 
 .prev-step-btn {
     background-color: #6c757d;
     color: white;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 5px;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-top: 10px;
+    box-sizing: border-box;
 }
 
 .prev-step-btn:hover {
@@ -315,8 +364,6 @@ header {
 .next-step-btn:hover,
 .analyze-btn:hover {
     background-color: #218838;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 /* 分析中画面 */
@@ -378,11 +425,12 @@ header {
 /* Responsive Design */
 @media (max-width: 768px) {
     .analysis-range-options {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        width: auto;
     }
     
     .department-checkbox-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     }
     
     .step-nav-buttons {
@@ -613,15 +661,17 @@ header {
 }
 
 .action-buttons .btn {
-    padding: 12px 30px;
+    padding: 10px 12px;
     border: none;
-    border-radius: 25px;
-    font-size: 16px;
-    font-weight: 600;
+    border-radius: 5px;
+    font-size: 1em;
+    font-weight: bold;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: background-color 0.2s ease;
     text-decoration: none;
     display: inline-block;
+    margin-top: 10px;
+    box-sizing: border-box;
 }
 
 .btn-primary {
@@ -684,9 +734,9 @@ header {
     transform: translate(-50%, -50%);
     width: 90%;
     max-width: 500px;
-    background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     animation: slideIn 0.3s ease;
 }
 
@@ -696,16 +746,18 @@ header {
 
 .modal-header {
     padding: 20px 25px;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid #dee2e6;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background-color: #ffffff;
 }
 
 .modal-header h3 {
     margin: 0;
-    color: #2c3e50;
+    color: #333;
     font-size: 1.3em;
+    font-weight: bold;
 }
 
 .modal-close {
@@ -720,8 +772,8 @@ header {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    transition: all 0.3s ease;
+    border-radius: 4px;
+    transition: all 0.2s ease;
 }
 
 .modal-close:hover {
@@ -731,28 +783,44 @@ header {
 
 .modal-body {
     padding: 25px;
+    background-color: #ffffff;
 }
 
 .modal-body p {
     margin: 0;
     color: #495057;
+    font-size: 1em;
     line-height: 1.6;
 }
 
 .modal-footer {
     padding: 15px 25px;
-    border-top: 1px solid #e9ecef;
+    border-top: 1px solid #dee2e6;
     display: flex;
     justify-content: flex-end;
+    background-color: #ffffff;
 }
 
 .modal-ok {
     min-width: 100px;
+    padding: 10px 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+}
+
+.modal-ok:hover {
+    background-color: #0056b3;
 }
 
 /* モーダルタイプ別スタイル */
 .modal-dialog.error .modal-header {
-    background-color: #fef2f2;
+    background-color: #fff5f5;
     border-bottom-color: #fecaca;
 }
 
@@ -761,7 +829,7 @@ header {
 }
 
 .modal-dialog.info .modal-header {
-    background-color: #e0f2fe;
+    background-color: #f0f9ff;
     border-bottom-color: #bae6fd;
 }
 

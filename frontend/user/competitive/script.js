@@ -93,6 +93,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     <input type="checkbox" id="dept-${dept}" name="departments" value="${dept}">
                     <label for="dept-${dept}">${dept}</label>
                 `;
+                
+                // クリックイベントを追加
+                div.addEventListener('click', function() {
+                    const checkbox = this.querySelector('input[type="checkbox"]');
+                    checkbox.checked = !checkbox.checked;
+                    
+                    // selected クラスの切り替え
+                    if (checkbox.checked) {
+                        this.classList.add('selected');
+                    } else {
+                        this.classList.remove('selected');
+                    }
+                });
+                
                 container.appendChild(div);
             });
             
