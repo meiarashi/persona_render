@@ -56,11 +56,29 @@ class GoogleMapsService:
                 
                 return {"error": "住所を座標に変換できませんでした。住所を確認してもう一度お試しください。", "results": []}
             
+            # 検索キーワードを準備（診療科を含める）
+            search_keywords = []
+            
+            # 診療科が指定されている場合
+            if department_types:
+                for dept in department_types:
+                    search_keywords.extend([
+                        f"{dept}",
+                        f"{dept}クリニック",
+                        f"{dept}医院"
+                    ])
+            
+            # 診療科が指定されていない場合は一般的なキーワード
+            if not search_keywords:
+                search_keywords = ["医院", "クリニック", "病院"]
+            
+            logger.info(f"Searching with keywords: {search_keywords}")
+            
             # Places API で近隣の医療機関を検索
             places_results = await self._search_places(
                 coordinates,
                 radius,
-                department_types or ["医院", "クリニック", "病院"],
+                search_keywords,
                 limit
             )
             
@@ -186,7 +204,7 @@ class GoogleMapsService:
                         "location": f"{location['lat']},{location['lng']}",
                         "radius": radius,
                         "keyword": keyword,
-                        "type": "hospital|doctor|health",
+                        "type": "doctor",  # 'doctor'タイプに絞る（clinicタイプは日本では使えない）
                         "key": self.api_key,
                         "language": "ja"
                     }

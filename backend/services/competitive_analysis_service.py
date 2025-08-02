@@ -42,7 +42,7 @@ class CompetitiveAnalysisService:
                 location=clinic_info.get("address", ""),
                 radius=search_radius,
                 department_types=clinic_info.get("departments", []),
-                limit=10
+                limit=20  # より多くの結果を取得
             )
             
             if competitors.get("error"):

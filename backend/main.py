@@ -2486,6 +2486,21 @@ async def get_google_maps_key(username: str = Depends(verify_admin_credentials))
         raise HTTPException(status_code=500, detail="Google Maps API key not configured")
     return {"api_key": api_key}
 
+# 診療科リストを取得するエンドポイント
+@app.get("/api/departments/{category}")
+async def get_departments_list(category: str):
+    """指定カテゴリの診療科リストを取得"""
+    try:
+        chief_complaints = get_chief_complaints()
+        if category not in chief_complaints:
+            raise HTTPException(status_code=404, detail=f"Category {category} not found")
+        
+        # 診療科名のリストを返す
+        departments = list(chief_complaints[category].keys())
+        return {"departments": departments}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # デバッグ用エンドポイント（本番環境では削除すること）
 @app.get("/api/debug/google-maps-status")
 async def check_google_maps_status(username: str = Depends(verify_admin_credentials)):

@@ -36,25 +36,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const analyzingScreen = document.getElementById('analyzing-screen');
     const resultScreen = document.getElementById('result-screen');
     
-    // 全診療科リスト（管理者用）
-    const medicalDepartments = [
-        // 医科
-        '内科', '外科', '小児科', '皮膚科', '整形外科',
-        '眼科', '耳鼻咽喉科', '泌尿器科', '産婦人科', '放射線科',
-        '麻酔科', '救急科', '形成外科', '脳神経外科', '心療内科', '呼吸器内科',
-        // 歯科
-        '一般歯科', '小児歯科', '矯正歯科', '審美歯科',
-        // その他
-        '精神科', '美容外科', 'リハビリテーション科', '皮膚科（美容）',
-        'ペインクリニック', '漢方内科', '在宅診療', '健診・人間ドック'
-    ];
-    
     // 初期化
     init();
     
-    function init() {
-        // 診療科チェックボックスを生成
-        renderDepartmentCheckboxes();
+    async function init() {
+        // 診療科チェックボックスを生成（APIから取得）
+        await loadAndRenderDepartments();
         
         // イベントリスナーの設定
         setupEventListeners();
@@ -63,19 +50,56 @@ document.addEventListener('DOMContentLoaded', function() {
         setupPostalCodeSearch();
     }
     
-    function renderDepartmentCheckboxes() {
+    async function loadAndRenderDepartments() {
         const container = document.querySelector('.department-checkbox-grid');
-        container.innerHTML = '';
+        container.innerHTML = '<div style="text-align: center; color: #666;">診療科を読み込み中...</div>';
         
-        medicalDepartments.forEach(dept => {
-            const div = document.createElement('div');
-            div.className = 'department-checkbox';
-            div.innerHTML = `
-                <input type="checkbox" id="dept-${dept}" name="departments" value="${dept}">
-                <label for="dept-${dept}">${dept}</label>
-            `;
-            container.appendChild(div);
-        });
+        try {
+            // 現在のカテゴリを取得（URLから）
+            const pathParts = window.location.pathname.split('/');
+            const category = pathParts[1] || 'user';
+            
+            // すべてのカテゴリから診療科を取得（userの場合）
+            let allDepartments = [];
+            
+            if (category === 'user') {
+                // userの場合は全カテゴリの診療科を取得
+                const categories = ['medical', 'dental', 'others'];
+                for (const cat of categories) {
+                    const response = await fetch(`/api/departments/${cat}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        allDepartments = allDepartments.concat(data.departments);
+                    }
+                }
+            } else {
+                // 特定カテゴリの診療科を取得
+                const response = await fetch(`/api/departments/${category}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    allDepartments = data.departments;
+                }
+            }
+            
+            // 重複を除去
+            allDepartments = [...new Set(allDepartments)];
+            
+            // チェックボックスをレンダリング
+            container.innerHTML = '';
+            allDepartments.forEach(dept => {
+                const div = document.createElement('div');
+                div.className = 'department-checkbox';
+                div.innerHTML = `
+                    <input type="checkbox" id="dept-${dept}" name="departments" value="${dept}">
+                    <label for="dept-${dept}">${dept}</label>
+                `;
+                container.appendChild(div);
+            });
+            
+        } catch (error) {
+            console.error('Failed to load departments:', error);
+            container.innerHTML = '<div style="color: red;">診療科の読み込みに失敗しました</div>';
+        }
     }
     
     function setupEventListeners() {
