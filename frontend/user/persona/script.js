@@ -2555,7 +2555,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 if (iconDiv) {
                     // 各タイプのアイコンを設定
-                    iconDiv.style.backgroundImage = `url('/images/${typeName}.png')`;
+                    iconDiv.style.backgroundImage = `url('/images/personas/${typeName}.png')`;
                     iconDiv.style.backgroundSize = 'contain';
                     iconDiv.style.backgroundPosition = 'center';
                     iconDiv.style.backgroundRepeat = 'no-repeat';
@@ -2613,14 +2613,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                         // 新しいimg要素を作成
                         const img = document.createElement('img');
                         // WebPを優先的に読み込み、非対応ブラウザの場合はPNGにフォールバック
-                        img.src = `/images/${typeName}.webp`;
+                        img.src = `/images/personas/${typeName}.webp`;
                         img.alt = typeName;
                         img.loading = 'eager'; // 即時読み込み
                         
                         // シンプルなエラーハンドリング
                         img.onerror = function() {
                             // WebPが読み込めない場合はPNGを試す
-                            this.src = `/images/${typeName}.png`;
+                            this.src = `/images/personas/${typeName}.png`;
                             this.onerror = function() {
                                 console.warn(`Failed to load image: ${typeName}`);
                                 this.style.display = 'none';
@@ -2643,10 +2643,10 @@ function loadImageWithFallback(element, imageName) {
     };
     img.onerror = function() {
         // WebP failed, try PNG
-        img.src = `/images/${imageName}.png`;
+        img.src = `/images/departments/${imageName}.png`;
     };
     // Try WebP first
-    img.src = `/images/${imageName}.webp`;
+    img.src = `/images/departments/${imageName}.webp`;
 }
 
 // Apply WebP with fallback to all department icons on page load

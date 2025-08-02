@@ -21,7 +21,7 @@ function generateDepartmentOptionsHTML(departments) {
         html += `
             <label>
                 <input type="radio" name="department" value="${dept.id}">
-                <div class="department-icon" style="background-image: url('/images/${dept.icon}');"></div>
+                <div class="department-icon" style="background-image: url('/images/departments/${dept.icon}');"></div>
                 ${dept.name_ja}
             </label>
         `;

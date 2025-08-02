@@ -263,6 +263,11 @@ if frontend_dir.exists() and frontend_dir.is_dir():
             return FileResponse(competitive_path)
         raise HTTPException(status_code=404, detail="others/competitive/index.html not found")
     
+    # ルートアクセスをユーザーダッシュボードへリダイレクト
+    @app.get("/", include_in_schema=False)
+    async def redirect_root_to_user_dashboard(username: str = Depends(verify_admin_credentials)):
+        return RedirectResponse(url="/user/dashboard", status_code=302)
+    
     # カテゴリールートからダッシュボードへのリダイレクト
     @app.get("/user", include_in_schema=False)
     async def redirect_user_to_dashboard(username: str = Depends(verify_admin_credentials)):
