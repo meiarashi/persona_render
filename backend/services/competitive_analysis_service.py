@@ -46,6 +46,7 @@ class CompetitiveAnalysisService:
             )
             
             if competitors.get("error"):
+                logger.error(f"Google Maps search failed: {competitors['error']}")
                 return {"error": competitors["error"]}
             
             # 2. 競合分析データを準備

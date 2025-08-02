@@ -14,6 +14,7 @@ from urllib.parse import quote
 from urllib.request import urlopen
 import base64
 import asyncio
+import logging
 
 # For PDF/PPT generation
 from PIL import Image
@@ -65,6 +66,13 @@ try:
 except ImportError:
     Anthropic = None
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # Import from new structure
 from .api import admin_settings, config
 from .services import timeline_analyzer
@@ -88,6 +96,27 @@ app = FastAPI(
     description="API for managing Persona Render application settings.",
     version="0.1.0"
 )
+
+# Log API keys status on startup
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Starting application...")
+    
+    # Check required API keys
+    api_keys = {
+        "OPENAI_API_KEY": bool(os.getenv("OPENAI_API_KEY")),
+        "GOOGLE_MAPS_API_KEY": bool(os.getenv("GOOGLE_MAPS_API_KEY")),
+        "ANTHROPIC_API_KEY": bool(os.getenv("ANTHROPIC_API_KEY")),
+        "GOOGLE_API_KEY": bool(os.getenv("GOOGLE_API_KEY"))
+    }
+    
+    for key_name, is_set in api_keys.items():
+        if is_set:
+            logger.info(f"✓ {key_name} is set")
+        else:
+            logger.warning(f"✗ {key_name} is NOT set")
+    
+    logger.info("Application startup complete")
 
 # Mount the admin_settings router
 app.include_router(admin_settings.router)
@@ -2446,6 +2475,18 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
     prs.save(pptx_buffer)
     pptx_buffer.seek(0)
     return pptx_buffer
+
+# デバッグ用エンドポイント（本番環境では削除すること）
+@app.get("/api/debug/google-maps-status")
+async def check_google_maps_status(username: str = Depends(verify_admin_credentials)):
+    """Google Maps API の状態を確認"""
+    api_key_set = bool(os.getenv("GOOGLE_MAPS_API_KEY"))
+    
+    return {
+        "api_key_configured": api_key_set,
+        "api_key_first_chars": os.getenv("GOOGLE_MAPS_API_KEY", "")[:4] + "..." if api_key_set else None,
+        "message": "API key is configured" if api_key_set else "API key is NOT configured"
+    }
 
 # 競合分析API
 @app.post("/api/competitive-analysis")

@@ -40,7 +40,9 @@ class GoogleMapsService:
             # 住所を座標に変換
             coordinates = await self._geocode_address(location)
             if not coordinates:
-                return {"error": "住所を座標に変換できませんでした", "results": []}
+                if not self.api_key:
+                    return {"error": "Google Maps APIキーが設定されていません。管理者に連絡してください。", "results": []}
+                return {"error": "住所を座標に変換できませんでした。住所を確認してもう一度お試しください。", "results": []}
             
             # Places API で近隣の医療機関を検索
             places_results = await self._search_places(
@@ -74,6 +76,10 @@ class GoogleMapsService:
             # レート制限を適用
             await self.rate_limiter.acquire_with_wait()
             
+            if not self.api_key:
+                logger.error("Google Maps API key is not set")
+                return None
+            
             async with aiohttp.ClientSession() as session:
                 params = {
                     "address": address,
@@ -81,21 +87,26 @@ class GoogleMapsService:
                     "language": "ja"
                 }
                 
+                logger.info(f"Geocoding address: {address}")
+                
                 async with session.get(self.geocoding_url, params=params) as response:
                     data = await response.json()
                     
+                    logger.info(f"Geocoding response status: {data.get('status')}")
+                    
                     if data.get("status") == "OK" and data.get("results"):
                         location = data["results"][0]["geometry"]["location"]
+                        logger.info(f"Successfully geocoded to: {location}")
                         return {
                             "lat": location["lat"],
                             "lng": location["lng"]
                         }
                     else:
-                        logger.warning(f"Geocoding failed for address: {address}")
+                        logger.warning(f"Geocoding failed for address: {address}, status: {data.get('status')}, error_message: {data.get('error_message', 'N/A')}")
                         return None
                         
         except Exception as e:
-            logger.error(f"Error geocoding address: {str(e)}")
+            logger.error(f"Error geocoding address: {str(e)}", exc_info=True)
             return None
     
     async def _search_places(
