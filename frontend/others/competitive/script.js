@@ -378,7 +378,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 中心座標（自院の位置）を設定
         let center = { lat: 35.6762, lng: 139.6503 }; // デフォルト（東京）
         
-        // 検索結果の中心座標があれば使用
+        // 検索結果の中心座標があれば使用（これが自院の座標）
         if (result.center && result.center.lat && result.center.lng) {
             center = result.center;
         }
@@ -414,6 +414,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `);
             infoWindow.open(mapInstance, clinicMarker);
+        });
+        
+        // 検索範囲の円を追加
+        const searchCircle = new google.maps.Circle({
+            strokeColor: '#1890ff',
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: '#1890ff',
+            fillOpacity: 0.1,
+            map: mapInstance,
+            center: center,
+            radius: result.search_radius || 3000  // メートル単位
         });
         
         // 競合のマーカーを追加
@@ -458,13 +470,9 @@ document.addEventListener('DOMContentLoaded', function() {
             markers.push(marker);
         });
         
-        // すべてのマーカーが表示されるように地図を調整
-        if (markers.length > 0) {
-            const bounds = new google.maps.LatLngBounds();
-            bounds.extend(clinicMarker.getPosition());
-            markers.forEach(marker => bounds.extend(marker.getPosition()));
-            mapInstance.fitBounds(bounds);
-        }
+        // 円の範囲が表示されるように地図を調整
+        const bounds = searchCircle.getBounds();
+        mapInstance.fitBounds(bounds);
     }
     
     function displayResult(result) {
