@@ -5,33 +5,39 @@ body {
     margin: 0;
     padding: 0;
     color: #333;
-    background-color: #f8f9fa; /* ユーザー画面と同じ背景色 */
-    font-size: 14px; /* 少し大きめに調整 */
+    background-color: #f8f9fa;
+    font-size: 13px;
 }
 
 header {
     background-color: #ffffff;
     padding: 1rem 2rem;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    border-bottom: 1px solid #e9ecef; /* ユーザー画面と同じ枠線色 */
+    border-bottom: 1px solid #e9ecef;
+}
+
+.header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
-header h1 {
-    margin: 0;
+.logo {
+    font-weight: bold;
     font-size: 1.5em;
     color: #333;
 }
 
-header nav a {
+.nav-link {
+    color: #6c757d;
     text-decoration: none;
-    color: #007bff;
-    margin-left: 15px;
+    font-size: 0.9em;
 }
 
-header nav a:hover {
+.nav-link:hover {
+    color: #495057;
     text-decoration: underline;
 }
 
