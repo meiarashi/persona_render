@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 from typing import List, Dict, Optional, Any
 import aiohttp
@@ -42,6 +43,17 @@ class GoogleMapsService:
             if not coordinates:
                 if not self.api_key:
                     return {"error": "Google Maps APIキーが設定されていません。管理者に連絡してください。", "results": []}
+                
+                # Check the last geocoding status to provide more specific error
+                if hasattr(self, '_last_geocoding_status'):
+                    status = self._last_geocoding_status
+                    if status == "ZERO_RESULTS":
+                        return {"error": "指定された住所が見つかりませんでした。正確な住所を入力してください。", "results": []}
+                    elif status == "REQUEST_DENIED":
+                        return {"error": "Google Maps APIへのアクセスが拒否されました。管理者に連絡してください。", "results": []}
+                    elif status == "OVER_QUERY_LIMIT":
+                        return {"error": "APIの利用制限に達しました。しばらく待ってから再試行してください。", "results": []}
+                
                 return {"error": "住所を座標に変換できませんでした。住所を確認してもう一度お試しください。", "results": []}
             
             # Places API で近隣の医療機関を検索
@@ -90,11 +102,20 @@ class GoogleMapsService:
                 logger.info(f"Geocoding address: {address}")
                 
                 async with session.get(self.geocoding_url, params=params) as response:
-                    data = await response.json()
+                    response_text = await response.text()
+                    logger.info(f"Geocoding API response status code: {response.status}")
                     
-                    logger.info(f"Geocoding response status: {data.get('status')}")
+                    try:
+                        data = json.loads(response_text)
+                    except json.JSONDecodeError:
+                        logger.error(f"Failed to parse geocoding response: {response_text[:200]}")
+                        return None
                     
-                    if data.get("status") == "OK" and data.get("results"):
+                    status = data.get('status', 'UNKNOWN')
+                    self._last_geocoding_status = status  # Store for error reporting
+                    logger.info(f"Geocoding response status: {status}")
+                    
+                    if status == "OK" and data.get("results"):
                         location = data["results"][0]["geometry"]["location"]
                         logger.info(f"Successfully geocoded to: {location}")
                         return {
@@ -102,7 +123,20 @@ class GoogleMapsService:
                             "lng": location["lng"]
                         }
                     else:
-                        logger.warning(f"Geocoding failed for address: {address}, status: {data.get('status')}, error_message: {data.get('error_message', 'N/A')}")
+                        error_msg = data.get('error_message', 'N/A')
+                        status = data.get('status', 'UNKNOWN')
+                        logger.warning(f"Geocoding failed for address: {address}, status: {status}, error_message: {error_msg}")
+                        
+                        # Provide more specific error messages based on status
+                        if status == "ZERO_RESULTS":
+                            logger.warning("No results found for the given address")
+                        elif status == "OVER_QUERY_LIMIT":
+                            logger.error("Google Maps API query limit exceeded")
+                        elif status == "REQUEST_DENIED":
+                            logger.error("Google Maps API request denied - check API key permissions")
+                        elif status == "INVALID_REQUEST":
+                            logger.error("Invalid geocoding request - check address format")
+                            
                         return None
                         
         except Exception as e:

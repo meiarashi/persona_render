@@ -80,6 +80,7 @@ from .services import crud, rag_processor
 from .services.async_image_generator import generate_image_async
 from .services.cache_manager import get_chief_complaints, preload_cache
 from .services.competitive_analysis_service import CompetitiveAnalysisService
+from .services.google_maps_service import GoogleMapsService
 from .middleware.auth import verify_admin_credentials, verify_department_credentials
 from .models import schemas as models
 from .utils import config_loader, prompt_builder
@@ -2487,6 +2488,29 @@ async def check_google_maps_status(username: str = Depends(verify_admin_credenti
         "api_key_first_chars": os.getenv("GOOGLE_MAPS_API_KEY", "")[:4] + "..." if api_key_set else None,
         "message": "API key is configured" if api_key_set else "API key is NOT configured"
     }
+
+@app.post("/api/debug/test-geocoding")
+async def test_geocoding(request: Request, username: str = Depends(verify_admin_credentials)):
+    """Test geocoding with a specific address"""
+    try:
+        data = await request.json()
+        address = data.get("address", "東京都千代田区丸の内1-1-1")
+        
+        google_maps = GoogleMapsService()
+        result = await google_maps._geocode_address(address)
+        
+        return {
+            "address": address,
+            "geocoding_result": result,
+            "api_key_set": bool(google_maps.api_key),
+            "last_status": getattr(google_maps, '_last_geocoding_status', None)
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "address": address,
+            "api_key_set": bool(os.getenv("GOOGLE_MAPS_API_KEY"))
+        }
 
 # 競合分析API
 @app.post("/api/competitive-analysis")
