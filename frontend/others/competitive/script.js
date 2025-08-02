@@ -396,6 +396,30 @@ document.addEventListener('DOMContentLoaded', function() {
         // InfoWindowを初期化
         infoWindow = new google.maps.InfoWindow();
         
+        // スクロール通知を非表示にする
+        google.maps.event.addListenerOnce(mapInstance, 'idle', function() {
+            // 地図が読み込まれた後、通知要素を探して非表示にする
+            const observer = new MutationObserver(function(mutations) {
+                const scrollNotice = mapContainer.querySelector('.gm-style-pbc');
+                if (scrollNotice) {
+                    scrollNotice.style.display = 'none';
+                }
+                
+                // より一般的なセレクタも試す
+                const notices = mapContainer.querySelectorAll('[style*="opacity"]');
+                notices.forEach(notice => {
+                    if (notice.textContent && notice.textContent.includes('Ctrl') || notice.textContent.includes('スクロール')) {
+                        notice.style.display = 'none';
+                    }
+                });
+            });
+            
+            observer.observe(mapContainer, {
+                childList: true,
+                subtree: true
+            });
+        });
+        
         // 自院のマーカーを追加（特別な色）
         const clinicMarker = new google.maps.Marker({
             position: center,
