@@ -69,7 +69,19 @@ class GoogleMapsService:
             for place in places_results:
                 formatted_place = await self._format_place_data(place)
                 if formatted_place:
-                    formatted_results.append(formatted_place)
+                    # 距離を計算して範囲内かチェック
+                    place_lat = formatted_place['location']['lat']
+                    place_lng = formatted_place['location']['lng']
+                    distance = self.calculate_distance(
+                        coordinates['lat'], coordinates['lng'],
+                        place_lat, place_lng
+                    ) * 1000  # kmをmに変換
+                    
+                    if distance <= radius:
+                        formatted_place['distance'] = round(distance)  # 距離情報を追加
+                        formatted_results.append(formatted_place)
+                    else:
+                        logger.info(f"Excluding {formatted_place['name']} - distance: {round(distance)}m, radius: {radius}m")
             
             return {
                 "center": coordinates,

@@ -825,6 +825,11 @@ header {
     gap: 0.5rem;
 }
 
+/* Google Maps のスクロール通知を非表示 */
+.gm-style-pbc {
+    display: none !important;
+}
+
 /* Google Maps InfoWindow */
 .map-info-window {
     padding: 0.5rem;

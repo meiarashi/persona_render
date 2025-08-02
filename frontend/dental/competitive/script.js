@@ -16,7 +16,7 @@ async function loadGoogleMapsAPI() {
         
         const data = await response.json();
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${data.api_key}&callback=onGoogleMapsLoaded&language=ja&region=JP`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${data.api_key}&callback=onGoogleMapsLoaded&language=ja&region=JP&libraries=geometry`;
         script.async = true;
         script.defer = true;
         document.head.appendChild(script);
@@ -389,7 +389,8 @@ document.addEventListener('DOMContentLoaded', function() {
             center: center,
             mapTypeControl: false,
             fullscreenControl: false,
-            streetViewControl: false
+            streetViewControl: false,
+            gestureHandling: 'cooperative'  // CTRLキーでズーム（デフォルト）
         });
         
         // InfoWindowを初期化
@@ -431,6 +432,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // 競合のマーカーを追加
         result.competitors.forEach((competitor, index) => {
             if (!competitor.location || !competitor.location.lat || !competitor.location.lng) return;
+            
+            // 距離を計算（デバッグ用）
+            const distance = google.maps.geometry.spherical.computeDistanceBetween(
+                new google.maps.LatLng(center.lat, center.lng),
+                new google.maps.LatLng(competitor.location.lat, competitor.location.lng)
+            );
+            console.log(`${competitor.name}: ${Math.round(distance)}m (範囲: ${result.search_radius}m)`);
             
             const marker = new google.maps.Marker({
                 position: {
