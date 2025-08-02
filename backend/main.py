@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, Response, FileResponse
+from fastapi.responses import JSONResponse, Response, FileResponse, RedirectResponse
 from pathlib import Path
 import json
 import os
@@ -262,6 +262,23 @@ if frontend_dir.exists() and frontend_dir.is_dir():
         if competitive_path.exists(): 
             return FileResponse(competitive_path)
         raise HTTPException(status_code=404, detail="others/competitive/index.html not found")
+    
+    # カテゴリールートからダッシュボードへのリダイレクト
+    @app.get("/user", include_in_schema=False)
+    async def redirect_user_to_dashboard(username: str = Depends(verify_admin_credentials)):
+        return RedirectResponse(url="/user/dashboard", status_code=302)
+    
+    @app.get("/medical", include_in_schema=False)
+    async def redirect_medical_to_dashboard(username: str = Depends(verify_department_credentials("medical"))):
+        return RedirectResponse(url="/medical/dashboard", status_code=302)
+    
+    @app.get("/dental", include_in_schema=False)
+    async def redirect_dental_to_dashboard(username: str = Depends(verify_department_credentials("dental"))):
+        return RedirectResponse(url="/dental/dashboard", status_code=302)
+    
+    @app.get("/others", include_in_schema=False)
+    async def redirect_others_to_dashboard(username: str = Depends(verify_department_credentials("others"))):
+        return RedirectResponse(url="/others/dashboard", status_code=302)
     
     # 診療科別の設定API
     @app.get("/api/departments/by-category/{category}")
