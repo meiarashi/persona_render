@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>医科 - ペルソナ自動生成AI</title>
+    <link rel="stylesheet" href="/static/user/style.css?v=1.0.3">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <span class="logo">THE DOCTOR'S</span>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <main class="form-area">
+            <form id="multi-step-form">
+                <!-- Step 1: Department Selection -->
+                <div class="form-step active" data-step="1">
+                    <div class="step-header">
+                        <span class="icon"><img src="/images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
+                        <div>
+                            <div class="progress-bar">
+                                <span>1/5問目</span>
+                                <div class="progress" style="width: 20%;"></div>
+                            </div>
+                            <h4 class="question-text">あなたの診療科を教えて下さい。</h4>
+                        </div>
+                    </div>
+
+                        <div class="department-options">
+                        <!-- 診療科オプションは動的に読み込まれます -->
+                    </div>
+                    <div class="step-nav-buttons">
+                        <button type="button" class="next-step-btn">次の質問へ進む &gt;</button>
+                        <button type="button" class="confirm-and-proceed-btn initially-hidden-confirm-btn" style="margin-left: 10px;">入力内容の確認へ進む</button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Chief Complaint Selection (Initially hidden) -->
+                <div class="form-step" data-step="2">
+                    <div class="step-header">
+                        <span class="icon"><img src="/images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
+                        <div>
+                            <div class="progress-bar">
+                                <span>2/5問目</span>
+                                <div class="progress" style="width: 40%;"></div>
+                            </div>
+                            <h4 class="question-text">主訴を選択してください。</h4>
+                        </div>
+                    </div>
+                    
+                    <div class="chief-complaint-options">
+                        <!-- 主訴のオプションは動的に生成されます -->
+                    </div>
+                    <div class="step-nav-buttons"> 
+                        <button type="button" class="prev-step-btn">&lt; 前へ</button>
+                        <button type="button" class="next-step-btn">次の質問へ進む &gt;</button>
+                        <button type="button" class="confirm-and-proceed-btn initially-hidden-confirm-btn" style="margin-left: 10px;">入力内容の確認へ進む</button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Purpose Selection (Initially hidden) -->
+                <div class="form-step" data-step="3">
+                    <div class="step-header">
+                        <span class="icon"><img src="/images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
+                        <div>
+                            <div class="progress-bar">
+                                <span>3/5問目</span>
+                                <div class="progress" style="width: 60%;"></div>
+                            </div>
+                            <h4 class="question-text">ペルソナを作成する目的を教えて下さい。</h4>
+                        </div>
+                    </div>
+                    
+                    <div class="purpose-options">
+                        <label><input type="radio" name="purpose" value="increase_patients" checked><div class="department-icon" style="background-image: url('/images/患者数を増やす.png');"></div>患者数を増やす</label>
+                        <label><input type="radio" name="purpose" value="increase_spend"><div class="department-icon" style="background-image: url('/images/客単価を増やす.png');"></div>客単価を増やす</label>
+                        <label><input type="radio" name="purpose" value="increase_frequency"><div class="department-icon" style="background-image: url('/images/来院頻度を増やす.png');"></div>来院頻度を増やす</label>
+                    </div>
+                    <div class="step-nav-buttons"> 
+                    <button type="button" class="prev-step-btn">&lt; 前へ</button>
+                    <button type="button" class="next-step-btn">次の質問へ進む &gt;</button>
+                    <button type="button" class="confirm-and-proceed-btn initially-hidden-confirm-btn" style="margin-left: 10px;">入力内容の確認へ進む</button>
+                    </div>
+                </div>
+
+                <!-- Step 4: Detail Settings (Initially hidden) -->
+                <div class="form-step" data-step="4">
+                    <div class="step-header">
+                        <span class="icon"><img src="/images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
+                        <div>
+                            <div class="progress-bar">
+                                <span>4/5問目</span>
+                                <div class="progress" style="width: 80%;"></div>
+                            </div>
+                            <h4 class="question-text">ペルソナの項目について設定して下さい。</h4>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-type-options"> 
+                        <label><input type="radio" name="setting_type" value="patient_type" checked> 患者タイプ別</label>
+                        <label><input type="radio" name="setting_type" value="input"> 詳細設定</label>
+                        <label><input type="radio" name="setting_type" value="auto"> 自動</label>
+                    </div>
+
+                    <div id="detailed-settings">
+                        <div class="form-grid">
+                            <div><label for="name">名前:</label><input type="text" id="name" name="name"></div>
+                            <div><label for="gender">性別:</label><select id="gender" name="gender"><option value="">選択</option><option value="male">男性</option><option value="female">女性</option><option value="other">その他</option></select></div>
+                            <div>
+                                <label for="age">年齢:</label>
+                                <select id="age" name="age">
+                                    <option value="">選択</option>
+                                    <option value="0y0m">0歳（0ヶ月）</option>
+                                    <option value="0y1m">0歳（1ヶ月）</option>
+                                    <option value="0y2m">0歳（2ヶ月）</option>
+                                    <option value="0y3m">0歳（3ヶ月）</option>
+                                    <option value="0y4m">0歳（4ヶ月）</option>
+                                    <option value="0y5m">0歳（5ヶ月）</option>
+                                    <option value="0y6m">0歳（6ヶ月）</option>
+                                    <option value="0y7m">0歳（7ヶ月）</option>
+                                    <option value="0y8m">0歳（8ヶ月）</option>
+                                    <option value="0y9m">0歳（9ヶ月）</option>
+                                    <option value="0y10m">0歳（10ヶ月）</option>
+                                    <option value="0y11m">0歳（11ヶ月）</option>
+                                    <option value="1y">1歳</option>
+                                    <option value="2y">2歳</option>
+                                    <option value="3y">3歳</option>
+                                    <option value="4y">4歳</option>
+                                    <option value="5y">5歳</option>
+                                    <option value="6y">6歳</option>
+                                    <option value="7y">7歳</option>
+                                    <option value="8y">8歳</option>
+                                    <option value="9y">9歳</option>
+                                    <option value="10y">10歳</option>
+                                    <option value="11y">11歳</option>
+                                    <option value="12y">12歳</option>
+                                    <option value="13y">13歳</option>
+                                    <option value="14y">14歳</option>
+                                    <option value="15y">15歳</option>
+                                    <option value="16y">16歳</option>
+                                    <option value="17y">17歳</option>
+                                    <option value="18y">18歳</option>
+                                    <option value="19y">19歳</option>
+                                    <option value="20y">20歳</option>
+                                    <option value="21y">21歳</option>
+                                    <option value="22y">22歳</option>
+                                    <option value="23y">23歳</option>
+                                    <option value="24y">24歳</option>
+                                    <option value="25y">25歳</option>
+                                    <option value="26y">26歳</option>
+                                    <option value="27y">27歳</option>
+                                    <option value="28y">28歳</option>
+                                    <option value="29y">29歳</option>
+                                    <option value="30y">30歳</option>
+                                    <option value="31y">31歳</option>
+                                    <option value="32y">32歳</option>
+                                    <option value="33y">33歳</option>
+                                    <option value="34y">34歳</option>
+                                    <option value="35y">35歳</option>
+                                    <option value="36y">36歳</option>
+                                    <option value="37y">37歳</option>
+                                    <option value="38y">38歳</option>
+                                    <option value="39y">39歳</option>
+                                    <option value="40y">40歳</option>
+                                    <option value="41y">41歳</option>
+                                    <option value="42y">42歳</option>
+                                    <option value="43y">43歳</option>
+                                    <option value="44y">44歳</option>
+                                    <option value="45y">45歳</option>
+                                    <option value="46y">46歳</option>
+                                    <option value="47y">47歳</option>
+                                    <option value="48y">48歳</option>
+                                    <option value="49y">49歳</option>
+                                    <option value="50y">50歳</option>
+                                    <option value="51y">51歳</option>
+                                    <option value="52y">52歳</option>
+                                    <option value="53y">53歳</option>
+                                    <option value="54y">54歳</option>
+                                    <option value="55y">55歳</option>
+                                    <option value="56y">56歳</option>
+                                    <option value="57y">57歳</option>
+                                    <option value="58y">58歳</option>
+                                    <option value="59y">59歳</option>
+                                    <option value="60y">60歳</option>
+                                    <option value="61y">61歳</option>
+                                    <option value="62y">62歳</option>
+                                    <option value="63y">63歳</option>
+                                    <option value="64y">64歳</option>
+                                    <option value="65y">65歳</option>
+                                    <option value="66y">66歳</option>
+                                    <option value="67y">67歳</option>
+                                    <option value="68y">68歳</option>
+                                    <option value="69y">69歳</option>
+                                    <option value="70y">70歳</option>
+                                    <option value="71y">71歳</option>
+                                    <option value="72y">72歳</option>
+                                    <option value="73y">73歳</option>
+                                    <option value="74y">74歳</option>
+                                    <option value="75y">75歳</option>
+                                    <option value="76y">76歳</option>
+                                    <option value="77y">77歳</option>
+                                    <option value="78y">78歳</option>
+                                    <option value="79y">79歳</option>
+                                    <option value="80y">80歳</option>
+                                    <option value="81y">81歳</option>
+                                    <option value="82y">82歳</option>
+                                    <option value="83y">83歳</option>
+                                    <option value="84y">84歳</option>
+                                    <option value="85y">85歳</option>
+                                    <option value="86y">86歳</option>
+                                    <option value="87y">87歳</option>
+                                    <option value="88y">88歳</option>
+                                    <option value="89y">89歳</option>
+                                    <option value="90y">90歳</option>
+                                    <option value="91y">91歳</option>
+                                    <option value="92y">92歳</option>
+                                    <option value="93y">93歳</option>
+                                    <option value="94y">94歳</option>
+                                    <option value="95y">95歳</option>
+                                    <option value="96y">96歳</option>
+                                    <option value="97y">97歳</option>
+                                    <option value="98y">98歳</option>
+                                    <option value="99y">99歳</option>
+                                    <option value="100y">100歳</option>
+                                </select>
+                            </div>
+                            <div> 
+                                <label for="prefecture">都道府県:</label>
+                                <select id="prefecture" name="prefecture">
+                                    <option value="">選択</option>
+                                    <option value="北海道">北海道</option>
+                                    <option value="青森県">青森県</option>
+                                    <option value="岩手県">岩手県</option>
+                                    <option value="宮城県">宮城県</option>
+                                    <option value="秋田県">秋田県</option>
+                                    <option value="山形県">山形県</option>
+                                    <option value="福島県">福島県</option>
+                                    <option value="茨城県">茨城県</option>
+                                    <option value="栃木県">栃木県</option>
+                                    <option value="群馬県">群馬県</option>
+                                    <option value="埼玉県">埼玉県</option>
+                                    <option value="千葉県">千葉県</option>
+                                    <option value="東京都">東京都</option>
+                                    <option value="神奈川県">神奈川県</option>
+                                    <option value="新潟県">新潟県</option>
+                                    <option value="富山県">富山県</option>
+                                    <option value="石川県">石川県</option>
+                                    <option value="福井県">福井県</option>
+                                    <option value="山梨県">山梨県</option>
+                                    <option value="長野県">長野県</option>
+                                    <option value="岐阜県">岐阜県</option>
+                                    <option value="静岡県">静岡県</option>
+                                    <option value="愛知県">愛知県</option>
+                                    <option value="三重県">三重県</option>
+                                    <option value="滋賀県">滋賀県</option>
+                                    <option value="京都府">京都府</option>
+                                    <option value="大阪府">大阪府</option>
+                                    <option value="兵庫県">兵庫県</option>
+                                    <option value="奈良県">奈良県</option>
+                                    <option value="和歌山県">和歌山県</option>
+                                    <option value="鳥取県">鳥取県</option>
+                                    <option value="島根県">島根県</option>
+                                    <option value="岡山県">岡山県</option>
+                                    <option value="広島県">広島県</option>
+                                    <option value="山口県">山口県</option>
+                                    <option value="徳島県">徳島県</option>
+                                    <option value="香川県">香川県</option>
+                                    <option value="愛媛県">愛媛県</option>
+                                    <option value="高知県">高知県</option>
+                                    <option value="福岡県">福岡県</option>
+                                    <option value="佐賀県">佐賀県</option>
+                                    <option value="長崎県">長崎県</option>
+                                    <option value="熊本県">熊本県</option>
+                                    <option value="大分県">大分県</option>
+                                    <option value="宮崎県">宮崎県</option>
+                                    <option value="鹿児島県">鹿児島県</option>
+                                    <option value="沖縄県">沖縄県</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="municipality">市区町村:</label>
+                                <input type="text" id="municipality" name="municipality" placeholder="例: 新宿区">
+                            </div>
+                            <div><label for="family">家族構成:</label><input type="text" id="family" name="family"></div>
+                            <div><label for="occupation">職業:</label><input type="text" id="occupation" name="occupation"></div>
+                            <div>
+                                <label for="income">年収:</label>
+                                <select id="income" name="income">
+                                    <option value="">選択</option>
+                                    <option value="<100">100万円未満</option>
+                                    <option value="100-200">100-200万円</option>
+                                    <option value="200-300">200-300万円</option>
+                                    <option value="300-400">300-400万円</option>
+                                    <option value="400-500">400-500万円</option>
+                                    <option value="500-600">500-600万円</option>
+                                    <option value="600-700">600-700万円</option>
+                                    <option value="700-800">700-800万円</option>
+                                    <option value="800-900">800-900万円</option>
+                                    <option value="900-1000">900-1000万円</option>
+                                    <option value="1000-1100">1000-1100万円</option>
+                                    <option value="1100-1200">1100-1200万円</option>
+                                    <option value="1200-1300">1200-1300万円</option>
+                                    <option value="1300-1400">1300-1400万円</option>
+                                    <option value="1400-1500">1400-1500万円</option>
+                                    <option value="1500-1600">1500-1600万円</option>
+                                    <option value="1600-1700">1600-1700万円</option>
+                                    <option value="1700-1800">1700-1800万円</option>
+                                    <option value="1800-1900">1800-1900万円</option>
+                                    <option value="1900-2000">1900-2000万円</option>
+                                    <option value="2000-2100">2000-2100万円</option>
+                                    <option value="2100-2200">2100-2200万円</option>
+                                    <option value="2200-2300">2200-2300万円</option>
+                                    <option value="2300-2400">2300-2400万円</option>
+                                    <option value="2400-2500">2400-2500万円</option>
+                                    <option value="2500-2600">2500-2600万円</option>
+                                    <option value="2600-2700">2600-2700万円</option>
+                                    <option value="2700-2800">2700-2800万円</option>
+                                    <option value="2800-2900">2800-2900万円</option>
+                                    <option value="2900-3000">2900-3000万円</option>
+                                    <option value="3000-3100">3000-3100万円</option>
+                                    <option value="3100-3200">3100-3200万円</option>
+                                    <option value="3200-3300">3200-3300万円</option>
+                                    <option value="3300-3400">3300-3400万円</option>
+                                    <option value="3400-3500">3400-3500万円</option>
+                                    <option value="3500-3600">3500-3600万円</option>
+                                    <option value="3600-3700">3600-3700万円</option>
+                                    <option value="3700-3800">3700-3800万円</option>
+                                    <option value="3800-3900">3800-3900万円</option>
+                                    <option value="3900-4000">3900-4000万円</option>
+                                    <option value="4000-4100">4000-4100万円</option>
+                                    <option value="4100-4200">4100-4200万円</option>
+                                    <option value="4200-4300">4200-4300万円</option>
+                                    <option value="4300-4400">4300-4400万円</option>
+                                    <option value="4400-4500">4400-4500万円</option>
+                                    <option value="4500-4600">4500-4600万円</option>
+                                    <option value="4600-4700">4600-4700万円</option>
+                                    <option value="4700-4800">4700-4800万円</option>
+                                    <option value="4800-4900">4800-4900万円</option>
+                                    <option value="4900-5000">4900-5000万円</option>
+                                    <option value="5000-5100">5000-5100万円</option>
+                                    <option value="5100-5200">5100-5200万円</option>
+                                    <option value="5200-5300">5200-5300万円</option>
+                                    <option value="5300-5400">5300-5400万円</option>
+                                    <option value="5400-5500">5400-5500万円</option>
+                                    <option value="5500-5600">5500-5600万円</option>
+                                    <option value="5600-5700">5600-5700万円</option>
+                                    <option value="5700-5800">5700-5800万円</option>
+                                    <option value="5800-5900">5800-5900万円</option>
+                                    <option value="5900-6000">5900-6000万円</option>
+                                    <option value="6000-6100">6000-6100万円</option>
+                                    <option value="6100-6200">6100-6200万円</option>
+                                    <option value="6200-6300">6200-6300万円</option>
+                                    <option value="6300-6400">6300-6400万円</option>
+                                    <option value="6400-6500">6400-6500万円</option>
+                                    <option value="6500-6600">6500-6600万円</option>
+                                    <option value="6600-6700">6600-6700万円</option>
+                                    <option value="6700-6800">6700-6800万円</option>
+                                    <option value="6800-6900">6800-6900万円</option>
+                                    <option value="6900-7000">6900-7000万円</option>
+                                    <option value="7000-7100">7000-7100万円</option>
+                                    <option value="7100-7200">7100-7200万円</option>
+                                    <option value="7200-7300">7200-7300万円</option>
+                                    <option value="7300-7400">7300-7400万円</option>
+                                    <option value="7400-7500">7400-7500万円</option>
+                                    <option value="7500-7600">7500-7600万円</option>
+                                    <option value="7600-7700">7600-7700万円</option>
+                                    <option value="7700-7800">7700-7800万円</option>
+                                    <option value="7800-7900">7800-7900万円</option>
+                                    <option value="7900-8000">7900-8000万円</option>
+                                    <option value="8000-8100">8000-8100万円</option>
+                                    <option value="8100-8200">8100-8200万円</option>
+                                    <option value="8200-8300">8200-8300万円</option>
+                                    <option value="8300-8400">8300-8400万円</option>
+                                    <option value="8400-8500">8400-8500万円</option>
+                                    <option value="8500-8600">8500-8600万円</option>
+                                    <option value="8600-8700">8600-8700万円</option>
+                                    <option value="8700-8800">8700-8800万円</option>
+                                    <option value="8800-8900">8800-8900万円</option>
+                                    <option value="8900-9000">8900-9000万円</option>
+                                    <option value="9000-9100">9000-9100万円</option>
+                                    <option value="9100-9200">9100-9200万円</option>
+                                    <option value="9200-9300">9200-9300万円</option>
+                                    <option value="9300-9400">9300-9400万円</option>
+                                    <option value="9400-9500">9400-9500万円</option>
+                                    <option value="9500-9600">9500-9600万円</option>
+                                    <option value="9600-9700">9600-9700万円</option>
+                                    <option value="9700-9800">9700-9800万円</option>
+                                    <option value="9800-9900">9800-9900万円</option>
+                                    <option value="9900-10000">9900-10000万円</option>
+                                    <option value=">=10000">1億円以上</option>
+                                </select>
+                            </div>
+                            <div><label for="hobby">趣味:</label><input type="text" id="hobby" name="hobby"></div>
+                            <div><label for="life_events">ライフイベント:</label><input type="text" id="life_events" name="life_events" placeholder="例: 結婚、出産、転職など"></div>
+                        </div>
+                    </div>
+                    <p id="auto-setting-info" style="display: none; text-align: center;">自動設定では、ランダムに項目を決定します。</p>
+
+                    <!-- Patient Type Selection Area (Initially hidden) -->
+                    <div id="patient-type-selection" style="display: none;">
+                        <div class="patient-type-grid">
+                            <!-- Row 1 -->
+                            <div class="patient-type-item">
+                                <input type="radio" id="pt-convenience" name="patient_type" value="利便性重視型">
+                                <label for="pt-convenience">
+                                    <div class="patient-type-icon"></div>
+                                    <span class="patient-type-name">利便性重視型</span>
+                                </label>
+                            </div>
+                            <div class="patient-type-item">
+                                <input type="radio" id="pt-specialty" name="patient_type" value="専門医療追求型">
+                                <label for="pt-specialty">
+                                    <div class="patient-type-icon"></div>
+                                    <span class="patient-type-name">専門医療追求型</span>
+                                </label>
+                            </div>
+                            <div class="patient-type-item">
+                                <input type="radio" id="pt-preventive" name="patient_type" value="予防健康管理型">
+                                <label for="pt-preventive">
+                                    <div class="patient-type-icon"></div>
+                                    <span class="patient-type-name">予防健康管理型</span>
+                                </label>
+                            </div>
+                            <div class="patient-type-item">
+                                <input type="radio" id="pt-alternative" name="patient_type" value="代替医療志向型">
+                                <label for="pt-alternative">
+                                    <div class="patient-type-icon"></div>
+                                    <span class="patient-type-name">代替医療志向型</span>
+                                </label>
+                            </div>
+                            <!-- Row 2 -->
+                            <div class="patient-type-item">
+                                <input type="radio" id="pt-economic" name="patient_type" value="経済合理型">
+                                <label for="pt-economic">
+                                    <div class="patient-type-icon"></div>
+                                    <span class="patient-type-name">経済合理型</span>
+                                </label>
+                            </div>
+                            <div class="patient-type-item">
+                                <input type="radio" id="pt-information" name="patient_type" value="情報探求型">
+                                <label for="pt-information">
+                                    <div class="patient-type-icon"></div>
+                                    <span class="patient-type-name">情報探求型</span>
+                                </label>
+                            </div>
+                            <div class="patient-type-item">
+                                <input type="radio" id="pt-innovative" name="patient_type" value="革新技術指向型">
+                                <label for="pt-innovative">
+                                    <div class="patient-type-icon"></div>
+                                    <span class="patient-type-name">革新技術指向型</span>
+                                </label>
+                            </div>
+                            <div class="patient-type-item">
+                                <input type="radio" id="pt-dialogue" name="patient_type" value="対話重視型">
+                                <label for="pt-dialogue">
+                                    <div class="patient-type-icon"></div>
+                                    <span class="patient-type-name">対話重視型</span>
+                                </label>
+                            </div>
+                            <!-- Row 3 -->
+                            <div class="patient-type-item">
+                                <input type="radio" id="pt-trust" name="patient_type" value="信頼基盤型">
+                                <label for="pt-trust">
+                                    <div class="patient-type-icon"></div>
+                                    <span class="patient-type-name">信頼基盤型</span>
+                                </label>
+                            </div>
+                            <div class="patient-type-item">
+                                <input type="radio" id="pt-urgent" name="patient_type" value="緊急解決型">
+                                <label for="pt-urgent">
+                                    <div class="patient-type-icon"></div>
+                                    <span class="patient-type-name">緊急解決型</span>
+                                </label>
+                            </div>
+                            <div class="patient-type-item">
+                                <input type="radio" id="pt-passive" name="patient_type" value="受動依存型">
+                                <label for="pt-passive">
+                                    <div class="patient-type-icon"></div>
+                                    <span class="patient-type-name">受動依存型</span>
+                                </label>
+                            </div>
+                             <div class="patient-type-item">
+                                <input type="radio" id="pt-autonomous" name="patient_type" value="自律決定型">
+                                <label for="pt-autonomous">
+                                    <div class="patient-type-icon"></div>
+                                    <span class="patient-type-name">自律決定型</span>
+                                </label>
+                            </div>
+                        </div>
+                        <!-- Description Area -->
+                        <div id="patient-type-description" style="margin-top: 20px; padding: 15px; border: 1px solid #eee; border-radius: 4px; display: none;">
+                            <!-- Description will be inserted here by JS -->
+                        </div>
+                    </div>
+
+                    <div class="step-nav-buttons">
+                    <button type="button" class="prev-step-btn">&lt; 前へ</button>
+                    <button type="button" class="next-step-btn">次の質問へ進む &gt;</button>
+                    <button type="button" class="confirm-and-proceed-btn initially-hidden-confirm-btn" style="margin-left: 10px;">入力内容の確認へ進む</button>
+                    </div>
+                </div>
+
+                <!-- Step 5: Additional Questions (Initially hidden) -->
+                <div class="form-step" data-step="5">
+                    <div class="step-header">
+                        <span class="icon"><img src="/images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
+                        <div>
+                            <div class="progress-bar">
+                                <span>5/5問目</span>
+                                <div class="progress" style="width: 100%;"></div>
+                            </div>
+                            <h4 class="question-text">追加項目があれば教えて下さい。</h4>
+                        </div>
+                    </div>
+                    
+                    <div class="additional-fixed-fields-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div><label for="motto">座右の銘:</label><input type="text" id="motto" name="motto" style="height: 32px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 8px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.9em;"></div>
+                        <div><label for="concerns">最近の悩み/関心:</label><input type="text" id="concerns" name="concerns" style="height: 32px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 8px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.9em;"></div>
+                        <div><label for="favorite_person">好きな有名人/尊敬する人物:</label><input type="text" id="favorite_person" name="favorite_person" style="height: 32px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 8px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.9em;"></div>
+                        <div><label for="media_sns">よく見るメディア/SNS:</label><input type="text" id="media_sns" name="media_sns" style="height: 32px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 8px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.9em;"></div>
+                        <div><label for="personality_keywords">性格キーワード（3語以内）:</label><input type="text" id="personality_keywords" name="personality_keywords" style="height: 32px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 8px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.9em;"></div>
+                        <div><label for="health_actions">最近した健康に関する行動:</label><input type="text" id="health_actions" name="health_actions" style="height: 32px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 8px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.9em;"></div>
+                        <div><label for="holiday_activities">休日の過ごし方:</label><input type="text" id="holiday_activities" name="holiday_activities" style="height: 32px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 8px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.9em;"></div>
+                        <div><label for="catchphrase">キャッチコピー:</label><input type="text" id="catchphrase" name="catchphrase" style="height: 32px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 8px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.9em;"></div>
+                        </div>
+                    
+                    <div id="additional-fields" style="margin-top: 20px; margin-bottom: 10px;">
+                        <!-- Dynamically added fields will appear here -->
+                    </div>
+                    <button type="button" id="add-field-btn" style="background-color: #28a745; color: white; border: none; padding: 8px 12px; border-radius: 4px; margin-top: 15px; cursor: pointer; font-size: 0.9em;">+ 追加する</button>
+                    <div class="step-nav-buttons">
+                    <button type="button" class="prev-step-btn">&lt; 前へ</button>
+                        <button type="button" class="next-step-btn confirm-and-proceed-btn">入力内容の確認へ進む</button>
+                    </div>
+                </div>
+
+                <!-- Step 6: Confirmation Screen (NEW) -->
+                <div class="form-step" data-step="6">
+                    <div class="step-header">
+                        <span class="icon"><img src="/images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
+                        <div>
+                            <div class="progress-bar">
+                                <span>確認画面</span>
+                                <div class="progress" style="width: 100%;"></div>
+                            </div>
+                            <h4 class="question-text">入力内容をご確認ください。</h4>
+                        </div>
+                    </div>
+
+                    <!-- 上部に追加するボタングループ -->
+                    <div class="step-nav-buttons" style="margin-bottom: 20px; text-align: center;">
+                        <button type="button" id="final-generate-btn-top" class="next-step-btn final-generate-btn-common">この内容でペルソナを生成する</button>
+                    </div>
+
+                    <div class="confirmation-summary">
+                        <div class="summary-section">
+                            <h5>診療科<button type="button" class="edit-step-btn" data-step="1">編集</button></h5>
+                            <p id="summary-department">未入力</p>
+                        </div>
+                        <div class="summary-section">
+                            <h5>主訴<button type="button" class="edit-step-btn" data-step="2">編集</button></h5>
+                            <p id="summary-chief-complaint">未入力</p>
+                        </div>
+                        <div class="summary-section">
+                            <h5>作成目的<button type="button" class="edit-step-btn" data-step="3">編集</button></h5>
+                            <p id="summary-purpose">未入力</p>
+                        </div>
+                        <div class="summary-section">
+                            <h5>基本情報<button type="button" class="edit-step-btn" data-step="4">編集</button></h5>
+                            <div id="summary-basic-info" class="form-grid">
+                                <!-- Basic info will be populated here -->
+                            </div>
+                        </div>
+                        <div class="summary-section">
+                            <h5>追加情報<button type="button" class="edit-step-btn" data-step="5">編集</button></h5>
+                            <div id="summary-additional-fixed-info" class="additional-fixed-fields-grid">
+                                <!-- Additional fixed info will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="step-nav-buttons">
+                        <button type="button" id="final-generate-btn-bottom" class="next-step-btn final-generate-btn-common">この内容でペルソナを生成する</button>
+                    </div>
+                </div>
+
+                <!-- Step 6: Loading (Previously Step 5) -->
+                <div class="form-step loading-step" data-step="6">
+                     <div class="loading-container">
+                       <img src="/images/owl.png" alt="owl" class="owl-loading" style="width:120px;height:120px;object-fit:contain;display:block;margin:0 auto 30px;">
+                       
+                       <div class="loading-status-text" style="font-size: 1.1em; color: #333; margin-bottom: 15px; text-align: center;">ペルソナを分析しています...</div>
+                       
+                       <div class="progress-bar-container" style="width: 100%; max-width: 400px; margin: 0 auto 20px;">
+                           <div class="progress-bar-bg" style="background-color: #e0e0e0; height: 8px; border-radius: 4px; overflow: hidden;">
+                               <div class="progress-bar-fill"></div>
+                           </div>
+                           <div class="progress-percentage" style="text-align: center; margin-top: 8px; font-size: 0.9em; color: #666;">0%</div>
+                       </div>
+                       
+                       <div class="loading-step-info" style="text-align: center; color: #666; font-size: 0.9em;">
+                           <div class="current-step" style="margin-bottom: 5px;">ステップ 1/2: AIがペルソナを生成中</div>
+                           <div class="estimated-time" style="color: #999;">予想時間: 約30-40秒</div>
+                       </div>
+                     </div>
+                 </div>
+
+                 <!-- Step 7: Result Display (Previously Step 6) -->
+                 <div class="form-step result-step" data-step="7">
+                     <div class="persona-result-container">
+                        <div class="persona-preview">
+                            <!-- 診療科・主訴・作成目的の情報をここに移動 -->
+                            <div class="header-info-items">
+                                <p><strong>診療科:</strong> <span id="header-department">-</span></p>
+                                <p><strong>主訴:</strong> <span id="header-chief-complaint">-</span></p>
+                                <p><strong>作成目的:</strong> <span id="header-purpose">-</span></p>
+                            </div>
+                            
+                            <img id="preview-persona-image" src="" alt="ペルソナ画像">
+                            <h4 id="preview-name-container" style="text-align: center; width: 100%;">
+                                <span id="preview-name" contenteditable="true" class="editable-field" style="font-size: 1em; font-weight: bold; width: 200px; border: 1px solid #ccc; padding: 2px 5px; border-radius: 4px; background-color: white; margin: 10px auto; display: flex; align-items: center; justify-content: center; text-align: center; height: 26px;">-</span>
+                            </h4>
+                            <div class="persona-preview-grid"> 
+                                <p><strong>性別:</strong> <span id="preview-gender">-</span></p>
+                                <p><strong>年齢:</strong> <span id="preview-age">-</span></p>
+                                <p><strong>都道府県:</strong> 
+                                    <select id="preview-prefecture" class="editable-field prefecture-select" style="font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.9em; line-height: normal; padding: 2px 5px; height: 26px; width: 100px; display: inline-block; vertical-align: middle; margin-left: 4px;">
+                                        <option value="">選択</option>
+                                        <option value="北海道">北海道</option>
+                                        <option value="青森県">青森県</option>
+                                        <option value="岩手県">岩手県</option>
+                                        <option value="宮城県">宮城県</option>
+                                        <option value="秋田県">秋田県</option>
+                                        <option value="山形県">山形県</option>
+                                        <option value="福島県">福島県</option>
+                                        <option value="茨城県">茨城県</option>
+                                        <option value="栃木県">栃木県</option>
+                                        <option value="群馬県">群馬県</option>
+                                        <option value="埼玉県">埼玉県</option>
+                                        <option value="千葉県">千葉県</option>
+                                        <option value="東京都">東京都</option>
+                                        <option value="神奈川県">神奈川県</option>
+                                        <option value="新潟県">新潟県</option>
+                                        <option value="富山県">富山県</option>
+                                        <option value="石川県">石川県</option>
+                                        <option value="福井県">福井県</option>
+                                        <option value="山梨県">山梨県</option>
+                                        <option value="長野県">長野県</option>
+                                        <option value="岐阜県">岐阜県</option>
+                                        <option value="静岡県">静岡県</option>
+                                        <option value="愛知県">愛知県</option>
+                                        <option value="三重県">三重県</option>
+                                        <option value="滋賀県">滋賀県</option>
+                                        <option value="京都府">京都府</option>
+                                        <option value="大阪府">大阪府</option>
+                                        <option value="兵庫県">兵庫県</option>
+                                        <option value="奈良県">奈良県</option>
+                                        <option value="和歌山県">和歌山県</option>
+                                        <option value="鳥取県">鳥取県</option>
+                                        <option value="島根県">島根県</option>
+                                        <option value="岡山県">岡山県</option>
+                                        <option value="広島県">広島県</option>
+                                        <option value="山口県">山口県</option>
+                                        <option value="徳島県">徳島県</option>
+                                        <option value="香川県">香川県</option>
+                                        <option value="愛媛県">愛媛県</option>
+                                        <option value="高知県">高知県</option>
+                                        <option value="福岡県">福岡県</option>
+                                        <option value="佐賀県">佐賀県</option>
+                                        <option value="長崎県">長崎県</option>
+                                        <option value="熊本県">熊本県</option>
+                                        <option value="大分県">大分県</option>
+                                        <option value="宮崎県">宮崎県</option>
+                                        <option value="鹿児島県">鹿児島県</option>
+                                        <option value="沖縄県">沖縄県</option>
+                                    </select>
+                                </p>
+                                <p><strong>市区町村:</strong> <span id="preview-municipality" contenteditable="true" class="editable-field" style="font-size: 0.9em; width: 100px; border: 1px solid #ccc; padding: 2px 5px; border-radius: 4px; background-color: white; display: inline-flex; align-items: center; height: 26px; margin-left: 4px;">-</span></p>
+                                <p><strong>家族構成:</strong> <span id="preview-family">-</span></p>
+                                <p><strong>職業:</strong> <span id="preview-occupation">-</span></p>
+                                <p><strong>年収:</strong> <span id="preview-income">-</span></p>
+                                <p><strong>趣味:</strong> <span id="preview-hobby">-</span></p>
+                                <p><strong>ライフイベント:</strong> <span id="preview-life_events">-</span></p>
+                                <p><strong>患者タイプ:</strong> <span id="preview-patient_type">-</span></p>
+                            </div>
+                            <!-- Step 4 Fixed Additional Fields in 1 column -->
+                            <div class="additional-info-column">
+                                <p><strong>座右の銘:</strong> <span id="preview-motto">-</span></p>
+                                <p><strong>最近の悩み/関心:</strong> <span id="preview-concerns">-</span></p>
+                                <p><strong>好きな有名人/尊敬する人物:</strong> <span id="preview-favorite_person">-</span></p>
+                                <p><strong>よく見るメディア/SNS:</strong> <span id="preview-media_sns">-</span></p>
+                                <p><strong>性格キーワード:</strong> <span id="preview-personality_keywords">-</span></p>
+                                <p><strong>最近した健康に関する行動:</strong> <span id="preview-health_actions">-</span></p>
+                                <p><strong>休日の過ごし方:</strong> <span id="preview-holiday_activities">-</span></p>
+                                <p><strong>キャッチコピー:</strong> <span id="preview-catchphrase_input">-</span></p>
+                            </div>
+                            <!-- Dynamically added fields from Step 4 in 1 column -->
+                            <div id="preview-additional-dynamic-fields" class="additional-info-column">
+                                <!-- Dynamically added fields will be populated here by JS -->
+                            </div>
+                        </div>
+                        <div class="persona-details">
+                            <div class="download-options" style="position: absolute; top: 20px; right: 20px; z-index: 100; display: flex !important;">
+                                <button type="button" id="download-pdf-result" style="display: inline-block !important; background-color: #ff0000 !important; color: white !important; border: none !important; padding: 6px 16px !important; border-radius: 4px !important; margin: 0 5px !important; cursor: pointer !important;">PDF</button>
+                            </div>
+                            
+                            <!-- タブナビゲーション -->
+                            <div class="tab-navigation" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; padding-bottom: 0;">
+                                <button type="button" class="tab-button active" data-tab="persona" style="padding: 10px 20px; border: none; background: transparent; font-size: 16px; cursor: pointer; border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 600;">ペルソナ分析</button>
+                                <button type="button" class="tab-button" data-tab="timeline" style="padding: 10px 20px; border: none; background: transparent; font-size: 16px; cursor: pointer; color: #666;">タイムライン分析</button>
+                            </div>
+                            
+                            <!-- ペルソナコンテンツ -->
+                            <div id="persona-content" class="tab-content active" style="display: block;">
+                                <h3 class="persona-title">生成されたペルソナ</h3>
+                                <h4>性格（価値観・人生観）</h4>
+                                <p id="result-personality"></p>
+                                <h4>通院理由</h4>
+                                <p id="result-reason"></p>
+                                <h4>症状通院頻度・行動パターン</h4>
+                                <p id="result-behavior"></p>
+                                <h4>口コミの重視ポイント</h4>
+                                <p id="result-reviews"></p>
+                                <h4>医療機関への価値観・行動傾向</h4>
+                                <p id="result-values"></p>
+                                <h4>医療機関に求めるもの</h4>
+                                <p id="result-demands"></p>
+                            </div>
+                            
+                            <!-- タイムラインコンテンツ -->
+                            <div id="timeline-content" class="tab-content" style="display: none;">
+                                <h3 class="timeline-title">検索キーワード時系列分析</h3>
+                                
+                                <div class="timeline-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 100%; overflow-x: auto;">
+                                    <!-- 左側: 散布図 -->
+                                    <div class="chart-container" style="min-width: 400px; position: relative;">
+                                        <canvas id="timeline-chart" style="width: 100%; height: 400px;"></canvas>
+                                    </div>
+                                    
+                                    <!-- 右側: AI分析レポート -->
+                                    <div class="analysis-container" style="min-width: 350px; background: #f8f9fa; padding: 20px; border-radius: 8px; max-height: 450px; overflow-y: auto;">
+                                        <h4 style="margin-top: 0;">AI分析レポート</h4>
+                                        <div id="timeline-analysis-content" style="white-space: pre-wrap; line-height: 1.6; word-wrap: break-word;">
+                                            <p style="color: #666; text-align: center; padding: 40px 0;">分析を読み込み中...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                     </div>
+                     <div class="result-navigation">
+                     <button type="button" class="prev-step-btn" id="back-to-edit-from-result-btn">&lt; 編集画面へ戻る</button> 
+                         <button type="button" id="restart-btn" class="restart-btn">最初から</button>
+                     </div>
+                 </div>
+
+            </form>
+        </main>
+    </div>
+
+    <footer>
+        <!-- Footer content can be added later -->
+    </footer>
+
+    <script src="/static/user/script.js?v=4.6"></script>
+    <script src="/static/shared/department-loader.js"></script>
+    <script src="/static/shared/chief-complaints-cache.js"></script>
+    <script src="/static/shared/department-preloader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</body>
+</html> 

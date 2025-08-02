@@ -141,40 +141,121 @@ if frontend_dir.exists() and frontend_dir.is_dir():
         raise HTTPException(status_code=404, detail="admin.html not found")
 
     @app.get("/", include_in_schema=False)
-    async def serve_user_html(username: str = Depends(verify_admin_credentials)):
+    async def serve_user_dashboard(username: str = Depends(verify_admin_credentials)):
+        dashboard_path = frontend_dir / "user/dashboard.html"
+        if dashboard_path.exists(): 
+            return FileResponse(dashboard_path)
+        # フォールバック: 旧index.htmlを使用
         user_html_path = frontend_dir / "user/index.html"
-        if user_html_path.exists(): return FileResponse(user_html_path)
-        fallback_html_path = project_root_dir / "frontend/user/index.html"
-        if fallback_html_path.exists(): return FileResponse(fallback_html_path)
-        raise HTTPException(status_code=404, detail="index.html not found")
+        if user_html_path.exists(): 
+            return FileResponse(user_html_path)
+        raise HTTPException(status_code=404, detail="user/dashboard.html not found")
+    
+    @app.get("/user/persona", include_in_schema=False)
+    async def serve_user_persona(username: str = Depends(verify_admin_credentials)):
+        persona_path = frontend_dir / "user/persona/index.html"
+        if persona_path.exists(): 
+            return FileResponse(persona_path)
+        # フォールバック: 旧index.htmlを使用
+        user_html_path = frontend_dir / "user/index.html"
+        if user_html_path.exists(): 
+            return FileResponse(user_html_path)
+        raise HTTPException(status_code=404, detail="user/persona/index.html not found")
+    
+    @app.get("/user/competitive", include_in_schema=False)
+    async def serve_user_competitive(username: str = Depends(verify_admin_credentials)):
+        competitive_path = frontend_dir / "user/competitive/index.html"
+        if competitive_path.exists(): 
+            return FileResponse(competitive_path)
+        raise HTTPException(status_code=404, detail="user/competitive/index.html not found")
     
     # 診療科別エンドポイント
     @app.get("/medical", include_in_schema=False)
-    async def serve_medical_html(username: str = Depends(verify_department_credentials("medical"))):
+    async def serve_medical_dashboard(username: str = Depends(verify_department_credentials("medical"))):
+        dashboard_path = frontend_dir / "medical/dashboard.html"
+        if dashboard_path.exists(): 
+            return FileResponse(dashboard_path)
+        # フォールバック: 旧index.htmlを使用
         medical_html_path = frontend_dir / "medical/index.html"
-        if medical_html_path.exists(): return FileResponse(medical_html_path)
-        # フォールバック: 共通のindex.htmlを使用
-        fallback_html_path = frontend_dir / "user/index.html"
-        if fallback_html_path.exists(): return FileResponse(fallback_html_path)
-        raise HTTPException(status_code=404, detail="medical/index.html not found")
+        if medical_html_path.exists(): 
+            return FileResponse(medical_html_path)
+        raise HTTPException(status_code=404, detail="medical/dashboard.html not found")
+    
+    @app.get("/medical/persona", include_in_schema=False)
+    async def serve_medical_persona(username: str = Depends(verify_department_credentials("medical"))):
+        persona_path = frontend_dir / "medical/persona/index.html"
+        if persona_path.exists(): 
+            return FileResponse(persona_path)
+        # フォールバック: 旧index.htmlを使用
+        medical_html_path = frontend_dir / "medical/index.html"
+        if medical_html_path.exists(): 
+            return FileResponse(medical_html_path)
+        raise HTTPException(status_code=404, detail="medical/persona/index.html not found")
+    
+    @app.get("/medical/competitive", include_in_schema=False)
+    async def serve_medical_competitive(username: str = Depends(verify_department_credentials("medical"))):
+        competitive_path = frontend_dir / "medical/competitive/index.html"
+        if competitive_path.exists(): 
+            return FileResponse(competitive_path)
+        raise HTTPException(status_code=404, detail="medical/competitive/index.html not found")
     
     @app.get("/dental", include_in_schema=False)
-    async def serve_dental_html(username: str = Depends(verify_department_credentials("dental"))):
+    async def serve_dental_dashboard(username: str = Depends(verify_department_credentials("dental"))):
+        dashboard_path = frontend_dir / "dental/dashboard.html"
+        if dashboard_path.exists(): 
+            return FileResponse(dashboard_path)
+        # フォールバック: 旧index.htmlを使用
         dental_html_path = frontend_dir / "dental/index.html"
-        if dental_html_path.exists(): return FileResponse(dental_html_path)
-        # フォールバック: 共通のindex.htmlを使用
-        fallback_html_path = frontend_dir / "user/index.html"
-        if fallback_html_path.exists(): return FileResponse(fallback_html_path)
-        raise HTTPException(status_code=404, detail="dental/index.html not found")
+        if dental_html_path.exists(): 
+            return FileResponse(dental_html_path)
+        raise HTTPException(status_code=404, detail="dental/dashboard.html not found")
+    
+    @app.get("/dental/persona", include_in_schema=False)
+    async def serve_dental_persona(username: str = Depends(verify_department_credentials("dental"))):
+        persona_path = frontend_dir / "dental/persona/index.html"
+        if persona_path.exists(): 
+            return FileResponse(persona_path)
+        # フォールバック: 旧index.htmlを使用
+        dental_html_path = frontend_dir / "dental/index.html"
+        if dental_html_path.exists(): 
+            return FileResponse(dental_html_path)
+        raise HTTPException(status_code=404, detail="dental/persona/index.html not found")
+    
+    @app.get("/dental/competitive", include_in_schema=False)
+    async def serve_dental_competitive(username: str = Depends(verify_department_credentials("dental"))):
+        competitive_path = frontend_dir / "dental/competitive/index.html"
+        if competitive_path.exists(): 
+            return FileResponse(competitive_path)
+        raise HTTPException(status_code=404, detail="dental/competitive/index.html not found")
     
     @app.get("/others", include_in_schema=False)
-    async def serve_others_html(username: str = Depends(verify_department_credentials("others"))):
+    async def serve_others_dashboard(username: str = Depends(verify_department_credentials("others"))):
+        dashboard_path = frontend_dir / "others/dashboard.html"
+        if dashboard_path.exists(): 
+            return FileResponse(dashboard_path)
+        # フォールバック: 旧index.htmlを使用
         others_html_path = frontend_dir / "others/index.html"
-        if others_html_path.exists(): return FileResponse(others_html_path)
-        # フォールバック: 共通のindex.htmlを使用
-        fallback_html_path = frontend_dir / "user/index.html"
-        if fallback_html_path.exists(): return FileResponse(fallback_html_path)
-        raise HTTPException(status_code=404, detail="others/index.html not found")
+        if others_html_path.exists(): 
+            return FileResponse(others_html_path)
+        raise HTTPException(status_code=404, detail="others/dashboard.html not found")
+    
+    @app.get("/others/persona", include_in_schema=False)
+    async def serve_others_persona(username: str = Depends(verify_department_credentials("others"))):
+        persona_path = frontend_dir / "others/persona/index.html"
+        if persona_path.exists(): 
+            return FileResponse(persona_path)
+        # フォールバック: 旧index.htmlを使用
+        others_html_path = frontend_dir / "others/index.html"
+        if others_html_path.exists(): 
+            return FileResponse(others_html_path)
+        raise HTTPException(status_code=404, detail="others/persona/index.html not found")
+    
+    @app.get("/others/competitive", include_in_schema=False)
+    async def serve_others_competitive(username: str = Depends(verify_department_credentials("others"))):
+        competitive_path = frontend_dir / "others/competitive/index.html"
+        if competitive_path.exists(): 
+            return FileResponse(competitive_path)
+        raise HTTPException(status_code=404, detail="others/competitive/index.html not found")
     
     # 診療科別の設定API
     @app.get("/api/departments/by-category/{category}")
