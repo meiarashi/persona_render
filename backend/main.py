@@ -2491,7 +2491,8 @@ async def get_google_maps_key(username: str = Depends(verify_admin_credentials))
 async def get_departments_list(category: str):
     """指定カテゴリの診療科リストを取得"""
     try:
-        chief_complaints = get_chief_complaints()
+        from services.cache_manager import load_chief_complaints_data
+        chief_complaints = load_chief_complaints_data()
         if category not in chief_complaints:
             raise HTTPException(status_code=404, detail=f"Category {category} not found")
         
