@@ -393,3 +393,427 @@ header {
         width: 100%;
     }
 }
+
+/* 結果画面のスタイル */
+#result-screen {
+    display: none;
+    padding: 30px;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+}
+
+.result-header {
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 30px;
+}
+
+.result-header h2 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+.analysis-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.analysis-summary p {
+    margin: 0;
+    padding: 10px 15px;
+    background-color: #f1f3f4;
+    border-radius: 5px;
+    color: #495057;
+}
+
+/* 競合医療機関セクション */
+.competitors-section {
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 30px;
+}
+
+.competitors-section h3 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #28a745;
+    padding-bottom: 10px;
+}
+
+.competitor-card {
+    padding: 20px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.competitor-card:hover {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.competitor-card h4 {
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.competitor-card p {
+    margin: 5px 0;
+    color: #6c757d;
+    font-size: 0.95em;
+}
+
+.competitor-rating {
+    color: #ffc107 !important;
+}
+
+.competitor-website a {
+    color: #28a745;
+    text-decoration: none;
+}
+
+.competitor-website a:hover {
+    text-decoration: underline;
+}
+
+/* SWOT分析セクション */
+.swot-analysis {
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 30px;
+}
+
+.swot-analysis h3 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #28a745;
+    padding-bottom: 10px;
+}
+
+.swot-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.swot-section {
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+}
+
+.swot-section.strengths {
+    border-left: 4px solid #28a745;
+}
+
+.swot-section.weaknesses {
+    border-left: 4px solid #dc3545;
+}
+
+.swot-section.opportunities {
+    border-left: 4px solid #ffc107;
+}
+
+.swot-section.threats {
+    border-left: 4px solid #17a2b8;
+}
+
+.swot-section h4 {
+    color: #495057;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+}
+
+.swot-section ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.swot-section li {
+    padding: 8px 0;
+    color: #6c757d;
+    position: relative;
+    padding-left: 20px;
+}
+
+.swot-section li:before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #28a745;
+    font-weight: bold;
+}
+
+/* 戦略的提案セクション */
+.recommendations {
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 30px;
+}
+
+.recommendations h3 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #28a745;
+    padding-bottom: 10px;
+}
+
+.recommendation-item {
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    background-color: #f8f9fa;
+    border-left: 4px solid #6c757d;
+}
+
+.recommendation-item.high {
+    border-left-color: #dc3545;
+}
+
+.recommendation-item.medium {
+    border-left-color: #ffc107;
+}
+
+.recommendation-item h4 {
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.recommendation-item p {
+    color: #6c757d;
+    margin-bottom: 10px;
+}
+
+.priority-badge {
+    display: inline-block;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+    background-color: #e9ecef;
+    color: #495057;
+}
+
+/* アクションボタン */
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 40px;
+}
+
+.action-buttons .btn {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #218838;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+.btn-link {
+    background-color: transparent;
+    color: #28a745;
+    border: 2px solid #28a745;
+}
+
+.btn-link:hover {
+    background-color: #28a745;
+    color: white;
+}
+
+/* カスタムモーダル */
+.custom-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+}
+
+.custom-modal.fade-out {
+    animation: fadeOut 0.3s ease;
+}
+
+.modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-dialog {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 500px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    animation: slideIn 0.3s ease;
+}
+
+.modal-content {
+    padding: 0;
+}
+
+.modal-header {
+    padding: 20px 25px;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.3em;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+    background-color: #f8f9fa;
+    color: #495057;
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+.modal-body p {
+    margin: 0;
+    color: #495057;
+    line-height: 1.6;
+}
+
+.modal-footer {
+    padding: 15px 25px;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.modal-ok {
+    min-width: 100px;
+}
+
+/* モーダルタイプ別スタイル */
+.modal-dialog.error .modal-header {
+    background-color: #fef2f2;
+    border-bottom-color: #fecaca;
+}
+
+.modal-dialog.error .modal-header h3 {
+    color: #dc3545;
+}
+
+.modal-dialog.info .modal-header {
+    background-color: #e0f2fe;
+    border-bottom-color: #bae6fd;
+}
+
+.modal-dialog.info .modal-header h3 {
+    color: #0284c7;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translate(-50%, -60%);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+    }
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .swot-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .action-buttons .btn {
+        width: 100%;
+    }
+    
+    .modal-dialog {
+        width: 95%;
+        max-width: none;
+    }
+}

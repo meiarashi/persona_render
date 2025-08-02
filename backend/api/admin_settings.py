@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, Body, status
+from fastapi import APIRouter, HTTPException, Body, status, Depends
 from typing import Dict, List, Optional
 
 from ..services import crud
 from ..models import schemas
 from ..services import rag_processor
+from ..middleware.auth import verify_admin_credentials
 
 router = APIRouter()
 
@@ -13,7 +14,7 @@ router = APIRouter()
     summary="Get all current admin settings",
     tags=["Admin Settings"]
 )
-async def get_admin_settings():
+async def get_admin_settings(username: str = Depends(verify_admin_credentials)):
     try:
         settings = crud.read_settings()
         return settings
@@ -30,7 +31,8 @@ async def get_admin_settings():
     tags=["Admin Settings"]
 )
 async def update_model_settings_endpoint(
-    model_update: schemas.ModelSettingsUpdate = Body(...)
+    model_update: schemas.ModelSettingsUpdate = Body(...),
+    username: str = Depends(verify_admin_credentials)
 ):
     try:
         success = crud.update_model_settings(schemas.ModelSettings(**model_update.model_dump()))
@@ -54,7 +56,8 @@ async def update_model_settings_endpoint(
     tags=["Admin Settings"]
 )
 async def update_char_limits_endpoint(
-    char_limit_update: schemas.CharLimitsUpdate = Body(...)
+    char_limit_update: schemas.CharLimitsUpdate = Body(...),
+    username: str = Depends(verify_admin_credentials)
 ):
     try:
         new_limits = char_limit_update.limits

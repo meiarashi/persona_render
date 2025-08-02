@@ -5,12 +5,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const analyzingScreen = document.getElementById('analyzing-screen');
     const resultScreen = document.getElementById('result-screen');
     
-    // 医科の診療科リスト
+    // 医科診療科リスト
     const medicalDepartments = [
-        '内科', '外科', '小児科', '皮膚科', '精神科', '整形外科',
+        '内科', '外科', '小児科', '皮膚科', '整形外科',
         '眼科', '耳鼻咽喉科', '泌尿器科', '産婦人科', '放射線科',
-        '麻酔科', '救急科', '形成外科', '脳神経外科', 'リハビリテーション科',
-        '心療内科', '呼吸器内科'
+        '麻酔科', '救急科', '形成外科', '脳神経外科', '心療内科', '呼吸器内科'
     ];
     
     // 初期化
@@ -94,17 +93,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 const checkedDepts = document.querySelectorAll('input[name="departments"]:checked');
                 
                 if (!clinicName) {
-                    alert('クリニック名を入力してください。');
+                    showModal('クリニック名を入力してください。');
                     return false;
                 }
                 
                 if (!address) {
-                    alert('住所を入力してください。');
+                    showModal('住所を入力してください。');
                     return false;
                 }
                 
                 if (checkedDepts.length === 0) {
-                    alert('診療科を少なくとも1つ選択してください。');
+                    showModal('診療科を少なくとも1つ選択してください。');
                     return false;
                 }
                 
@@ -132,9 +131,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const postalCode = postalCodeInput.value.replace(/[^0-9]/g, '');
             
             if (postalCode.length !== 7) {
-                alert('郵便番号は7桁で入力してください。');
+                showModal('郵便番号は7桁で入力してください。');
                 return;
             }
+            
+            // ローディング状態を表示
+            const originalText = postalSearchBtn.textContent;
+            postalSearchBtn.textContent = '検索中...';
+            postalSearchBtn.disabled = true;
             
             try {
                 // 郵便番号API（実装時は実際のAPIに置き換え）
@@ -145,11 +149,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     const result = data.results[0];
                     addressInput.value = `${result.address1}${result.address2}${result.address3}`;
                 } else {
-                    alert('該当する住所が見つかりませんでした。');
+                    showModal('該当する住所が見つかりませんでした。', 'info');
                 }
             } catch (error) {
                 console.error('郵便番号検索エラー:', error);
-                alert('郵便番号検索中にエラーが発生しました。');
+                showModal('郵便番号検索中にエラーが発生しました。');
+            } finally {
+                // ローディング状態を解除
+                postalSearchBtn.textContent = originalText;
+                postalSearchBtn.disabled = false;
             }
         });
     }
@@ -172,17 +180,38 @@ document.addEventListener('DOMContentLoaded', function() {
         startAnalyzingAnimation();
         
         try {
+            // 検索半径を数値に変換
+            const radiusMap = {
+                '1km': 1000,
+                '3km': 3000,
+                '5km': 5000
+            };
+            
+            // APIリクエスト用のデータを準備
+            const requestData = {
+                clinic_info: {
+                    name: formData.clinicName,
+                    address: formData.address,
+                    postal_code: formData.postalCode,
+                    departments: formData.departments,
+                    features: formData.clinicFeatures
+                },
+                search_radius: radiusMap[formData.analysisRange] || 3000,
+                additional_info: formData.targetPatients
+            };
+            
             // APIリクエスト
-            const response = await fetch('/api/competitive/analyze', {
+            const response = await fetch('/api/competitive-analysis', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(requestData)
             });
             
             if (!response.ok) {
-                throw new Error('分析に失敗しました');
+                const errorData = await response.json();
+                throw new Error(errorData.error || '分析に失敗しました');
             }
             
             const result = await response.json();
@@ -192,7 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
         } catch (error) {
             console.error('分析エラー:', error);
-            alert('分析中にエラーが発生しました。もう一度お試しください。');
+            showModal(`分析中にエラーが発生しました: ${error.message}`);
             analyzingScreen.style.display = 'none';
             form.style.display = 'block';
         }
@@ -239,13 +268,158 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(animateStep, 500);
     }
     
+    // HTMLサニタイズ関数
+    function sanitizeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+    
+    // カスタムモーダル関数
+    function showModal(message, type = 'error') {
+        // 既存のモーダルがあれば削除
+        const existingModal = document.querySelector('.custom-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        const modal = document.createElement('div');
+        modal.className = 'custom-modal';
+        modal.innerHTML = `
+            <div class="modal-backdrop"></div>
+            <div class="modal-dialog ${type}">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>${type === 'error' ? 'エラー' : type === 'info' ? '情報' : '確認'}</h3>
+                        <button class="modal-close" aria-label="閉じる">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>${sanitizeHtml(message)}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary modal-ok">OK</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // イベントリスナー
+        const closeModal = () => {
+            modal.classList.add('fade-out');
+            setTimeout(() => modal.remove(), 300);
+        };
+        
+        modal.querySelector('.modal-close').addEventListener('click', closeModal);
+        modal.querySelector('.modal-ok').addEventListener('click', closeModal);
+        modal.querySelector('.modal-backdrop').addEventListener('click', closeModal);
+        
+        // ESCキーで閉じる
+        const handleEsc = (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                document.removeEventListener('keydown', handleEsc);
+            }
+        };
+        document.addEventListener('keydown', handleEsc);
+        
+        // フォーカスをOKボタンに設定
+        setTimeout(() => modal.querySelector('.modal-ok').focus(), 100);
+    }
+    
     function displayResult(result) {
-        // 結果画面のHTMLを生成（実装時に詳細を追加）
+        // 結果画面のHTMLを生成
+        let competitorsHtml = '';
+        if (result.competitors && result.competitors.length > 0) {
+            competitorsHtml = result.competitors.map((competitor, index) => `
+                <div class="competitor-card">
+                    <h4>${index + 1}. ${sanitizeHtml(competitor.name)}</h4>
+                    <p class="competitor-address">${sanitizeHtml(competitor.formatted_address || competitor.address)}</p>
+                    ${competitor.rating ? `<p class="competitor-rating">評価: ${sanitizeHtml(String(competitor.rating))} ⭐ (${sanitizeHtml(String(competitor.user_ratings_total))}件のレビュー)</p>` : ''}
+                    ${competitor.phone_number ? `<p class="competitor-phone">電話: ${sanitizeHtml(competitor.phone_number)}</p>` : ''}
+                    ${competitor.website ? `<p class="competitor-website"><a href="${encodeURI(competitor.website)}" target="_blank" rel="noopener noreferrer">ウェブサイト</a></p>` : ''}
+                    ${competitor.distance ? `<p class="competitor-distance">距離: ${sanitizeHtml(competitor.distance.toFixed(1))}km</p>` : ''}
+                </div>
+            `).join('');
+        }
+        
+        let swotHtml = '';
+        if (result.swot_analysis) {
+            swotHtml = `
+                <div class="swot-analysis">
+                    <h3>SWOT分析</h3>
+                    <div class="swot-grid">
+                        <div class="swot-section strengths">
+                            <h4>強み (Strengths)</h4>
+                            <ul>
+                                ${result.swot_analysis.strengths.map(s => `<li>${sanitizeHtml(s)}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="swot-section weaknesses">
+                            <h4>弱み (Weaknesses)</h4>
+                            <ul>
+                                ${result.swot_analysis.weaknesses.map(w => `<li>${sanitizeHtml(w)}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="swot-section opportunities">
+                            <h4>機会 (Opportunities)</h4>
+                            <ul>
+                                ${result.swot_analysis.opportunities.map(o => `<li>${sanitizeHtml(o)}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="swot-section threats">
+                            <h4>脅威 (Threats)</h4>
+                            <ul>
+                                ${result.swot_analysis.threats.map(t => `<li>${sanitizeHtml(t)}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        let recommendationsHtml = '';
+        if (result.strategic_recommendations && result.strategic_recommendations.length > 0) {
+            recommendationsHtml = `
+                <div class="recommendations">
+                    <h3>戦略的提案</h3>
+                    ${result.strategic_recommendations.map(rec => `
+                        <div class="recommendation-item ${sanitizeHtml(rec.priority)}">
+                            <h4>${sanitizeHtml(rec.title)}</h4>
+                            <p>${sanitizeHtml(rec.description)}</p>
+                            <span class="priority-badge">優先度: ${rec.priority === 'high' ? '高' : rec.priority === 'medium' ? '中' : '低'}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
         resultScreen.innerHTML = `
-            <h2>競合分析結果</h2>
+            <div class="result-header">
+                <h2>競合分析結果</h2>
+                <div class="analysis-summary">
+                    <p>分析対象: ${sanitizeHtml(result.clinic_info.name)}</p>
+                    <p>検索範囲: 半径${sanitizeHtml(String(result.search_radius / 1000))}km</p>
+                    <p>競合数: ${sanitizeHtml(String(result.competitors_found))}件</p>
+                    <p>分析日時: ${new Date(result.analysis_date).toLocaleString('ja-JP')}</p>
+                </div>
+            </div>
+            
             <div class="result-content">
-                <!-- 結果の詳細表示 -->
-                <p>分析結果の表示機能は現在開発中です。</p>
+                <div class="competitors-section">
+                    <h3>近隣の競合医療機関</h3>
+                    ${competitorsHtml || '<p>競合医療機関が見つかりませんでした。</p>'}
+                </div>
+                
+                ${swotHtml}
+                ${recommendationsHtml}
+                
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="window.print()">印刷</button>
+                    <button class="btn btn-secondary" onclick="location.reload()">新しい分析を開始</button>
+                    <a href="/medical/dashboard" class="btn btn-link">ダッシュボードに戻る</a>
+                </div>
             </div>
         `;
         

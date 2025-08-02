@@ -71,6 +71,7 @@ from .services import timeline_analyzer
 from .services import crud, rag_processor
 from .services.async_image_generator import generate_image_async
 from .services.cache_manager import get_chief_complaints, preload_cache
+from .services.competitive_analysis_service import CompetitiveAnalysisService
 from .middleware.auth import verify_admin_credentials, verify_department_credentials
 from .models import schemas as models
 from .utils import config_loader, prompt_builder
@@ -287,7 +288,7 @@ if frontend_dir.exists() and frontend_dir.is_dir():
     
     # 診療科別の設定API
     @app.get("/api/departments/by-category/{category}")
-    async def get_departments_by_category(category: str):
+    async def get_departments_by_category(category: str, username: str = Depends(verify_admin_credentials)):
         """診療科カテゴリーに応じた診療科リストを返す"""
         departments_by_category_path = project_root_dir / "config" / "departments_by_category.json"
         if not departments_by_category_path.exists():
@@ -318,7 +319,7 @@ if frontend_dir.exists() and frontend_dir.is_dir():
     
     # 主訴リスト取得API（キャッシュ使用版）
     @app.get("/api/chief-complaints/{category}/{department}")
-    async def get_chief_complaints_api(category: str, department: str):
+    async def get_chief_complaints_api(category: str, department: str, username: str = Depends(verify_admin_credentials)):
         """指定された診療科の主訴リストを返す（キャッシュから高速取得）"""
         # キャッシュから主訴を取得
         chief_complaints_list = get_chief_complaints(category, department)
@@ -851,7 +852,7 @@ def parse_ai_response(text):
     return sections
 
 @app.post("/api/generate")
-async def generate_persona(request: Request):
+async def generate_persona(request: Request, username: str = Depends(verify_admin_credentials)):
     try:
         data = await request.json()
         
@@ -1116,7 +1117,7 @@ async def generate_persona(request: Request):
 # [削除済み] /api/generate-by-complaintエンドポイントは/api/generateに統合されました
 
 @app.post("/api/download/pdf")
-async def download_pdf(request: Request):
+async def download_pdf(request: Request, username: str = Depends(verify_admin_credentials)):
     """ペルソナデータをPDFとしてダウンロードするエンドポイント"""
     try:
         data = await request.json()
@@ -1160,7 +1161,7 @@ async def download_pdf(request: Request):
         )
 
 @app.post("/api/download/ppt")
-async def download_ppt(request: Request):
+async def download_ppt(request: Request, username: str = Depends(verify_admin_credentials)):
     """ペルソナデータをPPTXとしてダウンロードするエンドポイント"""
     try:
         data = await request.json()
@@ -1308,7 +1309,7 @@ async def health_check():
     return {"status": "ok"}
 
 @app.post("/api/search-timeline")
-async def get_search_timeline(request: Request):
+async def get_search_timeline(request: Request, username: str = Depends(verify_admin_credentials)):
     """検索キーワードの時系列データを取得"""
     try:
         data = await request.json()
@@ -1345,7 +1346,7 @@ async def get_search_timeline(request: Request):
         )
 
 @app.post("/api/search-timeline-analysis")
-async def analyze_search_behavior(request: Request):
+async def analyze_search_behavior(request: Request, username: str = Depends(verify_admin_credentials)):
     """検索行動をAIで分析"""
     try:
         data = await request.json()
@@ -2445,3 +2446,113 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
     prs.save(pptx_buffer)
     pptx_buffer.seek(0)
     return pptx_buffer
+
+# 競合分析API
+@app.post("/api/competitive-analysis")
+async def analyze_competitors(request: Request, username: str = Depends(verify_admin_credentials)):
+    """競合分析を実行"""
+    try:
+        data = await request.json()
+        
+        # 必須パラメータの確認
+        clinic_info = data.get('clinic_info')
+        search_radius = data.get('search_radius', 3000)
+        additional_info = data.get('additional_info', '')
+        
+        if not clinic_info or not clinic_info.get('address'):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "clinic_info with address is required"}
+            )
+        
+        # 入力検証
+        if not isinstance(search_radius, int) or search_radius < 100 or search_radius > 50000:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "search_radius must be between 100 and 50000 meters"}
+            )
+        
+        if 'departments' in clinic_info and not isinstance(clinic_info['departments'], list):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "departments must be a list"}
+            )
+        
+        # 住所の基本的な検証
+        address = clinic_info.get('address', '').strip()
+        if len(address) < 5 or len(address) > 200:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Invalid address length"}
+            )
+        
+        # 競合分析サービスのインスタンスを作成
+        competitive_service = CompetitiveAnalysisService()
+        
+        # 分析を実行
+        result = await competitive_service.analyze_competitors(
+            clinic_info=clinic_info,
+            search_radius=search_radius,
+            additional_info=additional_info
+        )
+        
+        if result.get("error"):
+            return JSONResponse(
+                status_code=500,
+                content={"error": result["error"]}
+            )
+        
+        return JSONResponse(content=result)
+        
+    except Exception as e:
+        print(f"Error in competitive analysis: {e}")
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"競合分析中にエラーが発生しました: {str(e)}"}
+        )
+
+@app.post("/api/competitive-analysis/search-clinics")
+async def search_nearby_clinics(request: Request, username: str = Depends(verify_admin_credentials)):
+    """近隣の医療機関を検索"""
+    try:
+        data = await request.json()
+        
+        # パラメータの取得
+        address = data.get('address')
+        radius = data.get('radius', 3000)
+        department_types = data.get('department_types', [])
+        
+        if not address:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "address is required"}
+            )
+        
+        # Google Maps サービスのインスタンスを作成
+        from .services.google_maps_service import GoogleMapsService
+        google_maps = GoogleMapsService()
+        
+        # 検索を実行
+        result = await google_maps.search_nearby_clinics(
+            location=address,
+            radius=radius,
+            department_types=department_types,
+            limit=20
+        )
+        
+        if result.get("error"):
+            return JSONResponse(
+                status_code=500,
+                content={"error": result["error"]}
+            )
+        
+        return JSONResponse(content=result)
+        
+    except Exception as e:
+        print(f"Error searching nearby clinics: {e}")
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"検索中にエラーが発生しました: {str(e)}"}
+        )
