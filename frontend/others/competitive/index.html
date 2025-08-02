@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>その他 - 競合分析 | THE DOCTOR'S</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <span class="logo">THE DOCTOR'S</span>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <main class="form-area">
+            <form id="competitive-analysis-form">
+                <!-- Step 1: 自院情報入力 -->
+                <div class="form-step active" data-step="1">
+                    <div class="step-header">
+                        <span class="icon"><img src="/images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
+                        <div>
+                            <div class="progress-bar">
+                                <span>1/3問目</span>
+                                <div class="progress" style="width: 33%;"></div>
+                            </div>
+                            <h4 class="question-text">あなたのクリニック情報を入力してください。</h4>
+                        </div>
+                    </div>
+
+                    <div class="clinic-info-form">
+                        <div class="form-group">
+                            <label for="clinic-name">クリニック名 <span class="required">*</span></label>
+                            <input type="text" id="clinic-name" name="clinicName" placeholder="例：田中内科クリニック" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="postal-code">郵便番号</label>
+                            <div class="postal-code-input">
+                                <input type="text" id="postal-code" name="postalCode" placeholder="例：123-4567" maxlength="8">
+                                <button type="button" class="postal-search-btn">住所検索</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="address">住所 <span class="required">*</span></label>
+                            <input type="text" id="address" name="address" placeholder="例：東京都渋谷区道玄坂1-2-3" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>診療科 <span class="required">*</span></label>
+                            <div class="department-checkbox-grid">
+                                <!-- 診療科チェックボックスは動的に生成 -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step-nav-buttons">
+                        <button type="button" class="next-step-btn">次の質問へ進む &gt;</button>
+                    </div>
+                </div>
+
+                <!-- Step 2: 分析範囲選択 -->
+                <div class="form-step" data-step="2">
+                    <div class="step-header">
+                        <span class="icon"><img src="/images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
+                        <div>
+                            <div class="progress-bar">
+                                <span>2/3問目</span>
+                                <div class="progress" style="width: 66%;"></div>
+                            </div>
+                            <h4 class="question-text">競合分析の範囲を選択してください。</h4>
+                        </div>
+                    </div>
+                    
+                    <div class="analysis-range-options">
+                        <label class="range-option">
+                            <input type="radio" name="analysisRange" value="1" checked>
+                            <div class="range-card">
+                                <div class="range-icon">🎯</div>
+                                <div class="range-title">1km圏内</div>
+                                <div class="range-desc">徒歩圏内の直接競合</div>
+                            </div>
+                        </label>
+                        <label class="range-option">
+                            <input type="radio" name="analysisRange" value="3">
+                            <div class="range-card">
+                                <div class="range-icon">🚗</div>
+                                <div class="range-title">3km圏内</div>
+                                <div class="range-desc">車・自転車圏内</div>
+                            </div>
+                        </label>
+                        <label class="range-option">
+                            <input type="radio" name="analysisRange" value="5">
+                            <div class="range-card">
+                                <div class="range-icon">🚊</div>
+                                <div class="range-title">5km圏内</div>
+                                <div class="range-desc">広域商圏分析</div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="step-nav-buttons"> 
+                        <button type="button" class="prev-step-btn">&lt; 前へ</button>
+                        <button type="button" class="next-step-btn">次の質問へ進む &gt;</button>
+                    </div>
+                </div>
+
+                <!-- Step 3: 追加情報入力（任意） -->
+                <div class="form-step" data-step="3">
+                    <div class="step-header">
+                        <span class="icon"><img src="/images/owl.png" alt="owl" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
+                        <div>
+                            <div class="progress-bar">
+                                <span>3/3問目</span>
+                                <div class="progress" style="width: 100%;"></div>
+                            </div>
+                            <h4 class="question-text">あなたのクリニックの特徴を教えてください（任意）。</h4>
+                        </div>
+                    </div>
+                    
+                    <div class="additional-info-form">
+                        <div class="form-group">
+                            <label for="clinic-features">クリニックの強み・特徴</label>
+                            <textarea id="clinic-features" name="clinicFeatures" rows="4" 
+                                placeholder="例：土日診療、最新のCT導入、専門医3名在籍、駐車場完備など"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="target-patients">主なターゲット層</label>
+                            <textarea id="target-patients" name="targetPatients" rows="3" 
+                                placeholder="例：働く世代、高齢者、小児、スポーツをする方など"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="step-nav-buttons"> 
+                        <button type="button" class="prev-step-btn">&lt; 前へ</button>
+                        <button type="button" class="analyze-btn">分析を開始する</button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- 分析中画面 -->
+            <div id="analyzing-screen" style="display: none;">
+                <div class="analyzing-content">
+                    <div class="analyzing-icon">
+                        <img src="/images/owl.png" alt="分析中" style="width: 120px; height: 120px;">
+                    </div>
+                    <h2>競合分析を実行中...</h2>
+                    <div class="analyzing-steps">
+                        <div class="step-item" data-step="1">
+                            <span class="step-icon">🔍</span>
+                            <span class="step-text">近隣の医療機関を検索中</span>
+                        </div>
+                        <div class="step-item" data-step="2">
+                            <span class="step-icon">📊</span>
+                            <span class="step-text">詳細情報を収集中</span>
+                        </div>
+                        <div class="step-item" data-step="3">
+                            <span class="step-icon">🤖</span>
+                            <span class="step-text">AIがSWOT分析を生成中</span>
+                        </div>
+                    </div>
+                    <div class="progress-indicator">
+                        <div class="progress-bar-analyzing">
+                            <div class="progress-fill"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 結果表示画面 -->
+            <div id="result-screen" style="display: none;">
+                <!-- 結果は動的に生成されます -->
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
