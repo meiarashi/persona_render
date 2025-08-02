@@ -67,6 +67,7 @@ class CompetitiveAnalysisService:
             
             return {
                 "clinic_info": clinic_info,
+                "center": competitors.get("center"),  # 自院の座標を追加
                 "search_radius": search_radius,
                 "competitors_found": len(competitors.get("results", [])),
                 "competitors": competitors.get("results", []),
