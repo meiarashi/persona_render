@@ -1,13 +1,52 @@
 // 競合分析機能のJavaScript
 
+// グローバル変数
+let googleMapsLoaded = false;
+let mapInstance = null;
+let markers = [];
+let infoWindow = null;
+
+// Google Maps APIを動的に読み込む
+async function loadGoogleMapsAPI() {
+    if (googleMapsLoaded) return;
+    
+    try {
+        const response = await fetch('/api/google-maps-key');
+        if (!response.ok) throw new Error('Failed to get API key');
+        
+        const data = await response.json();
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${data.api_key}&callback=onGoogleMapsLoaded&language=ja&region=JP`;
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+    } catch (error) {
+        console.error('Failed to load Google Maps:', error);
+    }
+}
+
+// Google Maps API読み込み完了時のコールバック
+window.onGoogleMapsLoaded = function() {
+    googleMapsLoaded = true;
+    console.log('Google Maps API loaded');
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('competitive-analysis-form');
     const analyzingScreen = document.getElementById('analyzing-screen');
     const resultScreen = document.getElementById('result-screen');
     
-    // 歯科診療科リスト
+    // 全診療科リスト（管理者用）
     const medicalDepartments = [
-        '一般歯科', '小児歯科', '矯正歯科', '審美歯科'
+        // 医科
+        '内科', '外科', '小児科', '皮膚科', '整形外科',
+        '眼科', '耳鼻咽喉科', '泌尿器科', '産婦人科', '放射線科',
+        '麻酔科', '救急科', '形成外科', '脳神経外科', '心療内科', '呼吸器内科',
+        // 歯科
+        '一般歯科', '小児歯科', '矯正歯科', '審美歯科',
+        // その他
+        '精神科', '美容外科', 'リハビリテーション科', '皮膚科（美容）',
+        'ペインクリニック', '漢方内科', '在宅診療', '健診・人間ドック'
     ];
     
     // 初期化
@@ -326,7 +365,114 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => modal.querySelector('.modal-ok').focus(), 100);
     }
     
+    // 地図を初期化して競合を表示
+    function initMap(result) {
+        if (!googleMapsLoaded) {
+            console.error('Google Maps not loaded yet');
+            return;
+        }
+        
+        const mapContainer = document.getElementById('competitors-map');
+        if (!mapContainer) return;
+        
+        // 中心座標（自院の位置）を設定
+        let center = { lat: 35.6762, lng: 139.6503 }; // デフォルト（東京）
+        
+        // 検索結果の中心座標があれば使用
+        if (result.center && result.center.lat && result.center.lng) {
+            center = result.center;
+        }
+        
+        // 地図を初期化
+        mapInstance = new google.maps.Map(mapContainer, {
+            zoom: 14,
+            center: center,
+            mapTypeControl: false,
+            fullscreenControl: false,
+            streetViewControl: false
+        });
+        
+        // InfoWindowを初期化
+        infoWindow = new google.maps.InfoWindow();
+        
+        // 自院のマーカーを追加（特別な色）
+        const clinicMarker = new google.maps.Marker({
+            position: center,
+            map: mapInstance,
+            title: result.clinic_info.name,
+            icon: {
+                url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+            }
+        });
+        
+        clinicMarker.addListener('click', () => {
+            infoWindow.setContent(`
+                <div class="map-info-window">
+                    <h4>${sanitizeHtml(result.clinic_info.name)}</h4>
+                    <p class="info-type">自院</p>
+                    <p>${sanitizeHtml(result.clinic_info.address)}</p>
+                </div>
+            `);
+            infoWindow.open(mapInstance, clinicMarker);
+        });
+        
+        // 競合のマーカーを追加
+        result.competitors.forEach((competitor, index) => {
+            if (!competitor.location || !competitor.location.lat || !competitor.location.lng) return;
+            
+            const marker = new google.maps.Marker({
+                position: {
+                    lat: competitor.location.lat,
+                    lng: competitor.location.lng
+                },
+                map: mapInstance,
+                title: competitor.name,
+                icon: {
+                    url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                }
+            });
+            
+            // クリック時の情報表示
+            marker.addListener('click', () => {
+                const ratingStars = competitor.rating ? '★'.repeat(Math.round(competitor.rating)) : '';
+                infoWindow.setContent(`
+                    <div class="map-info-window">
+                        <h4>${sanitizeHtml(competitor.name)}</h4>
+                        <p class="info-address">${sanitizeHtml(competitor.formatted_address || competitor.address)}</p>
+                        ${competitor.rating ? `<p class="info-rating">${ratingStars} ${sanitizeHtml(String(competitor.rating))} (${sanitizeHtml(String(competitor.user_ratings_total))}件)</p>` : ''}
+                        ${competitor.phone_number ? `<p class="info-phone">📞 ${sanitizeHtml(competitor.phone_number)}</p>` : ''}
+                        ${competitor.website ? `<p class="info-website"><a href="${sanitizeHtml(competitor.website)}" target="_blank">ウェブサイトを見る</a></p>` : ''}
+                        ${competitor.opening_hours?.weekday_text ? `
+                            <details class="info-hours">
+                                <summary>営業時間</summary>
+                                <ul>
+                                    ${competitor.opening_hours.weekday_text.map(day => `<li>${sanitizeHtml(day)}</li>`).join('')}
+                                </ul>
+                            </details>
+                        ` : ''}
+                    </div>
+                `);
+                infoWindow.open(mapInstance, marker);
+            });
+            
+            markers.push(marker);
+        });
+        
+        // すべてのマーカーが表示されるように地図を調整
+        if (markers.length > 0) {
+            const bounds = new google.maps.LatLngBounds();
+            bounds.extend(clinicMarker.getPosition());
+            markers.forEach(marker => bounds.extend(marker.getPosition()));
+            mapInstance.fitBounds(bounds);
+        }
+    }
+    
     function displayResult(result) {
+        console.log('分析結果:', result);
+        
+        // Google Maps APIを読み込む
+        loadGoogleMapsAPI();
+        
         // 結果画面のHTMLを生成
         let competitorsHtml = '';
         if (result.competitors && result.competitors.length > 0) {
@@ -405,9 +551,13 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             
             <div class="result-content">
-                <div class="competitors-section">
-                    <h3>近隣の競合医療機関</h3>
-                    ${competitorsHtml || '<p>競合医療機関が見つかりませんでした。</p>'}
+                <div class="map-section">
+                    <h3>競合マップ</h3>
+                    <div id="competitors-map" style="height: 500px; width: 100%; margin-bottom: 2rem;"></div>
+                    <div class="map-legend">
+                        <p><img src="http://maps.google.com/mapfiles/ms/icons/blue-dot.png" alt="自院" style="width: 20px; vertical-align: middle;"> 自院</p>
+                        <p><img src="http://maps.google.com/mapfiles/ms/icons/red-dot.png" alt="競合" style="width: 20px; vertical-align: middle;"> 競合医療機関</p>
+                    </div>
                 </div>
                 
                 ${swotHtml}
@@ -416,12 +566,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="action-buttons">
                     <button class="btn btn-primary" onclick="window.print()">印刷</button>
                     <button class="btn btn-secondary" onclick="location.reload()">新しい分析を開始</button>
-                    <a href="/dental/dashboard" class="btn btn-link">ダッシュボードに戻る</a>
+                    <a href="/user/dashboard" class="btn btn-link">ダッシュボードに戻る</a>
                 </div>
             </div>
         `;
         
         analyzingScreen.style.display = 'none';
         resultScreen.style.display = 'block';
+        
+        // Google Maps APIが読み込まれたら地図を初期化
+        if (googleMapsLoaded) {
+            setTimeout(() => initMap(result), 100);
+        } else {
+            // APIの読み込みを待つ
+            const checkInterval = setInterval(() => {
+                if (googleMapsLoaded) {
+                    clearInterval(checkInterval);
+                    initMap(result);
+                }
+            }, 100);
+        }
     }
 });

@@ -2477,6 +2477,15 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
     pptx_buffer.seek(0)
     return pptx_buffer
 
+# Google Maps APIキーを取得するエンドポイント
+@app.get("/api/google-maps-key")
+async def get_google_maps_key(username: str = Depends(verify_admin_credentials)):
+    """Google Maps APIキーを取得（フロントエンドのJavaScript API用）"""
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Google Maps API key not configured")
+    return {"api_key": api_key}
+
 # デバッグ用エンドポイント（本番環境では削除すること）
 @app.get("/api/debug/google-maps-status")
 async def check_google_maps_status(username: str = Depends(verify_admin_credentials)):

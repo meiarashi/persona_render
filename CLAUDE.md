@@ -51,3 +51,52 @@
 - フェーズ2壁打ち.md：要件整理
 - フェーズ2提案書.md：クライアント向け提案
 - フェーズ2見積書.md：費用見積もり
+
+## 必要なAPIとサービス
+
+### Google Cloud Platform - 競合分析機能
+以下のAPIを有効化する必要があります：
+
+1. **Geocoding API**
+   - 住所を緯度経度に変換するために必要
+   - 日本の住所から座標を取得する際に使用
+
+2. **Places API**
+   - 近隣の医療機関を検索するために必要
+   - 施設の詳細情報（電話番号、営業時間、レビュー等）を取得
+
+#### 設定手順：
+1. [Google Cloud Console](https://console.cloud.google.com/)にログイン
+2. プロジェクトを選択（または新規作成）
+3. 課金アカウントを設定（必須）
+4. 「APIとサービス」→「ライブラリ」から以下を検索して有効化：
+   - Geocoding API
+   - Places API
+5. 「APIとサービス」→「認証情報」でAPIキーを作成
+6. APIキーの制限（推奨）：
+   - アプリケーションの制限：「IPアドレス」
+   - Render.comのサーバーIPアドレスを許可リストに追加
+7. RenderにGOOGLE_MAPS_API_KEYとして環境変数を設定
+
+### その他の必要なAPI（既存）
+- **OPENAI_API_KEY** - ペルソナ生成、SWOT分析（GPT-4）
+- **ANTHROPIC_API_KEY** - Claude利用時
+- **GOOGLE_API_KEY** - Gemini利用時
+
+### Renderでの環境変数設定
+```
+OPENAI_API_KEY=sk-...
+GOOGLE_MAPS_API_KEY=AIza...
+ANTHROPIC_API_KEY=sk-ant-...
+GOOGLE_API_KEY=AIza...
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=...
+MEDICAL_USERNAME=medical
+MEDICAL_PASSWORD=...
+DENTAL_USERNAME=dental
+DENTAL_PASSWORD=...
+OTHERS_USERNAME=others
+OTHERS_PASSWORD=...
+USER_USERNAME=user
+USER_PASSWORD=...
+```
