@@ -8,7 +8,19 @@ try:
     openai_available = True
 except ImportError:
     openai_available = False
+try:
+    from anthropic import Anthropic
+    anthropic_available = True
+except ImportError:
+    anthropic_available = False
+try:
+    from google import genai as google_genai_sdk
+    from google.genai import types as google_genai_types
+    google_genai_available = True
+except ImportError:
+    google_genai_available = False
 from .google_maps_service import GoogleMapsService
+from .crud import read_settings
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +28,18 @@ class CompetitiveAnalysisService:
     def __init__(self):
         self.google_maps = GoogleMapsService()
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
-        if not self.openai_api_key or not openai_available:
-            logger.warning("OPENAI_API_KEY not found in environment variables or OpenAI not available")
+        self.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+        self.google_api_key = os.getenv("GOOGLE_API_KEY")
+        
+        # 管理画面の設定を読み込み
+        try:
+            self.settings = read_settings()
+            self.selected_model = self.settings.model_settings.selected_model
+            self.selected_provider = self.settings.model_settings.selected_provider
+        except Exception as e:
+            logger.warning(f"Failed to read settings: {e}")
+            self.selected_model = "gpt-4"
+            self.selected_provider = "openai"
     
     async def analyze_competitors(
         self,
@@ -38,10 +60,14 @@ class CompetitiveAnalysisService:
         """
         try:
             # 1. 近隣の競合医療機関を検索
+            # 診療科の取得（新しいdepartmentフィールドまたは古いdepartmentsフィールドに対応）
+            department = clinic_info.get("department")
+            department_types = [department] if department else clinic_info.get("departments", [])
+            
             competitors = await self.google_maps.search_nearby_clinics(
                 location=clinic_info.get("address", ""),
                 radius=search_radius,
-                department_types=clinic_info.get("departments", []),
+                department_types=department_types,
                 limit=20  # より多くの結果を取得
             )
             
@@ -118,25 +144,51 @@ class CompetitiveAnalysisService:
     async def _generate_swot_analysis(self, analysis_data: Dict[str, Any]) -> Dict[str, List[str]]:
         """SWOT分析を生成"""
         
-        if not self.openai_api_key:
-            return self._generate_basic_swot(analysis_data)
-        
         try:
             prompt = self._build_swot_prompt(analysis_data)
+            system_prompt = "あなたは医療機関の経営コンサルタントです。提供された情報を基に、具体的で実行可能なSWOT分析を行ってください。"
             
-            client = OpenAI(api_key=self.openai_api_key)
-            response = client.chat.completions.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "あなたは医療機関の経営コンサルタントです。提供された情報を基に、具体的で実行可能なSWOT分析を行ってください。"},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=2000
-            )
+            # 選択されたプロバイダーに応じてAIを使用
+            if self.selected_provider == "openai" and self.openai_api_key and openai_available:
+                client = OpenAI(api_key=self.openai_api_key)
+                response = client.chat.completions.create(
+                    model=self.selected_model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=2000
+                )
+                content = response.choices[0].message.content
+                
+            elif self.selected_provider == "anthropic" and self.anthropic_api_key and anthropic_available:
+                client = Anthropic(api_key=self.anthropic_api_key)
+                response = client.messages.create(
+                    model=self.selected_model,
+                    max_tokens=2000,
+                    temperature=0.7,
+                    system=system_prompt,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                content = response.content[0].text
+                
+            elif self.selected_provider == "google" and self.google_api_key and google_genai_available:
+                client = google_genai_sdk.Client(api_key=self.google_api_key)
+                response = await client.models.generate_content_async(
+                    model=self.selected_model,
+                    contents=f"{system_prompt}\n\n{prompt}",
+                    config=google_genai_types.GenerateContentConfig(
+                        temperature=0.7,
+                        max_output_tokens=2000
+                    )
+                )
+                content = response.text
+                
+            else:
+                logger.warning(f"Selected provider {self.selected_provider} not available, using basic SWOT")
+                return self._generate_basic_swot(analysis_data)
             
-            # レスポンスをパース
-            content = response.choices[0].message.content
             return self._parse_swot_response(content)
             
         except Exception as e:
@@ -147,23 +199,57 @@ class CompetitiveAnalysisService:
         """SWOT分析用のプロンプトを構築"""
         clinic = analysis_data["clinic"]
         stats = analysis_data["market_stats"]
+        competitors = analysis_data["competitors"]
+        
+        # 診療科の取得（新しいdepartmentフィールドまたは古いdepartmentsフィールドに対応）
+        department = clinic.get('department') or ', '.join(clinic.get('departments', []))
+        
+        # トップ5件の競合情報を詳細に記載
+        top_competitors_info = ""
+        for i, comp in enumerate(competitors[:5], 1):
+            top_competitors_info += f"""
+{i}. {comp.get('name', '不明')}
+   - 評価: {comp.get('rating', 'N/A')} ({comp.get('user_ratings_total', 0)}件のレビュー)
+   - 住所: {comp.get('formatted_address', comp.get('address', '不明'))}
+   - 距離: {comp.get('distance', '不明')}m
+"""
+        
+        # 診療科タイプの分布情報
+        dept_distribution_info = ""
+        if stats['department_distribution']:
+            sorted_depts = sorted(stats['department_distribution'].items(), key=lambda x: x[1], reverse=True)[:5]
+            for dept_type, count in sorted_depts:
+                dept_distribution_info += f"- {dept_type}: {count}件\n"
         
         prompt = f"""
-以下の情報を基に、医療機関のSWOT分析を行ってください。
+以下の詳細情報を基に、医療機関の具体的で実行可能なSWOT分析を行ってください。
 
 【自院情報】
 - 名称: {clinic.get('name', '')}
 - 住所: {clinic.get('address', '')}
-- 診療科: {', '.join(clinic.get('departments', []))}
-- 特徴: {clinic.get('features', '')}
+- 診療科: {department}
+- 特徴・強み: {clinic.get('features', '')}
+- ターゲット層: {analysis_data.get('additional_context', '')}
 
-【市場環境】
-- 半径{clinic.get('search_radius', 3000)/1000}km圏内の競合数: {stats['total_competitors']}
+【市場環境分析】
+- 半径{analysis_data['clinic'].get('search_radius', 3000)/1000}km圏内の競合数: {stats['total_competitors']}院
 - 競合の平均評価: {stats['average_rating']}
-- 高評価（4以上）の競合: {stats['rating_distribution']['above_4']}院
+- 評価分布:
+  - 高評価（4.0以上）: {stats['rating_distribution']['above_4']}院
+  - 中評価（3.0-4.0）: {stats['rating_distribution']['3_to_4']}院
+  - 低評価（3.0未満）: {stats['rating_distribution']['below_3']}院
 
-【追加情報】
-{analysis_data.get('additional_context', '')}
+【主要競合の詳細情報】
+{top_competitors_info}
+
+【診療科タイプの分布】
+{dept_distribution_info if dept_distribution_info else 'データなし'}
+
+【分析の注意点】
+1. 競合の具体的な名前や評価を踏まえた分析を行う
+2. 地域の医療ニーズや競合状況を具体的に考慮する
+3. 自院の特徴・強みとターゲット層を重視した分析を行う
+4. 実行可能で具体的な施策につながる分析を心がける
 
 以下の形式でSWOT分析を提供してください：
 
@@ -171,21 +257,25 @@ class CompetitiveAnalysisService:
 - [具体的な強み1]
 - [具体的な強み2]
 - [具体的な強み3]
+- [具体的な強み4]
 
 **弱み（Weaknesses）**
 - [具体的な弱み1]
 - [具体的な弱み2]
 - [具体的な弱み3]
+- [具体的な弱み4]
 
 **機会（Opportunities）**
 - [具体的な機会1]
 - [具体的な機会2]
 - [具体的な機会3]
+- [具体的な機会4]
 
 **脅威（Threats）**
 - [具体的な脅威1]
 - [具体的な脅威2]
 - [具体的な脅威3]
+- [具体的な脅威4]
 """
         return prompt
     

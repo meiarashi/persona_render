@@ -84,16 +84,63 @@ document.addEventListener('DOMContentLoaded', function() {
             // 重複を除去
             allDepartments = [...new Set(allDepartments)];
             
-            // チェックボックスをレンダリング
+            // ラジオボタンをレンダリング（アイコン付き、1つだけ選択可能）
             container.innerHTML = '';
-            allDepartments.forEach(dept => {
-                const div = document.createElement('div');
-                div.className = 'department-checkbox';
-                div.innerHTML = `
-                    <input type="checkbox" id="dept-${dept}" name="departments" value="${dept}">
-                    <label for="dept-${dept}">${dept}</label>
-                `;
-                container.appendChild(div);
+            container.className = 'department-options'; // ペルソナ生成と同じクラス名に変更
+            
+            allDepartments.forEach((dept, index) => {
+                const label = document.createElement('label');
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.id = `dept-${dept}`;
+                radio.name = 'department';
+                radio.value = dept;
+                if (index === 0) radio.required = true;
+                
+                const icon = document.createElement('div');
+                icon.className = 'department-icon';
+                
+                // WebP形式を优先して読み込み、フォールバックでPNG
+                const webpImg = new Image();
+                webpImg.src = `/images/departments/${dept}.webp`;
+                webpImg.onload = function() {
+                    icon.style.backgroundImage = `url('/images/departments/${dept}.webp')`;
+                    icon.style.backgroundSize = 'contain';
+                    icon.style.backgroundPosition = 'center';
+                    icon.style.backgroundRepeat = 'no-repeat';
+                };
+                webpImg.onerror = function() {
+                    // WebPが読み込めない場合はPNGを試す
+                    const pngImg = new Image();
+                    pngImg.src = `/images/departments/${dept}.png`;
+                    pngImg.onload = function() {
+                        icon.style.backgroundImage = `url('/images/departments/${dept}.png')`;
+                        icon.style.backgroundSize = 'contain';
+                        icon.style.backgroundPosition = 'center';
+                        icon.style.backgroundRepeat = 'no-repeat';
+                    };
+                    pngImg.onerror = function() {
+                        // 両方とも読み込めない場合はアイコンを非表示
+                        icon.style.display = 'none';
+                        label.style.paddingTop = '15px';
+                    };
+                };
+                
+                label.appendChild(radio);
+                label.appendChild(icon);
+                label.appendChild(document.createTextNode(dept));
+                
+                // 選択状態の変更を監視
+                radio.addEventListener('change', function() {
+                    // すべてのselectedクラスを削除
+                    container.querySelectorAll('label').forEach(l => l.classList.remove('selected'));
+                    // 選択されたラベルにselectedクラスを追加
+                    if (radio.checked) {
+                        label.classList.add('selected');
+                    }
+                });
+                
+                container.appendChild(label);
             });
             
         } catch (error) {
@@ -151,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // クリニック情報の検証
                 const clinicName = document.getElementById('clinic-name').value.trim();
                 const address = document.getElementById('address').value.trim();
-                const checkedDepts = document.querySelectorAll('input[name="departments"]:checked');
+                const checkedDept = document.querySelector('input[name="department"]:checked');
                 
                 if (!clinicName) {
                     showModal('クリニック名を入力してください。');
@@ -163,8 +210,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     return false;
                 }
                 
-                if (checkedDepts.length === 0) {
-                    showModal('診療科を少なくとも1つ選択してください。');
+                if (!checkedDept) {
+                    showModal('診療科を1つ選択してください。');
                     return false;
                 }
                 
@@ -254,7 +301,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     name: formData.clinicName,
                     address: formData.address,
                     postal_code: formData.postalCode,
-                    departments: formData.departments,
+                    department: formData.department,
                     features: formData.clinicFeatures
                 },
                 search_radius: radiusMap[formData.analysisRange] || 3000,
@@ -308,14 +355,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function collectFormData() {
-        const departments = Array.from(document.querySelectorAll('input[name="departments"]:checked'))
-            .map(cb => cb.value);
+        const departmentElement = document.querySelector('input[name="department"]:checked');
+        const department = departmentElement ? departmentElement.value : '';
         
         return {
             clinicName: document.getElementById('clinic-name').value.trim(),
             postalCode: document.getElementById('postal-code').value.trim(),
             address: document.getElementById('address').value.trim(),
-            departments: departments,
+            department: department,
             analysisRange: document.querySelector('input[name="analysisRange"]:checked').value,
             clinicFeatures: document.getElementById('clinic-features').value.trim(),
             targetPatients: document.getElementById('target-patients').value.trim()

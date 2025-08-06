@@ -1,5 +1,15 @@
 /* ペルソナ生成画面のスタイルをベースに競合分析用にカスタマイズ */
 
+/* Global box-sizing */
+* {
+    box-sizing: border-box;
+}
+
+*:before,
+*:after {
+    box-sizing: border-box;
+}
+
 /* Pulse animation for loading icon */
 @keyframes pulse {
     0% {
@@ -80,8 +90,11 @@ header {
 .form-area {
     padding: 30px 40px;
     width: 100%;
+    max-width: 100%;
     box-sizing: border-box;
     overflow-x: hidden;
+    display: block;
+    position: relative;
 }
 
 /* レスポンシブ対応 */
@@ -104,14 +117,20 @@ header {
     background-color: #ffffff;
     box-sizing: border-box;
     width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: visible;
 }
 
 /* フォームコンテナの幅制御 */
 .clinic-info-form,
 .additional-info-form {
     width: 100%;
+    max-width: 100%;
     box-sizing: border-box;
     overflow: hidden;
+    padding: 0;
+    margin: 0;
 }
 
 /* textareaの追加調整 */
@@ -213,6 +232,7 @@ header {
     font-size: 14px;
     box-sizing: border-box;
     transition: border-color 0.15s ease-in-out;
+    display: block; /* ブロック要素として表示 */
 }
 
 .form-group input[type="text"]:focus,
@@ -256,27 +276,54 @@ header {
     background-color: #5a6268;
 }
 
-/* 診療科チェックボックス */
-.department-checkbox-grid {
+/* 診療科選択（ペルソナ生成と同じスタイル） */
+.department-options {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(8, 1fr);
     gap: 10px;
     margin-top: 10px;
+    margin-bottom: 20px;
 }
 
-.department-checkbox {
+.department-options label {
     display: flex;
+    flex-direction: column;
     align-items: center;
-}
-
-.department-checkbox input[type="checkbox"] {
-    margin-right: 8px;
-}
-
-.department-checkbox label {
-    margin-bottom: 0;
-    font-weight: normal;
+    justify-content: center;
+    background-color: #f8f9fa;
+    padding: 0px 0 1px 0;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    font-weight: bold;
     cursor: pointer;
+    font-size: 0.86em;
+    transition: all 0.2s ease;
+    text-align: center;
+    height: 85px;
+    width: auto;
+    min-width: 0;
+}
+
+.department-icon {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 2px;
+}
+
+.department-options label.selected {
+    background-color: rgba(40, 167, 69, 0.15);
+    border-color: rgba(40, 167, 69, 0.6);
+    box-shadow: 0 0 5px rgba(40, 167, 69, 0.3);
+}
+
+.department-options label:not(.selected):hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+    transform: translateY(-2px);
+}
+
+.department-options input[type="radio"] {
+    display: none;
 }
 
 /* 分析範囲選択 */
@@ -434,8 +481,8 @@ header {
         grid-template-columns: 1fr;
     }
     
-    .department-checkbox-grid {
-        grid-template-columns: repeat(2, 1fr);
+    .department-options {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     }
     
     .step-nav-buttons {
