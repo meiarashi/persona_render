@@ -10,6 +10,13 @@
     box-sizing: border-box;
 }
 
+/* デバッグ用（本番環境では削除） */
+.form-area { border: 2px solid red !important; }
+.form-step { border: 2px solid blue !important; }
+.form-group { border: 2px solid green !important; }
+.form-group input[type="text"],
+.form-group textarea { border: 2px solid orange !important; }
+
 /* Pulse animation for loading icon */
 @keyframes pulse {
     0% {
@@ -84,11 +91,12 @@ header {
     border-radius: 8px;
     overflow: hidden;
     position: relative;
+    box-sizing: border-box;
 }
 
 /* Form Area */
 .form-area {
-    padding: 30px 40px;
+    padding: 15px;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
@@ -100,11 +108,11 @@ header {
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
     .form-area {
-        padding: 20px;
+        padding: 15px;
     }
     
     .form-step {
-        padding: 15px;
+        padding: 10px;
     }
 }
 
@@ -112,14 +120,14 @@ header {
 .form-step {
     display: none;
     border: 1px solid #dee2e6;
-    padding: 20px;
+    padding: 15px;
     border-radius: 8px;
     background-color: #ffffff;
     box-sizing: border-box;
     width: 100%;
     max-width: 100%;
-    overflow-x: hidden;
-    overflow-y: visible;
+    overflow: hidden;
+    margin: 0;
 }
 
 /* フォームコンテナの幅制御 */
@@ -212,7 +220,12 @@ header {
 .form-group {
     margin-bottom: 20px;
     width: 100%;
+    max-width: 100%;
     box-sizing: border-box;
+    padding: 0;
+    margin-left: 0;
+    margin-right: 0;
+    position: relative;
 }
 
 .form-group label {
@@ -226,13 +239,14 @@ header {
 .form-group textarea {
     width: 100%;
     max-width: 100%;
-    padding: 10px 15px;
+    padding: 10px 12px;
     border: 1px solid #ced4da;
     border-radius: 4px;
     font-size: 14px;
     box-sizing: border-box;
     transition: border-color 0.15s ease-in-out;
-    display: block; /* ブロック要素として表示 */
+    display: block;
+    margin: 0;
 }
 
 .form-group input[type="text"]:focus,
@@ -279,10 +293,13 @@ header {
 /* 診療科選択（ペルソナ生成と同じスタイル） */
 .department-options {
     display: grid;
-    grid-template-columns: repeat(8, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
     gap: 10px;
     margin-top: 10px;
     margin-bottom: 20px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .department-options label {
