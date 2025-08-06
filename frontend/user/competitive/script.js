@@ -93,20 +93,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <input type="checkbox" id="dept-${dept}" name="departments" value="${dept}">
                     <label for="dept-${dept}">${dept}</label>
                 `;
-                
-                // クリックイベントを追加
-                div.addEventListener('click', function() {
-                    const checkbox = this.querySelector('input[type="checkbox"]');
-                    checkbox.checked = !checkbox.checked;
-                    
-                    // selected クラスの切り替え
-                    if (checkbox.checked) {
-                        this.classList.add('selected');
-                    } else {
-                        this.classList.remove('selected');
-                    }
-                });
-                
                 container.appendChild(div);
             });
             
@@ -291,8 +277,27 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const result = await response.json();
             
-            // 結果を表示
-            displayResult(result);
+            // プログレスバーを100%に
+            const progressFill = document.querySelector('.progress-bar-fill');
+            const progressPercentage = document.querySelector('.progress-percentage');
+            const currentStepElement = document.querySelector('.current-step');
+            const estimatedTimeElement = document.querySelector('.estimated-time');
+            
+            if (progressFill && progressPercentage) {
+                progressFill.style.width = '100%';
+                progressPercentage.textContent = '100%';
+                if (currentStepElement) {
+                    currentStepElement.textContent = '分析完了';
+                }
+                if (estimatedTimeElement) {
+                    estimatedTimeElement.textContent = '';
+                }
+            }
+            
+            // 少し待ってから結果を表示
+            setTimeout(() => {
+                displayResult(result);
+            }, 500);
             
         } catch (error) {
             console.error('分析エラー:', error);
@@ -318,29 +323,44 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function startAnalyzingAnimation() {
-        const steps = document.querySelectorAll('.step-item');
-        const progressFill = document.querySelector('.progress-fill');
-        let currentStep = 0;
+        const progressFill = document.querySelector('.progress-bar-fill');
+        const progressPercentage = document.querySelector('.progress-percentage');
+        const currentStepElement = document.querySelector('.current-step');
+        const estimatedTimeElement = document.querySelector('.estimated-time');
         
-        // アニメーションループ
-        const animateStep = () => {
-            if (currentStep < steps.length) {
-                // 現在のステップをアクティブに
-                steps[currentStep].classList.add('active');
-                
-                // プログレスバーを更新
-                const progress = ((currentStep + 1) / steps.length) * 100;
-                progressFill.style.width = `${progress}%`;
-                
-                currentStep++;
-                
-                // 次のステップへ（2秒後）
-                setTimeout(animateStep, 2000);
+        const steps = [
+            { text: 'ステップ 1/3: 近隣の医療機関を検索中', time: '予想時間: 約20-30秒' },
+            { text: 'ステップ 2/3: 詳細情報を収集中', time: '予想時間: 約15-20秒' },
+            { text: 'ステップ 3/3: AIがSWOT分析を生成中', time: '予想時間: 約10-15秒' }
+        ];
+        
+        let currentStep = 0;
+        let progress = 0;
+        
+        // プログレスバーのスムーズなアニメーション
+        const animateProgress = () => {
+            const targetProgress = Math.min(95, progress + Math.random() * 15 + 5);
+            progress = targetProgress;
+            
+            progressFill.style.width = `${progress}%`;
+            progressPercentage.textContent = `${Math.round(progress)}%`;
+            
+            // ステップの更新
+            const stepIndex = Math.floor((progress / 100) * steps.length);
+            if (stepIndex !== currentStep && stepIndex < steps.length) {
+                currentStep = stepIndex;
+                currentStepElement.textContent = steps[currentStep].text;
+                estimatedTimeElement.textContent = steps[currentStep].time;
+            }
+            
+            // 95%未満の場合は続行
+            if (progress < 95) {
+                setTimeout(animateProgress, 800 + Math.random() * 400);
             }
         };
         
         // アニメーション開始
-        setTimeout(animateStep, 500);
+        setTimeout(animateProgress, 300);
     }
     
     // HTMLサニタイズ関数
