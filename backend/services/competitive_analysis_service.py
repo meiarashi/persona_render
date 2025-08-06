@@ -125,6 +125,9 @@ class CompetitiveAnalysisService:
             for t in types:
                 department_distribution[t] = department_distribution.get(t, 0) + 1
         
+        # 口コミデータの整理（上位5件の競合のみ）
+        review_insights = self._analyze_reviews(competitors[:5])
+        
         return {
             "clinic": clinic_info,
             "competitors": competitors,
@@ -138,6 +141,7 @@ class CompetitiveAnalysisService:
                 },
                 "department_distribution": department_distribution
             },
+            "review_insights": review_insights,
             "additional_context": additional_info or ""
         }
     
@@ -221,6 +225,30 @@ class CompetitiveAnalysisService:
             for dept_type, count in sorted_depts:
                 dept_distribution_info += f"- {dept_type}: {count}件\n"
         
+        # 口コミ分析の情報を整形
+        review_insights = analysis_data.get('review_insights', {})
+        review_analysis_info = ""
+        
+        # ポジティブなテーマ
+        if review_insights.get('positive_themes'):
+            review_analysis_info += "\n【競合の口コミで評価されている点】\n"
+            for theme, count in list(review_insights['positive_themes'].items())[:5]:
+                review_analysis_info += f"- {theme}: {count}件の言及\n"
+        
+        # ネガティブなテーマ
+        if review_insights.get('negative_themes'):
+            review_analysis_info += "\n【競合の口コミで指摘されている問題点】\n"
+            for theme, count in list(review_insights['negative_themes'].items())[:5]:
+                review_analysis_info += f"- {theme}: {count}件の言及\n"
+        
+        # 主要競合の口コミハイライト
+        if review_insights.get('competitor_highlights'):
+            review_analysis_info += "\n【主要競合の口コミ傾向】\n"
+            for comp in review_insights['competitor_highlights'][:3]:
+                review_analysis_info += f"\n{comp['name']} (評価: {comp['rating']})\n"
+                for point in comp['key_points']:
+                    review_analysis_info += f"  {point}\n"
+        
         prompt = f"""
 以下の詳細情報を基に、医療機関の具体的で実行可能なSWOT分析を行ってください。
 
@@ -244,12 +272,13 @@ class CompetitiveAnalysisService:
 
 【診療科タイプの分布】
 {dept_distribution_info if dept_distribution_info else 'データなし'}
-
+{review_analysis_info}
 【分析の注意点】
 1. 競合の具体的な名前や評価を踏まえた分析を行う
 2. 地域の医療ニーズや競合状況を具体的に考慮する
-3. 自院の特徴・強みとターゲット層を重視した分析を行う
-4. 実行可能で具体的な施策につながる分析を心がける
+3. 口コミで評価されている点や問題点を踏まえ、自院の差別化戦略に活用する
+4. 自院の特徴・強みとターゲット層を重視した分析を行う
+5. 実行可能で具体的な施策につながる分析を心がける
 
 以下の形式でSWOT分析を提供してください：
 
@@ -317,6 +346,80 @@ class CompetitiveAnalysisService:
                     swot[current_section].append(item)
         
         return swot
+    
+    def _analyze_reviews(self, top_competitors: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """口コミデータを分析してインサイトを抽出"""
+        review_insights = {
+            "positive_themes": {},  # ポジティブなテーマと出現回数
+            "negative_themes": {},  # ネガティブなテーマと出現回数
+            "competitor_highlights": []  # 各競合の主要な口コミポイント
+        }
+        
+        # ポジティブ/ネガティブなキーワード
+        positive_keywords = [
+            "優しい", "丁寧", "親切", "きれい", "清潔", "新しい", "早い", "安心",
+            "信頼", "良い", "感じがいい", "おすすめ", "便利", "わかりやすい"
+        ]
+        negative_keywords = [
+            "待つ", "遅い", "高い", "不親切", "汚い", "古い", "分かりにくい",
+            "混む", "混雑", "態度", "高圧的", "冷たい", "不安"
+        ]
+        
+        for competitor in top_competitors:
+            comp_name = competitor.get('name', '不明')
+            reviews = competitor.get('reviews', [])
+            
+            if not reviews:
+                continue
+                
+            positive_count = 0
+            negative_count = 0
+            key_points = []
+            
+            for review in reviews[:3]:  # 最新3件のレビューを分析
+                text = review.get('text', '')
+                rating = review.get('rating', 0)
+                
+                # ポジティブ/ネガティブなテーマをカウント
+                for keyword in positive_keywords:
+                    if keyword in text:
+                        review_insights['positive_themes'][keyword] = review_insights['positive_themes'].get(keyword, 0) + 1
+                        positive_count += 1
+                
+                for keyword in negative_keywords:
+                    if keyword in text:
+                        review_insights['negative_themes'][keyword] = review_insights['negative_themes'].get(keyword, 0) + 1
+                        negative_count += 1
+                
+                # 高評価または低評価のレビューからポイントを抽出
+                if rating >= 4 and text:
+                    key_points.append(f"◎高評価: {text[:50]}...")
+                elif rating <= 2 and text:
+                    key_points.append(f"◎低評価: {text[:50]}...")
+            
+            if key_points:
+                review_insights['competitor_highlights'].append({
+                    'name': comp_name,
+                    'rating': competitor.get('rating', 'N/A'),
+                    'key_points': key_points[:2],  # 最大2つのポイント
+                    'positive_mentions': positive_count,
+                    'negative_mentions': negative_count
+                })
+        
+        # 最も頻出するテーマをソート
+        review_insights['positive_themes'] = dict(sorted(
+            review_insights['positive_themes'].items(),
+            key=lambda x: x[1],
+            reverse=True
+        )[:5])  # トップ5
+        
+        review_insights['negative_themes'] = dict(sorted(
+            review_insights['negative_themes'].items(),
+            key=lambda x: x[1],
+            reverse=True
+        )[:5])  # トップ5
+        
+        return review_insights
     
     def _generate_basic_swot(self, analysis_data: Dict[str, Any]) -> Dict[str, List[str]]:
         """基本的なSWOT分析を生成（AI不使用時）"""
