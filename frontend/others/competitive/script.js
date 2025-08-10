@@ -53,9 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 診療科名とアイコンファイル名のマッピング
     // chief_complaints.jsonの診療科名 → 実際のアイコンファイル名
     const departmentIconMap = {
-        '一般歯科': '一般歯科',  // dentalカテゴリにある「一般歯科」はそのまま
-        '消化器内科': '消化器科'  // 「消化器内科」のアイコンは「消化器科.png」を使用
-        // 内分泌科はそのまま「内分泌科.png」が存在するのでマッピング不要
+        // 一般歯科、消化器内科、内分泌科は同名のファイルが存在するのでマッピング不要
     };
     
     async function loadAndRenderDepartments() {
