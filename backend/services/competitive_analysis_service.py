@@ -34,8 +34,24 @@ class CompetitiveAnalysisService:
         # 管理画面の設定を読み込み
         try:
             self.settings = read_settings()
-            self.selected_model = self.settings.model_settings.selected_model
-            self.selected_provider = self.settings.model_settings.selected_provider
+            # 新しいフィールド名を使用（models.text_api_model）
+            if hasattr(self.settings, 'models') and self.settings.models:
+                self.selected_model = self.settings.models.text_api_model or "gpt-4"
+                # プロバイダーを自動判定
+                if "gpt" in self.selected_model.lower():
+                    self.selected_provider = "openai"
+                elif "claude" in self.selected_model.lower():
+                    self.selected_provider = "anthropic"
+                elif "gemini" in self.selected_model.lower():
+                    self.selected_provider = "google"
+                else:
+                    self.selected_provider = "openai"
+            else:
+                # 古いフィールド名にフォールバック
+                self.selected_model = getattr(self.settings.model_settings, 'selected_model', "gpt-4") if hasattr(self.settings, 'model_settings') else "gpt-4"
+                self.selected_provider = getattr(self.settings.model_settings, 'selected_provider', "openai") if hasattr(self.settings, 'model_settings') else "openai"
+            
+            logger.info(f"[CompetitiveAnalysis] Using model: {self.selected_model} (provider: {self.selected_provider})")
         except Exception as e:
             logger.warning(f"Failed to read settings: {e}")
             self.selected_model = "gpt-4"
@@ -151,6 +167,13 @@ class CompetitiveAnalysisService:
         try:
             prompt = self._build_swot_prompt(analysis_data)
             system_prompt = "あなたは医療機関の経営コンサルタントです。提供された情報を基に、具体的で実行可能なSWOT分析を行ってください。"
+            
+            # モデル使用ログ
+            print("="*60)
+            print("[CompetitiveAnalysis] ===== GENERATING SWOT ANALYSIS =====")
+            print(f"[CompetitiveAnalysis] Model: {self.selected_model}")
+            print(f"[CompetitiveAnalysis] Provider: {self.selected_provider}")
+            print("="*60)
             
             # 選択されたプロバイダーに応じてAIを使用
             if self.selected_provider == "openai" and self.openai_api_key and openai_available:

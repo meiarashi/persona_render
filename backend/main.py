@@ -1576,6 +1576,13 @@ async def analyze_search_behavior(request: Request, username: str = Depends(veri
             app_settings = await get_admin_settings()
             selected_text_model = app_settings.models.text_api_model or os.getenv("DEFAULT_TEXT_MODEL", "gpt-4o-mini")
             
+            # モデル使用ログ
+            print("="*60)
+            print("[TimelineAnalysis] ===== GENERATING AI ANALYSIS =====")
+            print(f"[TimelineAnalysis] Model: {selected_text_model}")
+            print(f"[TimelineAnalysis] Keywords to analyze: {len(filtered_keywords)}")
+            print("="*60)
+            
             # モデルに応じて適切なAPIキーを選択
             if "gemini" in selected_text_model.lower():
                 api_key = os.getenv("GOOGLE_API_KEY")
