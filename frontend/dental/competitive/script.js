@@ -50,6 +50,14 @@ document.addEventListener('DOMContentLoaded', function() {
         setupPostalCodeSearch();
     }
     
+    // 診療科名とアイコンファイル名のマッピング
+    // chief_complaints.jsonの診療科名 → 実際のアイコンファイル名
+    const departmentIconMap = {
+        '一般歯科': '一般歯科',  // dentalカテゴリにある「一般歯科」はそのまま
+        '消化器内科': '消化器科'  // 「消化器内科」のアイコンは「消化器科.png」を使用
+        // 内分泌科はそのまま「内分泌科.png」が存在するのでマッピング不要
+    };
+    
     async function loadAndRenderDepartments() {
         const container = document.querySelector('.department-checkbox-grid');
         container.innerHTML = '<div style="text-align: center; color: #666;">診療科を読み込み中...</div>';
@@ -100,11 +108,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 const icon = document.createElement('div');
                 icon.className = 'department-icon';
                 
+                // アイコンファイル名を決定（マッピングがあれば使用）
+                const iconFileName = departmentIconMap[dept] || dept;
+                
                 // WebP形式を优先して読み込み、フォールバックでPNG
                 const webpImg = new Image();
-                webpImg.src = `/images/departments/${dept}.webp`;
+                webpImg.src = `/images/departments/${iconFileName}.webp`;
                 webpImg.onload = function() {
-                    icon.style.backgroundImage = `url('/images/departments/${dept}.webp')`;
+                    icon.style.backgroundImage = `url('/images/departments/${iconFileName}.webp')`;
                     icon.style.backgroundSize = 'contain';
                     icon.style.backgroundPosition = 'center';
                     icon.style.backgroundRepeat = 'no-repeat';
@@ -112,9 +123,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 webpImg.onerror = function() {
                     // WebPが読み込めない場合はPNGを試す
                     const pngImg = new Image();
-                    pngImg.src = `/images/departments/${dept}.png`;
+                    pngImg.src = `/images/departments/${iconFileName}.png`;
                     pngImg.onload = function() {
-                        icon.style.backgroundImage = `url('/images/departments/${dept}.png')`;
+                        icon.style.backgroundImage = `url('/images/departments/${iconFileName}.png')`;
                         icon.style.backgroundSize = 'contain';
                         icon.style.backgroundPosition = 'center';
                         icon.style.backgroundRepeat = 'no-repeat';

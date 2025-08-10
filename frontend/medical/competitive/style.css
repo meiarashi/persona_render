@@ -10,12 +10,7 @@
     box-sizing: border-box;
 }
 
-/* デバッグ用（本番環境では削除） */
-.form-area { border: 2px solid red !important; }
-.form-step { border: 2px solid blue !important; }
-.form-group { border: 2px solid green !important; }
-.form-group input[type="text"],
-.form-group textarea { border: 2px solid orange !important; }
+/* デバッグ用枠線は削除済み */
 
 /* Pulse animation for loading icon */
 @keyframes pulse {
