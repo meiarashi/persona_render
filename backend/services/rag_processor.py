@@ -215,6 +215,30 @@ def search_rag_data(specialty: str, age_group: str = None, gender: str = None, c
         conn = create_connection()
         cursor = conn.cursor()
         
+        # 主訴がある場合は、主訴別のデータを優先的に検索
+        if chief_complaint:
+            # まず主訴別のデータを検索（例：アレルギー科_アトピー性皮膚炎）
+            specialty_with_cc = f"{specialty}_{chief_complaint}"
+            cursor.execute('''
+                SELECT keyword, search_volume, male_ratio, female_ratio,
+                       age_10s, age_20s, age_30s, age_40s, age_50s, age_60s, age_70s,
+                       category, distinctiveness
+                FROM rag_data 
+                WHERE specialty = ?
+            ''', [specialty_with_cc])
+            
+            # 主訴別データが存在する場合はそれを使用
+            if cursor.fetchone():
+                cursor.execute('''
+                    SELECT keyword, search_volume, male_ratio, female_ratio,
+                           age_10s, age_20s, age_30s, age_40s, age_50s, age_60s, age_70s,
+                           category, distinctiveness
+                    FROM rag_data 
+                    WHERE specialty = ?
+                ''', [specialty_with_cc])
+                print(f"[RAG] Using chief complaint specific data: {specialty_with_cc}")
+                specialty = specialty_with_cc  # 主訴別のspecialtyを使用
+        
         # 基本クエリ
         base_query = '''
             SELECT keyword, search_volume, male_ratio, female_ratio,
@@ -242,18 +266,9 @@ def search_rag_data(specialty: str, age_group: str = None, gender: str = None, c
             elif gender == "female":
                 base_query += " AND female_ratio > male_ratio"
         
-        # 主訴に基づくフィルタリング（主訴に関連するキーワードを優先）
-        if chief_complaint:
-            # 主訴に含まれる単語でキーワードを検索（部分一致）
-            base_query += " AND (keyword LIKE ? OR keyword LIKE ?)"
-            params.extend([f"%{chief_complaint}%", f"%{chief_complaint.replace('症', '')}%"])
-            # より多くの結果を取得して、後で上位を選択
-            base_query += " ORDER BY CASE WHEN keyword LIKE ? THEN 0 ELSE 1 END, distinctiveness DESC, search_volume DESC LIMIT ?"
-            params.extend([f"%{chief_complaint}%", limit * 2])  # 主訴関連を優先、多めに取得
-        else:
-            # 検索ボリュームと特徴度で並び替え
-            base_query += " ORDER BY distinctiveness DESC, search_volume DESC LIMIT ?"
-            params.append(limit)
+        # 検索ボリュームと特徴度で並び替え
+        base_query += " ORDER BY distinctiveness DESC, search_volume DESC LIMIT ?"
+        params.append(limit)
         
         cursor.execute(base_query, params)
         
@@ -361,8 +376,9 @@ def load_csv_data_from_directory():
         for dept_dir in base_dir.iterdir():
             if dept_dir.is_dir():
                 department_name = dept_dir.name
-                csv_file = dept_dir / f"{department_name}_全体.csv"
                 
+                # 1. 診療科全体のCSVファイルを読み込み
+                csv_file = dept_dir / f"{department_name}_全体.csv"
                 if csv_file.exists():
                     print(f"Loading CSV for department: {department_name}")
                     try:
@@ -375,6 +391,7 @@ def load_csv_data_from_directory():
                         if result['success']:
                             loaded_departments.append({
                                 'department': department_name,
+                                'type': 'department',
                                 'inserted_count': result['inserted_count'],
                                 'skipped_count': result['skipped_count']
                             })
@@ -384,13 +401,53 @@ def load_csv_data_from_directory():
                     except Exception as e:
                         print(f"Error loading CSV file {csv_file}: {e}")
                         continue
+                
+                # 2. 主訴別のCSVファイルを読み込み
+                chief_complaints_dir = dept_dir / "主訴"
+                if chief_complaints_dir.exists() and chief_complaints_dir.is_dir():
+                    print(f"Loading chief complaint CSVs for {department_name}")
+                    for cc_csv in chief_complaints_dir.glob("*_全体.csv"):
+                        chief_complaint_name = cc_csv.stem.replace("_全体", "")
+                        print(f"  - Loading {chief_complaint_name}")
+                        try:
+                            # CSVファイルを読み込み
+                            df = pd.read_csv(cc_csv, encoding='utf-8-sig')
+                            
+                            # 主訴を含む特別なspecialty名を使用（例：アレルギー科_アトピー性皮膚炎）
+                            specialty_with_cc = f"{department_name}_{chief_complaint_name}"
+                            
+                            # データを保存
+                            result = _save_rag_data_internal(specialty_with_cc, df, cc_csv.name)
+                            
+                            if result['success']:
+                                loaded_departments.append({
+                                    'department': department_name,
+                                    'chief_complaint': chief_complaint_name,
+                                    'type': 'chief_complaint',
+                                    'inserted_count': result['inserted_count'],
+                                    'skipped_count': result['skipped_count']
+                                })
+                            else:
+                                print(f"    Failed to load data for {chief_complaint_name}: {result.get('error', 'Unknown error')}")
+                                
+                        except Exception as e:
+                            print(f"    Error loading CSV file {cc_csv}: {e}")
+                            continue
         
         # 成功したロードの概要を表示
         if loaded_departments:
             print("\nCSV data loading summary:")
+            dept_count = 0
+            cc_count = 0
             for dept in loaded_departments:
-                print(f"  - {dept['department']}: {dept['inserted_count']} records loaded")
-            print(f"\nTotal departments loaded: {len(loaded_departments)}")
+                if dept['type'] == 'department':
+                    print(f"  - {dept['department']}: {dept['inserted_count']} records loaded")
+                    dept_count += 1
+                elif dept['type'] == 'chief_complaint':
+                    print(f"    • {dept['department']} - {dept['chief_complaint']}: {dept['inserted_count']} records")
+                    cc_count += 1
+            print(f"\nTotal departments loaded: {dept_count}")
+            print(f"Total chief complaints loaded: {cc_count}")
         else:
             print("No CSV data was loaded.")
             
