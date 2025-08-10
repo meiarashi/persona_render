@@ -1,6 +1,4 @@
 # Core App & API Framework
-Flask==3.1.0
-Flask-Cors==5.0.1
 fastapi>=0.100.0,<0.111.0
 uvicorn[standard]>=0.22.0,<0.28.0
 gunicorn
@@ -31,14 +29,6 @@ requests>=2.31.0
 aiohttp>=3.9.0
 
 # --- Dependencies ---
-
-# Flask & Werkzeug
-Werkzeug==3.1.0
-Jinja2==3.1.4
-itsdangerous==2.2.0
-click==8.1.7
-blinker==1.9.0
-MarkupSafe==2.1.5
 
 # AI Clients (OpenAI, Google, Anthropic& HTTP
 httpx==0.27.2
