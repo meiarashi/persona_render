@@ -986,6 +986,7 @@ async def generate_persona(request: Request, username: str = Depends(verify_admi
         department = data.get('department')
         age = data.get('age')
         gender = data.get('gender')
+        chief_complaint = data.get('chief_complaint')  # 主訴を取得
         
         if department:
             # 年齢グループの判定
@@ -1021,19 +1022,23 @@ async def generate_persona(request: Request, username: str = Depends(verify_admi
                 except (ValueError, AttributeError):
                     print(f"Warning: Could not parse age '{age}' for RAG search")
             
-            # RAGデータの検索
-            print(f"[DEBUG] Searching RAG data for department={department}, age_group={age_group}, gender={gender}")
+            # RAGデータの検索（主訴を含めて検索）
+            print(f"[DEBUG] Searching RAG data for department={department}, chief_complaint={chief_complaint}, age_group={age_group}, gender={gender}")
             rag_results = rag_processor.search_rag_data(
                 specialty=department,
                 age_group=age_group,
                 gender=gender,
+                chief_complaint=chief_complaint,  # 主訴を追加
                 limit=5
             )
             print(f"[DEBUG] RAG search returned {len(rag_results)} results")
             
             if rag_results:
-                rag_context = "\n\n# 参考情報（この診療科の患者が検索するキーワード）\n"
-                rag_context += "以下は、同じ診療科・年代・性別の患者がよく検索するキーワードです。ペルソナ作成の参考にしてください：\n"
+                rag_context = "\n\n# 参考情報（この診療科・主訴の患者が検索するキーワード）\n"
+                if chief_complaint:
+                    rag_context += f"以下は、{department}で「{chief_complaint}」に関連し、同じ年代・性別の患者がよく検索するキーワードです。ペルソナ作成の参考にしてください：\n"
+                else:
+                    rag_context += "以下は、同じ診療科・年代・性別の患者がよく検索するキーワードです。ペルソナ作成の参考にしてください：\n"
                 for i, result in enumerate(rag_results, 1):
                     rag_context += f"{i}. {result['keyword']} (検索数: {result['search_volume']}人)\n"
                     # カテゴリーフィールドは削除（CSVに存在しないため）
@@ -1041,6 +1046,7 @@ async def generate_persona(request: Request, username: str = Depends(verify_admi
                 # RAGデータ使用の詳細ログ
                 print("[RAG] ===== RAG DATA USAGE REPORT =====")
                 print(f"[RAG] Department: {department}")
+                print(f"[RAG] Chief Complaint: {chief_complaint}")
                 print(f"[RAG] Age Group: {age_group}")
                 print(f"[RAG] Gender: {gender}")
                 print(f"[RAG] Results Found: {len(rag_results)}")

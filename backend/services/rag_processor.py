@@ -209,8 +209,8 @@ def _save_rag_data_internal(specialty: str, df: pd.DataFrame, original_filename:
             "error": str(e)
         }
 
-def search_rag_data(specialty: str, age_group: str = None, gender: str = None, limit: int = 10) -> List[Dict]:
-    """RAGデータから関連キーワードを検索"""
+def search_rag_data(specialty: str, age_group: str = None, gender: str = None, chief_complaint: str = None, limit: int = 10) -> List[Dict]:
+    """RAGデータから関連キーワードを検索（主訴を考慮）"""
     try:
         conn = create_connection()
         cursor = conn.cursor()
@@ -242,9 +242,18 @@ def search_rag_data(specialty: str, age_group: str = None, gender: str = None, l
             elif gender == "female":
                 base_query += " AND female_ratio > male_ratio"
         
-        # 検索ボリュームと特徴度で並び替え
-        base_query += " ORDER BY distinctiveness DESC, search_volume DESC LIMIT ?"
-        params.append(limit)
+        # 主訴に基づくフィルタリング（主訴に関連するキーワードを優先）
+        if chief_complaint:
+            # 主訴に含まれる単語でキーワードを検索（部分一致）
+            base_query += " AND (keyword LIKE ? OR keyword LIKE ?)"
+            params.extend([f"%{chief_complaint}%", f"%{chief_complaint.replace('症', '')}%"])
+            # より多くの結果を取得して、後で上位を選択
+            base_query += " ORDER BY CASE WHEN keyword LIKE ? THEN 0 ELSE 1 END, distinctiveness DESC, search_volume DESC LIMIT ?"
+            params.extend([f"%{chief_complaint}%", limit * 2])  # 主訴関連を優先、多めに取得
+        else:
+            # 検索ボリュームと特徴度で並び替え
+            base_query += " ORDER BY distinctiveness DESC, search_volume DESC LIMIT ?"
+            params.append(limit)
         
         cursor.execute(base_query, params)
         
