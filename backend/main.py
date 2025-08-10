@@ -935,7 +935,7 @@ async def generate_persona(request: Request, username: str = Depends(verify_admi
         # --- 設定をcrudから読み込む ---
         app_settings = crud.read_settings() # AdminSettings インスタンスが返る
         
-        selected_text_model = app_settings.models.text_api_model if app_settings.models else "gpt-4.1-2025-04-14" # デフォルト値
+        selected_text_model = app_settings.models.text_api_model if app_settings.models else "gpt-5-2025-08-07" # デフォルト値をGPT-5に
         selected_image_model = app_settings.models.image_api_model if app_settings.models else "dall-e-3" # デフォルト値
         
         # ===== モデル使用ログ =====
@@ -1574,7 +1574,7 @@ async def analyze_search_behavior(request: Request, username: str = Depends(veri
             # モデル設定を取得
             from .api.admin_settings import get_admin_settings
             app_settings = await get_admin_settings()
-            selected_text_model = app_settings.models.text_api_model or os.getenv("DEFAULT_TEXT_MODEL", "gpt-4o-mini")
+            selected_text_model = app_settings.models.text_api_model or os.getenv("DEFAULT_TEXT_MODEL", "gpt-5-2025-08-07")
             
             # モデル使用ログ
             print("="*60)

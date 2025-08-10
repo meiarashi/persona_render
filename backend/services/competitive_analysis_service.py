@@ -36,7 +36,7 @@ class CompetitiveAnalysisService:
             self.settings = read_settings()
             # 新しいフィールド名を使用（models.text_api_model）
             if hasattr(self.settings, 'models') and self.settings.models:
-                self.selected_model = self.settings.models.text_api_model or "gpt-4"
+                self.selected_model = self.settings.models.text_api_model or "gpt-5-2025-08-07"
                 # プロバイダーを自動判定
                 if "gpt" in self.selected_model.lower():
                     self.selected_provider = "openai"
@@ -48,13 +48,13 @@ class CompetitiveAnalysisService:
                     self.selected_provider = "openai"
             else:
                 # 古いフィールド名にフォールバック
-                self.selected_model = getattr(self.settings.model_settings, 'selected_model', "gpt-4") if hasattr(self.settings, 'model_settings') else "gpt-4"
+                self.selected_model = getattr(self.settings.model_settings, 'selected_model', "gpt-5-2025-08-07") if hasattr(self.settings, 'model_settings') else "gpt-5-2025-08-07"
                 self.selected_provider = getattr(self.settings.model_settings, 'selected_provider', "openai") if hasattr(self.settings, 'model_settings') else "openai"
             
             logger.info(f"[CompetitiveAnalysis] Using model: {self.selected_model} (provider: {self.selected_provider})")
         except Exception as e:
             logger.warning(f"Failed to read settings: {e}")
-            self.selected_model = "gpt-4"
+            self.selected_model = "gpt-5-2025-08-07"
             self.selected_provider = "openai"
     
     async def analyze_competitors(
