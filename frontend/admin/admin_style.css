@@ -28,6 +28,20 @@ header {
     font-weight: bold;
     font-size: 1.5em;
     color: #333;
+    text-decoration: none;
+    margin-right: 20px;
+}
+
+.logo:hover {
+    color: #555;
+}
+
+.admin-label {
+    color: #6c757d;
+    font-size: 1em;
+    margin-right: auto;
+    padding-left: 10px;
+    border-left: 2px solid #e9ecef;
 }
 
 .nav-link {
