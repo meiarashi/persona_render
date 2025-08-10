@@ -1168,7 +1168,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (backgroundImage === 'none' || backgroundImage === '') return;
             const match = backgroundImage.match(/url\(['"]?([^'"]+)['"]?\)/);
             if (!match) return;
-            const imgPath = match[1];
+            let imgPath = match[1];
+            
+            // 消化器科の場合は消化器内科のパスに変更
+            if (imgPath.includes('%E6%B6%88%E5%8C%96%E5%99%A8%E7%A7%91') || imgPath.includes('消化器科')) {
+                imgPath = imgPath.replace('%E6%B6%88%E5%8C%96%E5%99%A8%E7%A7%91', '%E6%B6%88%E5%8C%96%E5%99%A8%E5%86%85%E7%A7%91');
+                imgPath = imgPath.replace('消化器科', '消化器内科');
+                // 修正したパスで背景画像を再設定
+                icon.style.backgroundImage = `url('${imgPath}')`;
+            }
+            
             const img = new Image();
             img.onerror = () => {
                 console.warn(`アイコン画像が読み込めませんでした: ${imgPath}`);

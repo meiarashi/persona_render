@@ -155,7 +155,7 @@ class CompetitiveAnalysisService:
             # 選択されたプロバイダーに応じてAIを使用
             if self.selected_provider == "openai" and self.openai_api_key and openai_available:
                 client = OpenAI(api_key=self.openai_api_key)
-                # GPT-5 uses max_completion_tokens instead of max_tokens
+                # GPT-5 uses max_completion_tokens instead of max_tokens and temperature must be 1.0
                 if "gpt-5" in self.selected_model:
                     response = client.chat.completions.create(
                         model=self.selected_model,
@@ -163,7 +163,7 @@ class CompetitiveAnalysisService:
                             {"role": "system", "content": system_prompt},
                             {"role": "user", "content": prompt}
                         ],
-                        temperature=0.7,
+                        temperature=1.0,  # GPT-5 only supports default temperature of 1.0
                         max_completion_tokens=2000
                     )
                 else:

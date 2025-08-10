@@ -495,12 +495,12 @@ async def generate_text_response(prompt_text, model_name, api_key):
         
         if model_name.startswith("gpt"):
             # OpenAI API call
-            # GPT-5 uses max_completion_tokens instead of max_tokens
+            # GPT-5 uses max_completion_tokens instead of max_tokens and temperature must be 1.0
             if "gpt-5" in model_name:
                 completion = client.chat.completions.create(
                     model=model_name,
                     messages=[{"role": "user", "content": prompt_text}],
-                    temperature=0.7,
+                    temperature=1.0,  # GPT-5 only supports default temperature of 1.0
                     max_completion_tokens=4096
                 )
             else:
