@@ -807,7 +807,9 @@ def parse_ai_response(text):
                 
             # Check if this is a section header for personality section
             # Support both numbered format and **header** format
+            # Also support formats without colons and with content on next line
             if (line.startswith("1.") and ("個性" in line or "価値観" in line or "人生観" in line)) or \
+               (line.startswith("**1.") and ("個性" in line or "価値観" in line or "人生観" in line)) or \
                (line.startswith("**") and ("個性" in line or "価値観" in line or "人生観" in line) and line.endswith("**")):
                 current_section = "personality"
                 # Check if content is on the same line after colon
@@ -821,6 +823,7 @@ def parse_ai_response(text):
                 
             # Check for reason section
             elif (line.startswith("2.") and "病院に行く理由" in line) or \
+                 (line.startswith("**2.") and "病院に行く理由" in line) or \
                  (line.startswith("**") and "病院に行く理由" in line and line.endswith("**")):
                 current_section = "reason"
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
@@ -831,6 +834,7 @@ def parse_ai_response(text):
                 
             # Check for behavior section
             elif (line.startswith("3.") and ("症状" in line or "通院頻度" in line or "行動パターン" in line)) or \
+                 (line.startswith("**3.") and ("症状" in line or "通院頻度" in line or "行動パターン" in line)) or \
                  (line.startswith("**") and ("症状" in line or "通院頻度" in line or "行動パターン" in line) and line.endswith("**")):
                 current_section = "behavior"
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
@@ -841,6 +845,7 @@ def parse_ai_response(text):
                 
             # Check for reviews section
             elif (line.startswith("4.") and ("口コミ" in line or "重視ポイント" in line)) or \
+                 (line.startswith("**4.") and ("口コミ" in line or "重視ポイント" in line)) or \
                  (line.startswith("**") and ("口コミ" in line or "重視ポイント" in line) and line.endswith("**")):
                 current_section = "reviews"
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
@@ -851,6 +856,7 @@ def parse_ai_response(text):
                 
             # Check for values section
             elif (line.startswith("5.") and ("医療機関" in line or "価値観" in line or "行動傾向" in line)) or \
+                 (line.startswith("**5.") and ("医療機関" in line or "価値観" in line or "行動傾向" in line)) or \
                  (line.startswith("**") and ("医療機関" in line and ("価値観" in line or "行動傾向" in line)) and line.endswith("**")):
                 current_section = "values"
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
@@ -861,6 +867,7 @@ def parse_ai_response(text):
                 
             # Check for demands section
             elif (line.startswith("6.") and ("医療機関" in line or "求めるもの" in line)) or \
+                 (line.startswith("**6.") and ("医療機関" in line or "求めるもの" in line)) or \
                  (line.startswith("**") and ("医療機関" in line and "求めるもの" in line) and line.endswith("**")):
                 current_section = "demands"
                 content = line.split(':', 1)[1].strip() if ':' in line else ""
@@ -870,18 +877,48 @@ def parse_ai_response(text):
                 continue
                 
             # If we're in a section, append text (skip headers and numbered lines)
-            if current_section and not line.startswith(("#", "##", "**")) and not re.match(r'^\d+\.', line):
+            if current_section and not line.startswith(("#", "##", "###", "**")) and not re.match(r'^\d+\.', line):
                 # 「(100文字程度)」のような文字数指定を削除
                 cleaned_line = re.sub(r'[（(]\d+文字程度[）)]\s*', '', line)
                 cleaned_line = re.sub(r'\d+文字程度\s*', '', cleaned_line)
-                if sections[current_section]:
-                    sections[current_section] += " " + cleaned_line
-                else:
-                    sections[current_section] = cleaned_line
+                # Remove extra asterisks that might be in the content
+                cleaned_line = cleaned_line.strip('*').strip()
+                if cleaned_line:
+                    if sections[current_section]:
+                        sections[current_section] += " " + cleaned_line
+                    else:
+                        sections[current_section] = cleaned_line
     
     except Exception as e:
         print(f"Error parsing AI response: {e}")
         traceback.print_exc()
+    
+    # If all sections are empty, try a more flexible parsing approach
+    if all(not v for v in sections.values()):
+        print("[DEBUG] All sections empty, trying flexible parsing")
+        # Try to find content by keywords anywhere in the text
+        keywords_map = {
+            "personality": ["個性", "価値観", "人生観", "性格"],
+            "reason": ["病院に行く理由", "来院理由", "受診理由"],
+            "behavior": ["症状", "通院頻度", "行動パターン"],
+            "reviews": ["口コミ", "重視ポイント", "評価"],
+            "values": ["医療機関への価値観", "医療に対する価値観"],
+            "demands": ["医療機関に求めるもの", "希望", "要望"]
+        }
+        
+        for section, keywords in keywords_map.items():
+            for keyword in keywords:
+                if keyword in text:
+                    # Find the content after the keyword
+                    pattern = f"{keyword}[：:]*\\s*([^\\n]+)"
+                    match = re.search(pattern, text)
+                    if match:
+                        content = match.group(1).strip()
+                        content = re.sub(r'[（(]\d+文字程度[）)]\s*', '', content)
+                        content = content.strip('*').strip()
+                        if content:
+                            sections[section] = content
+                            break
     
     # Debug output
     print(f"[DEBUG] Parsed sections:")
@@ -1095,6 +1132,9 @@ async def generate_persona(request: Request, username: str = Depends(verify_admi
                 "demands": "わかりやすい説明と、必要に応じて専門医への適切な紹介。予防医療のアドバイスも欲しい。"
             }
         else:
+            # Debug: Log the raw AI response
+            print(f"[DEBUG] Raw AI response from {selected_text_model}:")
+            print(f"{generated_text_str[:500]}..." if len(generated_text_str) > 500 else generated_text_str)
             generated_details = parse_ai_response(generated_text_str)
         
         # 画像生成の完了を待つ
