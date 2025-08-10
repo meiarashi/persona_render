@@ -937,6 +937,13 @@ async def generate_persona(request: Request, username: str = Depends(verify_admi
         
         selected_text_model = app_settings.models.text_api_model if app_settings.models else "gpt-4.1-2025-04-14" # デフォルト値
         selected_image_model = app_settings.models.image_api_model if app_settings.models else "dall-e-3" # デフォルト値
+        
+        # ===== モデル使用ログ =====
+        print("="*60)
+        print("[MODEL] ===== AI MODEL SELECTION =====")
+        print(f"[MODEL] Text Generation Model: {selected_text_model}")
+        print(f"[MODEL] Image Generation Model: {selected_image_model}")
+        print("="*60)
 
         # --- APIキーの取得 ---
         openai_api_key = os.environ.get("OPENAI_API_KEY", "").strip()
@@ -1023,7 +1030,14 @@ async def generate_persona(request: Request, username: str = Depends(verify_admi
                     print(f"Warning: Could not parse age '{age}' for RAG search")
             
             # RAGデータの検索（主訴を含めて検索）
-            print(f"[DEBUG] Searching RAG data for department={department}, chief_complaint={chief_complaint}, age_group={age_group}, gender={gender}")
+            print("="*60)
+            print("[RAG] ===== STARTING RAG DATA SEARCH =====")
+            print(f"[RAG] Department: {department}")
+            print(f"[RAG] Chief Complaint: {chief_complaint}")
+            print(f"[RAG] Age Group: {age_group}")
+            print(f"[RAG] Gender: {gender}")
+            print("="*60)
+            
             rag_results = rag_processor.search_rag_data(
                 specialty=department,
                 age_group=age_group,
@@ -1031,7 +1045,7 @@ async def generate_persona(request: Request, username: str = Depends(verify_admi
                 chief_complaint=chief_complaint,  # 主訴を追加
                 limit=5
             )
-            print(f"[DEBUG] RAG search returned {len(rag_results)} results")
+            print(f"[RAG] Search completed: {len(rag_results)} results found")
             
             if rag_results:
                 rag_context = "\n\n# 参考情報（この診療科・主訴の患者が検索するキーワード）\n"
@@ -1044,18 +1058,24 @@ async def generate_persona(request: Request, username: str = Depends(verify_admi
                     # カテゴリーフィールドは削除（CSVに存在しないため）
                 
                 # RAGデータ使用の詳細ログ
-                print("[RAG] ===== RAG DATA USAGE REPORT =====")
-                print(f"[RAG] Department: {department}")
-                print(f"[RAG] Chief Complaint: {chief_complaint}")
-                print(f"[RAG] Age Group: {age_group}")
-                print(f"[RAG] Gender: {gender}")
-                print(f"[RAG] Results Found: {len(rag_results)}")
-                print("[RAG] Keywords:")
-                for result in rag_results:
-                    print(f"[RAG]   - {result['keyword']} (volume: {result['search_volume']})")
-                print("[RAG] ================================")
+                print("="*60)
+                print("[RAG] ===== RAG DATA SUCCESSFULLY LOADED =====")
+                print(f"[RAG] Using data for:")
+                print(f"[RAG]   - Department: {department}")
+                print(f"[RAG]   - Chief Complaint: {chief_complaint if chief_complaint else 'Not specified'}")
+                print(f"[RAG]   - Age Group: {age_group if age_group else 'All ages'}")
+                print(f"[RAG]   - Gender: {gender if gender else 'All genders'}")
+                print(f"[RAG] Top {len(rag_results)} Keywords Found:")
+                for i, result in enumerate(rag_results, 1):
+                    print(f"[RAG]   {i}. {result['keyword']} (検索数: {result['search_volume']}人)")
+                print("[RAG] This data will be included in the AI prompt")
+                print("="*60)
             else:
-                print(f"[RAG] WARNING: No RAG data found for {department}")
+                print("="*60)
+                print(f"[RAG] ⚠️ WARNING: No RAG data found")
+                print(f"[RAG] Searched for: {department} / {chief_complaint}")
+                print("[RAG] Proceeding without RAG context")
+                print("="*60)
         
         # RAGデータベース情報を追加（フロントエンドで表示するため）
         rag_info = {
@@ -1115,14 +1135,28 @@ async def generate_persona(request: Request, username: str = Depends(verify_admi
             except Exception as e:
                 client_init_error = str(e)
         
-        generated_text_str = None
         # テキスト生成実行（画像生成と並列）
-        print("[Async] Starting text generation")
+        print("="*60)
+        print(f"[AI] ===== STARTING TEXT GENERATION =====")
+        print(f"[AI] Model: {selected_text_model}")
+        print(f"[AI] RAG Context: {'Yes' if rag_context else 'No'}")
+        print(f"[AI] Prompt Length: {len(prompt_text)} characters")
+        print("="*60)
+        
+        generated_text_str = None
         if text_generation_client:
             try:
                 generated_text_str = await generate_text_response(prompt_text, selected_text_model, text_api_key_to_use)
+                print("="*60)
+                print(f"[AI] ✓ Text generation completed successfully")
+                print(f"[AI] Response length: {len(generated_text_str) if generated_text_str else 0} characters")
+                print("="*60)
             except Exception as e:
-                print(f"[ERROR] Text generation failed: {type(e).__name__}: {e}")
+                print("="*60)
+                print(f"[AI] ✗ ERROR: Text generation failed")
+                print(f"[AI] Error type: {type(e).__name__}")
+                print(f"[AI] Error message: {e}")
+                print("="*60)
                 generated_text_str = None
         
         if generated_text_str is None: # AI生成失敗またはスキップ時のフォールバック

@@ -220,24 +220,24 @@ def search_rag_data(specialty: str, age_group: str = None, gender: str = None, c
             # まず主訴別のデータを検索（例：アレルギー科_アトピー性皮膚炎）
             specialty_with_cc = f"{specialty}_{chief_complaint}"
             cursor.execute('''
-                SELECT keyword, search_volume, male_ratio, female_ratio,
-                       age_10s, age_20s, age_30s, age_40s, age_50s, age_60s, age_70s,
-                       category, distinctiveness
-                FROM rag_data 
+                SELECT COUNT(*) FROM rag_data 
                 WHERE specialty = ?
             ''', [specialty_with_cc])
             
+            count = cursor.fetchone()[0]
             # 主訴別データが存在する場合はそれを使用
-            if cursor.fetchone():
-                cursor.execute('''
-                    SELECT keyword, search_volume, male_ratio, female_ratio,
-                           age_10s, age_20s, age_30s, age_40s, age_50s, age_60s, age_70s,
-                           category, distinctiveness
-                    FROM rag_data 
-                    WHERE specialty = ?
-                ''', [specialty_with_cc])
-                print(f"[RAG] Using chief complaint specific data: {specialty_with_cc}")
+            if count > 0:
+                print("="*60)
+                print(f"[RAG] ✓ Chief complaint specific data found!")
+                print(f"[RAG] Using: {specialty_with_cc}")
+                print(f"[RAG] Records available: {count}")
+                print("="*60)
                 specialty = specialty_with_cc  # 主訴別のspecialtyを使用
+            else:
+                print("="*60)
+                print(f"[RAG] ℹ Chief complaint specific data not found")
+                print(f"[RAG] Falling back to department data: {specialty}")
+                print("="*60)
         
         # 基本クエリ
         base_query = '''
