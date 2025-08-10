@@ -165,7 +165,7 @@
     {
       "id": "gastroenterology",
       "name_ja": "消化器内科",
-      "icon": "消化器科.png",
+      "icon": "消化器内科.png",
       "order": 23,
       "enabled": true
     },
