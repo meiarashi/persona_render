@@ -495,12 +495,21 @@ async def generate_text_response(prompt_text, model_name, api_key):
         
         if model_name.startswith("gpt"):
             # OpenAI API call
-            completion = client.chat.completions.create(
-                model=model_name,
-                messages=[{"role": "user", "content": prompt_text}],
-                temperature=0.7,
-                max_tokens=4096
-            )
+            # GPT-5 uses max_completion_tokens instead of max_tokens
+            if "gpt-5" in model_name:
+                completion = client.chat.completions.create(
+                    model=model_name,
+                    messages=[{"role": "user", "content": prompt_text}],
+                    temperature=0.7,
+                    max_completion_tokens=4096
+                )
+            else:
+                completion = client.chat.completions.create(
+                    model=model_name,
+                    messages=[{"role": "user", "content": prompt_text}],
+                    temperature=0.7,
+                    max_tokens=4096
+                )
             return completion.choices[0].message.content
             
         elif model_name.startswith("claude"):

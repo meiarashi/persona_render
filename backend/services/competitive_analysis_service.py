@@ -155,15 +155,27 @@ class CompetitiveAnalysisService:
             # 選択されたプロバイダーに応じてAIを使用
             if self.selected_provider == "openai" and self.openai_api_key and openai_available:
                 client = OpenAI(api_key=self.openai_api_key)
-                response = client.chat.completions.create(
-                    model=self.selected_model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0.7,
-                    max_tokens=2000
-                )
+                # GPT-5 uses max_completion_tokens instead of max_tokens
+                if "gpt-5" in self.selected_model:
+                    response = client.chat.completions.create(
+                        model=self.selected_model,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.7,
+                        max_completion_tokens=2000
+                    )
+                else:
+                    response = client.chat.completions.create(
+                        model=self.selected_model,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.7,
+                        max_tokens=2000
+                    )
                 content = response.choices[0].message.content
                 
             elif self.selected_provider == "anthropic" and self.anthropic_api_key and anthropic_available:

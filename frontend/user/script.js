@@ -2637,16 +2637,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     // DOMContentLoadedイベントリスナーを追加して確実に実行
     // WebP support detection and image loading helper
 function loadImageWithFallback(element, imageName) {
+    // 消化器科の場合は消化器内科のファイルを使用
+    const actualImageName = imageName === '消化器科' ? '消化器内科' : imageName;
+    
     const img = new Image();
     img.onload = function() {
         element.style.backgroundImage = `url('${img.src}')`;
     };
     img.onerror = function() {
         // WebP failed, try PNG
-        img.src = `/images/departments/${imageName}.png`;
+        img.src = `/images/departments/${actualImageName}.png`;
     };
     // Try WebP first
-    img.src = `/images/departments/${imageName}.webp`;
+    img.src = `/images/departments/${actualImageName}.webp`;
 }
 
 // Apply WebP with fallback to all department icons on page load
