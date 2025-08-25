@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Tuple
 from datetime import datetime
 try:
     from openai import OpenAI
@@ -98,13 +98,14 @@ class CompetitiveAnalysisService:
                 additional_info
             )
             
-            # 3. SWOT分析を生成
-            swot_analysis = await self._generate_swot_analysis(analysis_data)
+            # 3. SWOT分析と戦略提案を生成
+            swot_analysis, ai_response = await self._generate_swot_analysis(analysis_data)
             
-            # 4. 戦略提案を生成
+            # 4. 戦略提案を抽出（AIレスポンスから）または生成（フォールバック）
             strategic_recommendations = await self._generate_strategic_recommendations(
                 swot_analysis,
-                analysis_data
+                analysis_data,
+                ai_response
             )
             
             return {
@@ -161,16 +162,16 @@ class CompetitiveAnalysisService:
             "additional_context": additional_info or ""
         }
     
-    async def _generate_swot_analysis(self, analysis_data: Dict[str, Any]) -> Dict[str, List[str]]:
-        """SWOT分析を生成"""
+    async def _generate_swot_analysis(self, analysis_data: Dict[str, Any]) -> Tuple[Dict[str, List[str]], str]:
+        """SWOT分析と戦略的提案を生成"""
         
         try:
             prompt = self._build_swot_prompt(analysis_data)
-            system_prompt = "あなたは医療機関の経営コンサルタントです。提供された情報を基に、具体的で実行可能なSWOT分析を行ってください。"
+            system_prompt = "あなたは医療機関の経営コンサルタントです。提供された情報を基に、具体的で実行可能なSWOT分析と戦略的提案を行ってください。"
             
             # モデル使用ログ
             print("="*60)
-            print("[CompetitiveAnalysis] ===== GENERATING SWOT ANALYSIS =====")
+            print("[CompetitiveAnalysis] ===== GENERATING SWOT ANALYSIS & RECOMMENDATIONS =====")
             print(f"[CompetitiveAnalysis] Model: {self.selected_model}")
             print(f"[CompetitiveAnalysis] Provider: {self.selected_provider}")
             print("="*60)
@@ -187,7 +188,7 @@ class CompetitiveAnalysisService:
                             {"role": "user", "content": prompt}
                         ],
                         temperature=1.0,  # GPT-5 only supports default temperature of 1.0
-                        max_completion_tokens=2000
+                        max_completion_tokens=3000  # 戦略提案も含むため増加
                     )
                 else:
                     response = client.chat.completions.create(
@@ -197,7 +198,7 @@ class CompetitiveAnalysisService:
                             {"role": "user", "content": prompt}
                         ],
                         temperature=0.7,
-                        max_tokens=2000
+                        max_tokens=3000  # 戦略提案も含むため増加
                     )
                 content = response.choices[0].message.content
                 
@@ -205,7 +206,7 @@ class CompetitiveAnalysisService:
                 client = Anthropic(api_key=self.anthropic_api_key)
                 response = client.messages.create(
                     model=self.selected_model,
-                    max_tokens=2000,
+                    max_tokens=3000,  # 戦略提案も含むため増加
                     temperature=0.7,
                     system=system_prompt,
                     messages=[{"role": "user", "content": prompt}]
@@ -219,20 +220,21 @@ class CompetitiveAnalysisService:
                     contents=f"{system_prompt}\n\n{prompt}",
                     config=google_genai_types.GenerateContentConfig(
                         temperature=0.7,
-                        max_output_tokens=2000
+                        max_output_tokens=3000  # 戦略提案も含むため増加
                     )
                 )
                 content = response.text
                 
             else:
                 logger.warning(f"Selected provider {self.selected_provider} not available, using basic SWOT")
-                return self._generate_basic_swot(analysis_data)
+                return self._generate_basic_swot(analysis_data), ""
             
-            return self._parse_swot_response(content)
+            # AIレスポンスを保存して返す（パース処理は後で）
+            return self._parse_swot_response(content), content
             
         except Exception as e:
             logger.error(f"Error generating SWOT analysis with AI: {str(e)}")
-            return self._generate_basic_swot(analysis_data)
+            return self._generate_basic_swot(analysis_data), ""
     
     def _build_swot_prompt(self, analysis_data: Dict[str, Any]) -> str:
         """SWOT分析用のプロンプトを構築"""
@@ -340,19 +342,63 @@ class CompetitiveAnalysisService:
 - [具体的な脅威2]
 - [具体的な脅威3]
 - [具体的な脅威4]
+
+---
+
+続いて、上記のSWOT分析を踏まえて、具体的な戦略的提案を5つ提供してください。
+各提案は以下の形式で記載してください：
+
+**戦略的提案**
+
+1. **[提案タイトル（20文字以内）]**
+   - 内容: [具体的な施策内容（100文字程度）]
+   - 優先度: [high/medium/lowのいずれか]
+   - 期待効果: [期待される成果（50文字程度）]
+
+2. **[提案タイトル]**
+   - 内容: [具体的な施策内容]
+   - 優先度: [high/medium/lowのいずれか]
+   - 期待効果: [期待される成果]
+
+3. **[提案タイトル]**
+   - 内容: [具体的な施策内容]
+   - 優先度: [high/medium/lowのいずれか]
+   - 期待効果: [期待される成果]
+
+4. **[提案タイトル]**
+   - 内容: [具体的な施策内容]
+   - 優先度: [high/medium/lowのいずれか]
+   - 期待効果: [期待される成果]
+
+5. **[提案タイトル]**
+   - 内容: [具体的な施策内容]
+   - 優先度: [high/medium/lowのいずれか]
+   - 期待効果: [期待される成果]
+
+【戦略立案の観点】
+- SO戦略（強み×機会）：強みを活かして機会を最大化
+- WO戦略（弱み×機会）：弱みを克服して機会を掴む
+- ST戦略（強み×脅威）：強みを活かして脅威を回避
+- WT戦略（弱み×脅威）：弱みを最小化し脅威を回避
 """
         return prompt
     
-    def _parse_swot_response(self, content: str) -> Dict[str, List[str]]:
-        """AIの応答をパースしてSWOT辞書に変換"""
-        swot = {
-            "strengths": [],
-            "weaknesses": [],
-            "opportunities": [],
-            "threats": []
+    def _parse_swot_and_recommendations_response(self, content: str) -> Dict[str, Any]:
+        """AIの応答をパースしてSWOTと戦略的提案を抽出"""
+        result = {
+            "swot": {
+                "strengths": [],
+                "weaknesses": [],
+                "opportunities": [],
+                "threats": []
+            },
+            "recommendations": []
         }
         
         current_section = None
+        in_recommendations = False
+        current_recommendation = None
+        
         section_map = {
             "強み": "strengths",
             "Strengths": "strengths",
@@ -366,21 +412,70 @@ class CompetitiveAnalysisService:
         
         lines = content.split('\n')
         for line in lines:
-            line = line.strip()
+            line_stripped = line.strip()
             
-            # セクションの識別
-            for key, section in section_map.items():
-                if key in line and "**" in line:
-                    current_section = section
-                    break
+            # 戦略的提案セクションの開始を識別
+            if "戦略的提案" in line_stripped and "**" in line_stripped:
+                in_recommendations = True
+                current_section = None
+                continue
             
-            # 項目の抽出
-            if current_section and line.startswith('- '):
-                item = line[2:].strip()
-                if item:
-                    swot[current_section].append(item)
+            # SWOT分析セクションの処理
+            if not in_recommendations:
+                # セクションの識別
+                for key, section in section_map.items():
+                    if key in line_stripped and "**" in line_stripped:
+                        current_section = section
+                        break
+                
+                # SWOT項目の抽出
+                if current_section and line_stripped.startswith('- '):
+                    item = line_stripped[2:].strip()
+                    if item and not item.startswith('['):
+                        result["swot"][current_section].append(item)
+            
+            # 戦略的提案セクションの処理
+            else:
+                # 新しい提案の開始（番号付きタイトル）
+                if line_stripped and (line_stripped[0].isdigit() and '.' in line_stripped[:3]):
+                    if current_recommendation:
+                        result["recommendations"].append(current_recommendation)
+                    
+                    # タイトルを抽出
+                    title = line_stripped.split('**')[1] if '**' in line_stripped else line_stripped[3:].strip()
+                    current_recommendation = {
+                        "title": title,
+                        "description": "",
+                        "priority": "medium",
+                        "expected_effect": ""
+                    }
+                
+                # 提案の詳細情報を抽出
+                elif current_recommendation and line_stripped.startswith('- '):
+                    detail = line_stripped[2:].strip()
+                    if detail.startswith('内容:'):
+                        current_recommendation["description"] = detail[3:].strip()
+                    elif detail.startswith('優先度:'):
+                        priority_text = detail[4:].strip().lower()
+                        if 'high' in priority_text or '高' in priority_text:
+                            current_recommendation["priority"] = "high"
+                        elif 'low' in priority_text or '低' in priority_text:
+                            current_recommendation["priority"] = "low"
+                        else:
+                            current_recommendation["priority"] = "medium"
+                    elif detail.startswith('期待効果:'):
+                        current_recommendation["expected_effect"] = detail[5:].strip()
         
-        return swot
+        # 最後の提案を追加
+        if current_recommendation:
+            result["recommendations"].append(current_recommendation)
+        
+        return result
+    
+    def _parse_swot_response(self, content: str) -> Dict[str, List[str]]:
+        """AIの応答をパースしてSWOT辞書に変換（後方互換性のため維持）"""
+        parsed = self._parse_swot_and_recommendations_response(content)
+        return parsed["swot"]
     
     def _analyze_reviews(self, top_competitors: List[Dict[str, Any]]) -> Dict[str, Any]:
         """口コミデータを分析してインサイトを抽出"""
@@ -505,27 +600,66 @@ class CompetitiveAnalysisService:
     async def _generate_strategic_recommendations(
         self,
         swot_analysis: Dict[str, List[str]],
-        analysis_data: Dict[str, Any]
+        analysis_data: Dict[str, Any],
+        ai_response: str = ""
     ) -> List[Dict[str, str]]:
-        """戦略的提案を生成"""
+        """戦略的提案を生成（AIレスポンスから抽出またはフォールバック）"""
         
         recommendations = []
         
-        # 基本的な戦略提案
+        # AIレスポンスから戦略提案を抽出
+        if ai_response:
+            try:
+                parsed = self._parse_swot_and_recommendations_response(ai_response)
+                if parsed["recommendations"]:
+                    # AIが生成した提案を使用
+                    for rec in parsed["recommendations"]:
+                        # descriptionが空の場合はexpected_effectを使用
+                        description = rec["description"] if rec["description"] else rec.get("expected_effect", "")
+                        recommendations.append({
+                            "title": rec["title"],
+                            "description": description,
+                            "priority": rec["priority"]
+                        })
+                    
+                    # AIの提案がある場合はそれを返す
+                    if recommendations:
+                        return recommendations
+            except Exception as e:
+                logger.warning(f"Failed to parse recommendations from AI response: {e}")
+        
+        # フォールバック：基本的な戦略提案を生成
         if analysis_data["market_stats"]["total_competitors"] > 10:
             recommendations.append({
                 "title": "差別化戦略の強化",
-                "description": "競合が多いエリアでは、独自の強みを明確に打ち出す必要があります。",
+                "description": "競合が多いエリアでは、独自の強みを明確に打ち出す必要があります。専門性の高い診療や独自のサービスを検討しましょう。",
                 "priority": "high"
             })
         
         if analysis_data["market_stats"]["average_rating"] > 4:
             recommendations.append({
                 "title": "サービス品質の向上",
-                "description": "競合の評価が高いため、患者満足度を向上させる取り組みが重要です。",
+                "description": "競合の評価が高いため、患者満足度を向上させる取り組みが重要です。待ち時間短縮や接遇改善を実施しましょう。",
                 "priority": "high"
             })
         
+        # SWOT分析の内容を活用した提案
+        if swot_analysis.get("opportunities"):
+            for opportunity in swot_analysis["opportunities"][:1]:  # 最初の機会を活用
+                recommendations.append({
+                    "title": "市場機会の活用",
+                    "description": f"{opportunity}を活かした戦略的な施策を展開しましょう。",
+                    "priority": "high"
+                })
+        
+        if swot_analysis.get("weaknesses"):
+            recommendations.append({
+                "title": "弱点の改善",
+                "description": f"課題となっている{swot_analysis['weaknesses'][0]}の改善に取り組みましょう。",
+                "priority": "medium"
+            })
+        
+        # デフォルトの提案
         recommendations.append({
             "title": "デジタルプレゼンスの強化",
             "description": "ウェブサイトの充実やSNS活用により、オンラインでの認知度を高めましょう。",
@@ -538,4 +672,4 @@ class CompetitiveAnalysisService:
             "priority": "medium"
         })
         
-        return recommendations
+        return recommendations[:5]  # 最大5つの提案を返す
