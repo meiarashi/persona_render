@@ -393,9 +393,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let currentStep = 0;
         let progress = 0;
         const totalDuration = 30000; // 30秒
-        const intervalTime = 1000; // 1秒ごとに更新
-        const totalSteps = totalDuration / intervalTime;
-        const progressPerStep = 100 / totalSteps;
+        const intervalTime = 300; // 0.3秒ごとに更新（30秒で100回 = 1%ずつ）
+        const progressPerStep = 1; // 1%ずつ増加
         
         // プログレスバーのスムーズなアニメーション
         const animateProgress = () => {
@@ -726,7 +725,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="action-buttons">
                     <button class="btn btn-primary" onclick="window.print()">印刷</button>
                     <button class="btn btn-secondary" onclick="location.reload()">新しい分析を開始</button>
-                    <a href="/user/dashboard" class="btn btn-link">ダッシュボードに戻る</a>
+                    <a href="/others/" class="btn btn-link">ダッシュボードに戻る</a>
                 </div>
             </div>
         `;
