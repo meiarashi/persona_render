@@ -385,18 +385,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const estimatedTimeElement = document.querySelector('.estimated-time');
         
         const steps = [
-            { text: 'ステップ 1/3: 近隣の医療機関を検索中', time: '予想時間: 約20-30秒' },
-            { text: 'ステップ 2/3: 詳細情報を収集中', time: '予想時間: 約15-20秒' },
-            { text: 'ステップ 3/3: AIがSWOT分析を生成中', time: '予想時間: 約10-15秒' }
+            { text: 'ステップ 1/3: 近隣の医療機関を検索中', time: '予想時間: 約10秒' },
+            { text: 'ステップ 2/3: 詳細情報を収集中', time: '予想時間: 約10秒' },
+            { text: 'ステップ 3/3: AIがSWOT分析を生成中', time: '予想時間: 約10秒' }
         ];
         
         let currentStep = 0;
         let progress = 0;
+        const totalDuration = 30000; // 30秒
+        const intervalTime = 1000; // 1秒ごとに更新
+        const totalSteps = totalDuration / intervalTime;
+        const progressPerStep = 100 / totalSteps;
         
         // プログレスバーのスムーズなアニメーション
         const animateProgress = () => {
-            const targetProgress = Math.min(95, progress + Math.random() * 15 + 5);
-            progress = targetProgress;
+            progress = Math.min(100, progress + progressPerStep);
             
             progressFill.style.width = `${progress}%`;
             progressPercentage.textContent = `${Math.round(progress)}%`;
@@ -409,9 +412,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 estimatedTimeElement.textContent = steps[currentStep].time;
             }
             
-            // 95%未満の場合は続行
-            if (progress < 95) {
-                setTimeout(animateProgress, 800 + Math.random() * 400);
+            // 100%未満の場合は続行
+            if (progress < 100) {
+                setTimeout(animateProgress, intervalTime);
             }
         };
         
