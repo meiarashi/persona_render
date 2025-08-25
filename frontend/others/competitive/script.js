@@ -578,7 +578,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 new google.maps.LatLng(center.lat, center.lng),
                 new google.maps.LatLng(competitor.location.lat, competitor.location.lng)
             );
-            console.log(`${competitor.name}: ${Math.round(distance)}m (範囲: ${result.search_radius}m)`);
+            // console.log(`${competitor.name}: ${Math.round(distance)}m (範囲: ${result.search_radius}m)`);
             
             const marker = new google.maps.Marker({
                 position: {
@@ -624,10 +624,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function displayResult(result) {
-        console.log('分析結果:', result);
-        console.log('自院の住所:', result.clinic_info.address);
-        console.log('APIが返した中心座標:', result.center);
-        console.log('競合医院の座標:', result.competitors.map(c => ({name: c.name, location: c.location})));
+        // console.log('分析結果:', result);
+        // console.log('自院の住所:', result.clinic_info.address);
+        // console.log('APIが返した中心座標:', result.center);
+        // console.log('競合医院の座標:', result.competitors.map(c => ({name: c.name, location: c.location})));
         
         // Google Maps APIを読み込む
         loadGoogleMapsAPI();
