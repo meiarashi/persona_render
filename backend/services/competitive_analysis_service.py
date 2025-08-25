@@ -188,7 +188,7 @@ class CompetitiveAnalysisService:
                             {"role": "user", "content": prompt}
                         ],
                         temperature=1.0,  # GPT-5 only supports default temperature of 1.0
-                        max_completion_tokens=2500  # 戦略提案も含むが処理時間を考慮
+                        max_completion_tokens=2000  # 戦略提案3つに削減したため
                     )
                 else:
                     response = client.chat.completions.create(
@@ -198,7 +198,7 @@ class CompetitiveAnalysisService:
                             {"role": "user", "content": prompt}
                         ],
                         temperature=0.7,
-                        max_tokens=2500  # 戦略提案も含むが処理時間を考慮
+                        max_tokens=2000  # 戦略提案3つに削減したため
                     )
                 content = response.choices[0].message.content
                 
@@ -206,7 +206,7 @@ class CompetitiveAnalysisService:
                 client = Anthropic(api_key=self.anthropic_api_key, timeout=60.0)  # 60秒のタイムアウトを設定
                 response = client.messages.create(
                     model=self.selected_model,
-                    max_tokens=2500,  # 戦略提案も含むが処理時間を考慮
+                    max_tokens=2000,  # 戦略提案3つに削減したため
                     temperature=0.7,
                     system=system_prompt,
                     messages=[{"role": "user", "content": prompt}]
@@ -220,7 +220,7 @@ class CompetitiveAnalysisService:
                     contents=f"{system_prompt}\n\n{prompt}",
                     config=google_genai_types.GenerateContentConfig(
                         temperature=0.7,
-                        max_output_tokens=2500  # 戦略提案も含むが処理時間を考慮
+                        max_output_tokens=2000  # 戦略提案3つに削減したため
                     )
                 )
                 content = response.text
@@ -345,7 +345,7 @@ class CompetitiveAnalysisService:
 
 ---
 
-続いて、上記のSWOT分析を踏まえて、具体的な戦略的提案を5つ提供してください。
+続いて、上記のSWOT分析を踏まえて、最も重要な戦略的提案を3つ厳選して提供してください。
 各提案は以下の形式で記載してください：
 
 **戦略的提案**
@@ -361,16 +361,6 @@ class CompetitiveAnalysisService:
    - 期待効果: [期待される成果]
 
 3. **[提案タイトル]**
-   - 内容: [具体的な施策内容]
-   - 優先度: [high/medium/lowのいずれか]
-   - 期待効果: [期待される成果]
-
-4. **[提案タイトル]**
-   - 内容: [具体的な施策内容]
-   - 優先度: [high/medium/lowのいずれか]
-   - 期待効果: [期待される成果]
-
-5. **[提案タイトル]**
    - 内容: [具体的な施策内容]
    - 優先度: [high/medium/lowのいずれか]
    - 期待効果: [期待される成果]
@@ -672,4 +662,4 @@ class CompetitiveAnalysisService:
             "priority": "medium"
         })
         
-        return recommendations[:5]  # 最大5つの提案を返す
+        return recommendations[:3]  # 最大3つの提案を返す
