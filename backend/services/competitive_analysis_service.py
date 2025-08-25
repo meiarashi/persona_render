@@ -178,7 +178,7 @@ class CompetitiveAnalysisService:
             
             # 選択されたプロバイダーに応じてAIを使用
             if self.selected_provider == "openai" and self.openai_api_key and openai_available:
-                client = OpenAI(api_key=self.openai_api_key)
+                client = OpenAI(api_key=self.openai_api_key, timeout=60.0)  # 60秒のタイムアウトを設定
                 # GPT-5 uses max_completion_tokens instead of max_tokens and temperature must be 1.0
                 if "gpt-5" in self.selected_model:
                     response = client.chat.completions.create(
@@ -188,7 +188,7 @@ class CompetitiveAnalysisService:
                             {"role": "user", "content": prompt}
                         ],
                         temperature=1.0,  # GPT-5 only supports default temperature of 1.0
-                        max_completion_tokens=3000  # 戦略提案も含むため増加
+                        max_completion_tokens=2500  # 戦略提案も含むが処理時間を考慮
                     )
                 else:
                     response = client.chat.completions.create(
@@ -198,15 +198,15 @@ class CompetitiveAnalysisService:
                             {"role": "user", "content": prompt}
                         ],
                         temperature=0.7,
-                        max_tokens=3000  # 戦略提案も含むため増加
+                        max_tokens=2500  # 戦略提案も含むが処理時間を考慮
                     )
                 content = response.choices[0].message.content
                 
             elif self.selected_provider == "anthropic" and self.anthropic_api_key and anthropic_available:
-                client = Anthropic(api_key=self.anthropic_api_key)
+                client = Anthropic(api_key=self.anthropic_api_key, timeout=60.0)  # 60秒のタイムアウトを設定
                 response = client.messages.create(
                     model=self.selected_model,
-                    max_tokens=3000,  # 戦略提案も含むため増加
+                    max_tokens=2500,  # 戦略提案も含むが処理時間を考慮
                     temperature=0.7,
                     system=system_prompt,
                     messages=[{"role": "user", "content": prompt}]
@@ -220,7 +220,7 @@ class CompetitiveAnalysisService:
                     contents=f"{system_prompt}\n\n{prompt}",
                     config=google_genai_types.GenerateContentConfig(
                         temperature=0.7,
-                        max_output_tokens=3000  # 戦略提案も含むため増加
+                        max_output_tokens=2500  # 戦略提案も含むが処理時間を考慮
                     )
                 )
                 content = response.text
