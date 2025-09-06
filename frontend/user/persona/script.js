@@ -3837,7 +3837,7 @@ function drawTimelineChart(keywords) {
             layout: {
                 padding: {
                     left: 10,
-                    right: 100,  // ラベル用に右側に十分な余白
+                    right: 60,  // 適度な余白
                     top: 10,
                     bottom: 10
                 }
@@ -3946,49 +3946,7 @@ function drawTimelineChart(keywords) {
             }
         }
     });
-    
-    // 分析コンテナの高さを動的に調整
-    const chartContainer = document.querySelector('.chart-container');
-    const analysisContainer = document.querySelector('.analysis-container');
-    
-    if (chartContainer && analysisContainer) {
-        // チャートコンテナの高さを取得
-        const chartHeight = chartContainer.offsetHeight;
-        
-        // 分析コンテナの最大高さをチャートの高さに合わせる（少し余裕を持たせる）
-        const newMaxHeight = Math.max(300, chartHeight - 100); // 最小300px、チャートより100px小さく
-        analysisContainer.style.maxHeight = newMaxHeight + 'px';
-        
-        // テキストが多い場合はスクロール可能にする
-        analysisContainer.style.overflowY = 'auto';
-        
-        // パディングと行間を調整して読みやすくする
-        analysisContainer.style.padding = '20px';
-        
-        // 内容の高さを確認して、必要に応じて調整
-        const contentElement = document.getElementById('timeline-analysis-content');
-        if (contentElement) {
-            // 文字サイズを少し小さくして収まりやすくする
-            contentElement.style.fontSize = '0.95em';
-            contentElement.style.lineHeight = '1.6';
-        }
-    }
 }
-
-// 分析コンテナのサイズ調整を行う関数
-function adjustAnalysisContainerHeight() {
-    const chartContainer = document.querySelector('.chart-container');
-    const analysisContainer = document.querySelector('.analysis-container');
-    
-    if (chartContainer && analysisContainer) {
-        const chartHeight = chartContainer.offsetHeight;
-        const newMaxHeight = Math.max(300, chartHeight - 100);
-        analysisContainer.style.maxHeight = newMaxHeight + 'px';
-    }
-}
-
-// ウィンドウリサイズ時に分析コンテナも調整
-window.addEventListener('resize', adjustAnalysisContainerHeight);
 
 // グローバルスコープに関数を登録
 window.initializeTabFunctionality = initializeTabFunctionality;

@@ -32,6 +32,38 @@
                         </div>
                     </div>
 
+                    <!-- CSVアップロード機能 -->
+                    <div class="csv-upload-section" style="margin-bottom: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 8px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                            <div>
+                                <h5 style="margin: 0 0 5px 0; color: #333;">CSVファイルから読み込む</h5>
+                                <p style="margin: 0; font-size: 0.9em; color: #666;">事前に準備したCSVファイルから情報を一括入力できます</p>
+                            </div>
+                            <a href="/dental/competitive/clinic_template.csv" download="clinic_template.csv" 
+                               style="padding: 8px 16px; background-color: #fff; border: 1px solid #2563eb; color: #2563eb; text-decoration: none; border-radius: 4px; font-size: 0.9em;">
+                                📥 テンプレートをダウンロード
+                            </a>
+                        </div>
+                        
+                        <div class="csv-upload-area" style="border: 2px dashed #cbd5e1; border-radius: 8px; padding: 20px; text-align: center; background-color: #fff;">
+                            <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
+                            <label for="csv-file-input" style="cursor: pointer;">
+                                <div style="margin-bottom: 10px;">
+                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                </div>
+                                <p style="margin: 0; color: #64748b;">クリックしてCSVファイルを選択<br>
+                                <span style="font-size: 0.85em;">またはファイルをドラッグ＆ドロップ</span></p>
+                            </label>
+                            <div id="csv-upload-status" style="margin-top: 10px; display: none;">
+                                <span style="color: #10b981; font-size: 0.9em;">✅ ファイルを読み込みました</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="clinic-info-form">
                         <div class="form-group">
                             <label for="clinic-name">クリニック名 <span class="required">*</span></label>
@@ -120,38 +152,6 @@
                                 <div class="progress" style="width: 100%;"></div>
                             </div>
                             <h4 class="question-text">あなたのクリニックの特徴を教えてください（任意）。</h4>
-                        </div>
-                    </div>
-                    
-                    <!-- CSVアップロード機能 -->
-                    <div class="csv-upload-section" style="margin-bottom: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 8px;">
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
-                            <div>
-                                <h5 style="margin: 0 0 5px 0; color: #333;">CSVファイルから読み込む</h5>
-                                <p style="margin: 0; font-size: 0.9em; color: #666;">事前に準備したCSVファイルから情報を一括入力できます</p>
-                            </div>
-                            <a href="/dental/competitive/clinic_template.csv" download="clinic_template.csv" 
-                               style="padding: 8px 16px; background-color: #fff; border: 1px solid #2563eb; color: #2563eb; text-decoration: none; border-radius: 4px; font-size: 0.9em;">
-                                📥 テンプレートをダウンロード
-                            </a>
-                        </div>
-                        
-                        <div class="csv-upload-area" style="border: 2px dashed #cbd5e1; border-radius: 8px; padding: 20px; text-align: center; background-color: #fff;">
-                            <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
-                            <label for="csv-file-input" style="cursor: pointer;">
-                                <div style="margin-bottom: 10px;">
-                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="7 10 12 15 17 10"></polyline>
-                                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                                    </svg>
-                                </div>
-                                <p style="margin: 0; color: #64748b;">クリックしてCSVファイルを選択<br>
-                                <span style="font-size: 0.85em;">またはファイルをドラッグ＆ドロップ</span></p>
-                            </label>
-                            <div id="csv-upload-status" style="margin-top: 10px; display: none;">
-                                <span style="color: #10b981; font-size: 0.9em;">✅ ファイルを読み込みました</span>
-                            </div>
                         </div>
                     </div>
                     
