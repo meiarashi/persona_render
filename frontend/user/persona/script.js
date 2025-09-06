@@ -3590,7 +3590,7 @@ async function loadTimelineAnalysis(profile) {
 }
 
 // 重要キーワードを選定する関数
-function selectImportantKeywords(keywords, maxLabels = 8) {  // 重なり防止のため数を減らす
+function selectImportantKeywords(keywords, maxLabels = 8) {  // 8個でバランスを取る
     // データ検証とサニタイズ
     const validKeywords = keywords.filter(k => 
         k && typeof k === 'object' && 
@@ -3600,38 +3600,59 @@ function selectImportantKeywords(keywords, maxLabels = 8) {  // 重なり防止�
          !isNaN(Number(k.estimated_volume)) || !isNaN(Number(k.search_volume)))
     );
     
-    // 検索ボリュームでソート
+    // 検索ボリュームでソート（上位のキーワードを優先）
     const sorted = [...validKeywords].sort((a, b) => {
         const volumeA = Number(a.estimated_volume || a.search_volume || 0);
         const volumeB = Number(b.estimated_volume || b.search_volume || 0);
         return volumeB - volumeA;
     });
     
-    // 時間軸で分散させる（異なる時間帯から選ぶ）
-    const timeRanges = [-180, -120, -60, -30, 0, 30, 60, 120, 180];
+    if (sorted.length === 0) return [];
+    
+    // 選択済みキーワードを管理
     const selected = [];
-    const selectedKeywords = new Set();
+    const selectedData = [];
     
-    // 各時間帯から最大2個ずつ選択
-    timeRanges.forEach(range => {
-        const rangeKeywords = sorted.filter(k => {
-            const timeDiff = Math.abs(k.time_diff_days - range);
-            return timeDiff < 30 && !selectedKeywords.has(k.keyword);
-        });
+    // 最大ボリュームを取得（Y軸の正規化用）
+    const maxVolume = Number(sorted[0].estimated_volume || sorted[0].search_volume || 1);
+    
+    // ボリューム上位から選択し、位置の重複をチェック
+    for (const keyword of sorted) {
+        if (selected.length >= maxLabels) break;
         
-        rangeKeywords.slice(0, 1).forEach(k => {  // 1個に減らす
-            selected.push(k);
-            selectedKeywords.add(k.keyword);
-        });
-    });
-    
-    // 上位から追加で選択（最大数まで）
-    sorted.forEach(k => {
-        if (selected.length < maxLabels && !selectedKeywords.has(k.keyword)) {
-            selected.push(k);
-            selectedKeywords.add(k.keyword);
+        // このキーワードのY座標を計算（0-100の範囲）
+        const volume = Number(keyword.estimated_volume || keyword.search_volume || 0);
+        const yPos = (volume / maxVolume) * 100;
+        const xPos = keyword.time_diff_days;
+        
+        // 既存のラベルとの距離をチェック
+        let canPlace = true;
+        for (const existing of selectedData) {
+            const xDist = Math.abs(xPos - existing.x);
+            const yDist = Math.abs(yPos - existing.y);
+            
+            // X軸で30日以内かつY軸で15%以内なら近すぎる（閾値を少し厳しく）
+            if (xDist < 30 && yDist < 15) {
+                canPlace = false;
+                break;
+            }
         }
-    });
+        
+        // 配置可能なら選択
+        if (canPlace) {
+            selected.push(keyword);
+            selectedData.push({ x: xPos, y: yPos });
+        }
+    }
+    
+    // 最低5個は表示する（重複リスクがあっても）
+    if (selected.length < 5 && sorted.length >= 5) {
+        for (let i = 0; i < 5 && i < sorted.length; i++) {
+            if (!selected.includes(sorted[i])) {
+                selected.push(sorted[i]);
+            }
+        }
+    }
     
     return selected.slice(0, maxLabels);
 }
@@ -3817,33 +3838,9 @@ function drawTimelineChart(keywords) {
                         // showLabelフラグがtrueのデータのみ表示
                         return context.dataset.data[context.dataIndex].showLabel === true;
                     },
-                    align: function(context) {
-                        // Y座標に基づいて位置を決める（上下の重なりを避ける）
-                        const data = context.dataset.data[context.dataIndex];
-                        const yValue = data.y;
-                        
-                        // Y座標が高い（上部）なら下に、低い（下部）なら上に表示
-                        if (yValue > 50) {
-                            return 'bottom';
-                        } else if (yValue < 30) {
-                            return 'top';
-                        } else {
-                            // 中間は左右に配置
-                            return context.dataIndex % 2 === 0 ? 'right' : 'left';
-                        }
-                    },
+                    align: 'right',  // 常に右側に表示
                     anchor: 'center',      // バブルの中心から
-                    offset: function(context) {
-                        // Y座標に基づいてオフセットを調整
-                        const data = context.dataset.data[context.dataIndex];
-                        const yValue = data.y;
-                        
-                        if (yValue > 50 || yValue < 30) {
-                            return 12;  // 上下は少し離す
-                        } else {
-                            return 15;  // 左右はもう少し離す
-                        }
-                    },
+                    offset: 15,  // 右側に固定オフセット
                     clip: false,           // グラフ領域外も表示
                     formatter: function(value) {
                         return value.label;  // キーワードを表示
