@@ -214,13 +214,19 @@ class CompetitiveAnalysisService:
                 content = response.content[0].text
                 
             elif self.selected_provider == "google" and self.google_api_key and google_genai_available:
+                import asyncio
                 client = google_genai_sdk.Client(api_key=self.google_api_key)
-                response = await client.models.generate_content_async(
-                    model=self.selected_model,
-                    contents=f"{system_prompt}\n\n{prompt}",
-                    config=google_genai_types.GenerateContentConfig(
-                        temperature=0.7,
-                        max_output_tokens=2000  # 戦略提案3つに削減したため
+                # Google Gemini APIは同期的なので、asyncioで実行
+                loop = asyncio.get_event_loop()
+                response = await loop.run_in_executor(
+                    None,
+                    lambda: client.models.generate_content(
+                        model=self.selected_model,
+                        contents=f"{system_prompt}\n\n{prompt}",
+                        config=google_genai_types.GenerateContentConfig(
+                            temperature=0.7,
+                            max_output_tokens=2000  # 戦略提案3つに削減したため
+                        )
                     )
                 )
                 content = response.text
