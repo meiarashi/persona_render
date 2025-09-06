@@ -3590,7 +3590,7 @@ async function loadTimelineAnalysis(profile) {
 }
 
 // 重要キーワードを選定する関数
-function selectImportantKeywords(keywords, maxLabels = 10) {  // 重なり防止のため数を減らす
+function selectImportantKeywords(keywords, maxLabels = 8) {  // 重なり防止のため数を減らす
     // データ検証とサニタイズ
     const validKeywords = keywords.filter(k => 
         k && typeof k === 'object' && 
@@ -3818,31 +3818,46 @@ function drawTimelineChart(keywords) {
                         return context.dataset.data[context.dataIndex].showLabel === true;
                     },
                     align: function(context) {
-                        // データインデックスによって位置を変える
-                        const index = context.dataIndex;
-                        const positions = ['right', 'top', 'bottom', 'left'];
-                        return positions[index % 4];
+                        // Y座標に基づいて位置を決める（上下の重なりを避ける）
+                        const data = context.dataset.data[context.dataIndex];
+                        const yValue = data.y;
+                        
+                        // Y座標が高い（上部）なら下に、低い（下部）なら上に表示
+                        if (yValue > 50) {
+                            return 'bottom';
+                        } else if (yValue < 30) {
+                            return 'top';
+                        } else {
+                            // 中間は左右に配置
+                            return context.dataIndex % 2 === 0 ? 'right' : 'left';
+                        }
                     },
                     anchor: 'center',      // バブルの中心から
                     offset: function(context) {
-                        // 位置によってオフセットを調整
-                        const align = context.dataIndex % 4;
-                        return align === 0 ? 15 : 10;  // 右側は少し遠く
+                        // Y座標に基づいてオフセットを調整
+                        const data = context.dataset.data[context.dataIndex];
+                        const yValue = data.y;
+                        
+                        if (yValue > 50 || yValue < 30) {
+                            return 12;  // 上下は少し離す
+                        } else {
+                            return 15;  // 左右はもう少し離す
+                        }
                     },
                     clip: false,           // グラフ領域外も表示
                     formatter: function(value) {
                         return value.label;  // キーワードを表示
                     },
                     font: {
-                        size: 11,
+                        size: 12,
                         weight: 'bold',
                         family: 'sans-serif'
                     },
-                    color: 'rgba(0, 0, 0, 0.85)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.8)',  // 半透明の背景
-                    borderColor: 'rgba(0, 0, 0, 0.2)',
-                    borderWidth: 1,
-                    borderRadius: 3,
+                    color: 'rgba(0, 0, 0, 0.9)',
+                    backgroundColor: 'transparent',  // 背景を透明に
+                    borderColor: 'transparent',      // 枠線を透明に
+                    borderWidth: 0,                   // 枠線を無効化
+                    borderRadius: 0,
                     padding: 3,
                     textAlign: 'left'
                 }
