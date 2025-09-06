@@ -3609,45 +3609,50 @@ function selectImportantKeywords(keywords, maxLabels = 8) {  // 8個でバラン
     
     if (sorted.length === 0) return [];
     
-    // 選択済みキーワードを管理
+    // グリッドベースのアプローチで重複を回避
     const selected = [];
-    const selectedData = [];
+    const occupiedZones = [];  // 占有されたゾーンを記録
     
     // 最大ボリュームを取得（Y軸の正規化用）
     const maxVolume = Number(sorted[0].estimated_volume || sorted[0].search_volume || 1);
     
-    // ボリューム上位から選択し、位置の重複をチェック
+    // ゾーンのサイズ定義（ラベルが占める領域）
+    const ZONE_WIDTH = 50;  // X軸方向の幅（日数）
+    const ZONE_HEIGHT = 25; // Y軸方向の高さ（%）
+    
     for (const keyword of sorted) {
         if (selected.length >= maxLabels) break;
         
-        // このキーワードのY座標を計算（0-100の範囲）
+        // このキーワードの座標を計算
         const volume = Number(keyword.estimated_volume || keyword.search_volume || 0);
         const yPos = (volume / maxVolume) * 100;
         const xPos = keyword.time_diff_days;
         
-        // 既存のラベルとの距離をチェック
-        let canPlace = true;
-        for (const existing of selectedData) {
-            const xDist = Math.abs(xPos - existing.x);
-            const yDist = Math.abs(yPos - existing.y);
-            
-            // X軸で30日以内かつY軸で15%以内なら近すぎる（閾値を少し厳しく）
-            if (xDist < 30 && yDist < 15) {
-                canPlace = false;
-                break;
-            }
-        }
+        // このキーワードが占めるゾーンを計算
+        const xZone = Math.floor(xPos / ZONE_WIDTH);
+        const yZone = Math.floor(yPos / ZONE_HEIGHT);
+        const zoneKey = `${xZone},${yZone}`;
         
-        // 配置可能なら選択
-        if (canPlace) {
+        // 隣接ゾーンも含めてチェック（より厳密な重複回避）
+        const adjacentZones = [
+            `${xZone},${yZone}`,
+            `${xZone-1},${yZone}`,
+            `${xZone+1},${yZone}`,
+            `${xZone},${yZone-1}`,
+            `${xZone},${yZone+1}`
+        ];
+        
+        const hasConflict = adjacentZones.some(zone => occupiedZones.includes(zone));
+        
+        if (!hasConflict) {
             selected.push(keyword);
-            selectedData.push({ x: xPos, y: yPos });
+            occupiedZones.push(zoneKey);
         }
     }
     
-    // 最低5個は表示する（重複リスクがあっても）
-    if (selected.length < 5 && sorted.length >= 5) {
-        for (let i = 0; i < 5 && i < sorted.length; i++) {
+    // 最低3個は表示する（重要な情報を見逃さないため）
+    if (selected.length < 3 && sorted.length >= 3) {
+        for (let i = 0; i < 3 && i < sorted.length; i++) {
             if (!selected.includes(sorted[i])) {
                 selected.push(sorted[i]);
             }
@@ -3855,9 +3860,32 @@ function drawTimelineChart(keywords) {
                         // showLabelフラグがtrueのデータのみ表示
                         return context.dataset.data[context.dataIndex].showLabel === true;
                     },
-                    align: 'right',  // 常に右側に表示
-                    anchor: 'center',      // バブルの中心から
-                    offset: 15,  // 右側に固定オフセット
+                    align: function(context) {
+                        // データインデックスに基づいて微妙に位置をずらす
+                        const index = context.dataIndex;
+                        const positions = ['right', 'right', 'right'];  // 基本は右
+                        return positions[index % positions.length];
+                    },
+                    anchor: function(context) {
+                        // Y座標に基づいてアンカーポイントを調整
+                        const data = context.dataset.data[context.dataIndex];
+                        const yValue = data.y;
+                        const maxY = Math.max(...context.dataset.data.map(d => d.y));
+                        const yRatio = yValue / maxY;
+                        
+                        // 上部のポイントは下からアンカー、下部は上からアンカー
+                        if (yRatio > 0.7) {
+                            return 'bottom';
+                        } else if (yRatio < 0.3) {
+                            return 'top';
+                        }
+                        return 'center';
+                    },
+                    offset: function(context) {
+                        // インデックスに基づいてオフセットを変える
+                        const index = context.dataIndex;
+                        return 15 + (index % 3) * 5;  // 15, 20, 25のパターン
+                    },
                     clip: false,           // グラフ領域外も表示
                     formatter: function(value) {
                         return value.label;  // キーワードを表示
