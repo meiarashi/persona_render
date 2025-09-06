@@ -3590,7 +3590,7 @@ async function loadTimelineAnalysis(profile) {
 }
 
 // 重要キーワードを選定する関数
-function selectImportantKeywords(keywords, maxLabels = 15) {
+function selectImportantKeywords(keywords, maxLabels = 10) {  // 重なり防止のため数を減らす
     // データ検証とサニタイズ
     const validKeywords = keywords.filter(k => 
         k && typeof k === 'object' && 
@@ -3619,7 +3619,7 @@ function selectImportantKeywords(keywords, maxLabels = 15) {
             return timeDiff < 30 && !selectedKeywords.has(k.keyword);
         });
         
-        rangeKeywords.slice(0, 2).forEach(k => {
+        rangeKeywords.slice(0, 1).forEach(k => {  // 1個に減らす
             selected.push(k);
             selectedKeywords.add(k.keyword);
         });
@@ -3768,6 +3768,11 @@ function drawTimelineChart(keywords) {
     console.log('[DEBUG] Pre-diagnosis data count:', preDiagnosisData.length);
     console.log('[DEBUG] Post-diagnosis data count:', postDiagnosisData.length);
     
+    // Y軸の最大値を計算（グラフを横長にするため）
+    const allYValues = [...preDiagnosisData, ...postDiagnosisData].map(d => d.y).filter(y => y > 0);
+    const maxY = Math.max(...allYValues);
+    const suggestedMaxY = Math.ceil(maxY * 1.3 / 100) * 100;  // 30%余裕を持たせて100単位で丸める
+    
     // チャート作成
     timelineChartInstance = new Chart(ctx, {
         type: 'scatter',
@@ -3812,22 +3817,33 @@ function drawTimelineChart(keywords) {
                         // showLabelフラグがtrueのデータのみ表示
                         return context.dataset.data[context.dataIndex].showLabel === true;
                     },
-                    align: 'right',        // 右側配置
+                    align: function(context) {
+                        // データインデックスによって位置を変える
+                        const index = context.dataIndex;
+                        const positions = ['right', 'top', 'bottom', 'left'];
+                        return positions[index % 4];
+                    },
                     anchor: 'center',      // バブルの中心から
-                    offset: 10,            // バブルから10px右
+                    offset: function(context) {
+                        // 位置によってオフセットを調整
+                        const align = context.dataIndex % 4;
+                        return align === 0 ? 15 : 10;  // 右側は少し遠く
+                    },
                     clip: false,           // グラフ領域外も表示
                     formatter: function(value) {
                         return value.label;  // キーワードを表示
                     },
                     font: {
-                        size: 9,
-                        weight: 'normal',
+                        size: 11,
+                        weight: 'bold',
                         family: 'sans-serif'
                     },
-                    color: 'rgba(0, 0, 0, 0.8)',
-                    backgroundColor: 'transparent',
-                    borderWidth: 0,
-                    padding: 2,
+                    color: 'rgba(0, 0, 0, 0.85)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.8)',  // 半透明の背景
+                    borderColor: 'rgba(0, 0, 0, 0.2)',
+                    borderWidth: 1,
+                    borderRadius: 3,
+                    padding: 3,
                     textAlign: 'left'
                 }
             },
@@ -3857,9 +3873,15 @@ function drawTimelineChart(keywords) {
                 },
                 y: {
                     beginAtZero: true,
+                    suggestedMax: suggestedMaxY,  // Y軸の最大値を設定
                     title: {
                         display: true,
                         text: '月間検索回数'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString();
+                        }
                     }
                 }
             }
