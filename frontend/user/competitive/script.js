@@ -48,6 +48,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 郵便番号検索機能
         setupPostalCodeSearch();
+        
+        // CSVアップロード機能の設定
+        setupCSVUpload();
     }
     
     // 診療科名とアイコンファイル名のマッピング
@@ -155,6 +158,164 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('Failed to load departments:', error);
             container.innerHTML = '<div style="color: red;">診療科の読み込みに失敗しました</div>';
+        }
+    }
+    
+    // CSVアップロード機能の設定
+    function setupCSVUpload() {
+        const fileInput = document.getElementById('csv-file-input');
+        const uploadArea = document.querySelector('.csv-upload-area');
+        const uploadStatus = document.getElementById('csv-upload-status');
+        
+        if (!fileInput || !uploadArea) return;
+        
+        // ファイル選択時の処理
+        fileInput.addEventListener('change', handleCSVFileSelect);
+        
+        // ドラッグ&ドロップの処理
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.backgroundColor = '#f0f9ff';
+            uploadArea.style.borderColor = '#2563eb';
+        });
+        
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.style.backgroundColor = '#fff';
+            uploadArea.style.borderColor = '#cbd5e1';
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.backgroundColor = '#fff';
+            uploadArea.style.borderColor = '#cbd5e1';
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type === 'text/csv') {
+                handleCSVFile(files[0]);
+            }
+        });
+        
+        // CSVファイル選択時の処理
+        function handleCSVFileSelect(e) {
+            const file = e.target.files[0];
+            if (file && file.type === 'text/csv') {
+                handleCSVFile(file);
+            }
+        }
+        
+        // CSVファイル処理
+        function handleCSVFile(file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const csvData = e.target.result;
+                parseAndFillCSVData(csvData);
+                
+                // 成功表示
+                if (uploadStatus) {
+                    uploadStatus.style.display = 'block';
+                    setTimeout(() => {
+                        uploadStatus.style.display = 'none';
+                    }, 3000);
+                }
+            };
+            
+            reader.onerror = function() {
+                alert('ファイルの読み込みに失敗しました。');
+            };
+            
+            reader.readAsText(file, 'UTF-8');
+        }
+        
+        // CSVデータをパースしてフォームに入力
+        function parseAndFillCSVData(csvData) {
+            const lines = csvData.split('\n').filter(line => line.trim());
+            
+            if (lines.length < 2) {
+                alert('CSVファイルにデータが含まれていません。');
+                return;
+            }
+            
+            // 1行目をヘッダーとして取得
+            const headers = parseCSVLine(lines[0]);
+            
+            // 2行目をデータとして取得
+            const values = parseCSVLine(lines[1]);
+            
+            // ヘッダーと値を対応付ける
+            const data = {};
+            headers.forEach((header, index) => {
+                if (header && values[index]) {
+                    data[header.trim()] = values[index].trim();
+                }
+            });
+            
+            // Step 1: 基本情報の入力
+            const clinicName = document.getElementById('clinic-name');
+            const postalCode = document.getElementById('postal-code');
+            const address = document.getElementById('address');
+            
+            if (clinicName && data['クリニック名']) {
+                clinicName.value = data['クリニック名'];
+            }
+            
+            if (postalCode && data['郵便番号']) {
+                postalCode.value = data['郵便番号'];
+            }
+            
+            if (address && data['住所']) {
+                address.value = data['住所'];
+            }
+            
+            // 診療科のラジオボタン処理
+            if (data['診療科']) {
+                const department = data['診療科'];
+                const radios = document.querySelectorAll('.department-options input[type="radio"]');
+                
+                radios.forEach(radio => {
+                    if (radio.value === department) {
+                        radio.checked = true;
+                        // selectedクラスも追加
+                        radio.parentElement.classList.add('selected');
+                    }
+                });
+            }
+            
+            // Step 3: 追加情報の入力
+            const clinicFeatures = document.getElementById('clinic-features');
+            const targetPatients = document.getElementById('target-patients');
+            
+            if (clinicFeatures && data['クリニックの強み・特徴']) {
+                clinicFeatures.value = data['クリニックの強み・特徴'];
+            }
+            
+            if (targetPatients && data['主なターゲット層']) {
+                targetPatients.value = data['主なターゲット層'];
+            }
+        }
+        
+        // CSV行をパース（カンマ区切りでクォート対応）
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            result.push(current);
+            return result;
         }
     }
     
