@@ -3366,6 +3366,19 @@ function stopProgressAnimation() {
 // タイムライン分析用のグローバル変数
 let timelineChartInstance = null;
 
+// Chart.jsにChartDataLabelsプラグインを登録
+if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+    Chart.register(ChartDataLabels);
+}
+
+// メモリリーク防止のためのクリーンアップ
+window.addEventListener('beforeunload', () => {
+    if (timelineChartInstance) {
+        timelineChartInstance.destroy();
+        timelineChartInstance = null;
+    }
+});
+
 // タブ機能を初期化
 function initializeTabFunctionality() {
     console.log('[DEBUG] Initializing tab functionality');
@@ -3576,6 +3589,137 @@ async function loadTimelineAnalysis(profile) {
     }
 }
 
+// 重要キーワードを選定する関数
+function selectImportantKeywords(keywords, maxLabels = 15) {
+    // データ検証とサニタイズ
+    const validKeywords = keywords.filter(k => 
+        k && typeof k === 'object' && 
+        typeof k.keyword === 'string' &&
+        k.time_diff_days !== undefined &&
+        (typeof k.estimated_volume === 'number' || typeof k.search_volume === 'number' ||
+         !isNaN(Number(k.estimated_volume)) || !isNaN(Number(k.search_volume)))
+    );
+    
+    // 検索ボリュームでソート
+    const sorted = [...validKeywords].sort((a, b) => {
+        const volumeA = Number(a.estimated_volume || a.search_volume || 0);
+        const volumeB = Number(b.estimated_volume || b.search_volume || 0);
+        return volumeB - volumeA;
+    });
+    
+    // 時間軸で分散させる（異なる時間帯から選ぶ）
+    const timeRanges = [-180, -120, -60, -30, 0, 30, 60, 120, 180];
+    const selected = [];
+    const selectedKeywords = new Set();
+    
+    // 各時間帯から最大2個ずつ選択
+    timeRanges.forEach(range => {
+        const rangeKeywords = sorted.filter(k => {
+            const timeDiff = Math.abs(k.time_diff_days - range);
+            return timeDiff < 30 && !selectedKeywords.has(k.keyword);
+        });
+        
+        rangeKeywords.slice(0, 2).forEach(k => {
+            selected.push(k);
+            selectedKeywords.add(k.keyword);
+        });
+    });
+    
+    // 上位から追加で選択（最大数まで）
+    sorted.forEach(k => {
+        if (selected.length < maxLabels && !selectedKeywords.has(k.keyword)) {
+            selected.push(k);
+            selectedKeywords.add(k.keyword);
+        }
+    });
+    
+    return selected.slice(0, maxLabels);
+}
+
+// テキスト幅を推定する関数
+function estimateTextWidth(text, fontSize) {
+    // 日本語は1文字約fontSize px、英数字は約0.6倍
+    const japaneseChars = (text.match(/[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]/g) || []).length;
+    const asciiChars = text.length - japaneseChars;
+    return (japaneseChars * fontSize) + (asciiChars * fontSize * 0.6);
+}
+
+// ラベルの重なりを検出する関数
+function hasLabelOverlap(newLabel, existingLabels, labelHeight = 12) {
+    // textプロパティが存在しない場合のlabelを使用
+    const labelText = newLabel.text || newLabel.label || '';
+    const newWidth = estimateTextWidth(labelText, 9);
+    
+    return existingLabels.some(existing => {
+        const existingText = existing.text || existing.label || '';
+        const existingWidth = estimateTextWidth(existingText, 9);
+        
+        // 新ラベルの位置（バブルの右側）
+        const newLeft = newLabel.x + 10;
+        const newRight = newLeft + newWidth;
+        const newTop = newLabel.y + (newLabel.yOffset || 0) - labelHeight/2;
+        const newBottom = newTop + labelHeight;
+        
+        // 既存ラベルの位置
+        const existingLeft = existing.x + 10;
+        const existingRight = existingLeft + existingWidth;
+        const existingTop = existing.y + (existing.yOffset || 0) - labelHeight/2;
+        const existingBottom = existingTop + labelHeight;
+        
+        // 矩形の重なり判定
+        const xOverlap = !(newRight < existingLeft || newLeft > existingRight);
+        const yOverlap = !(newBottom < existingTop || newTop > existingBottom);
+        
+        return xOverlap && yOverlap;
+    });
+}
+
+// ラベル位置を調整する関数
+function adjustLabelPositions(labels, chartArea) {
+    const positioned = [];
+    
+    // 重要度順にソート（重要なものを優先配置）
+    const sorted = [...labels].sort((a, b) => {
+        const volumeA = Number(a.volume || a.y || 0);
+        const volumeB = Number(b.volume || b.y || 0);
+        return volumeB - volumeA;
+    });
+    
+    sorted.forEach(label => {
+        const adjusted = {...label};
+        let placed = false;
+        
+        // 配置戦略の優先順位
+        const strategies = [
+            { xOffset: 10, yOffset: 0 },      // デフォルト位置
+            { xOffset: 10, yOffset: -12 },    // 上にずらす
+            { xOffset: 10, yOffset: 12 },     // 下にずらす
+            { xOffset: 15, yOffset: -6 },     // 右上に逃がす
+            { xOffset: 15, yOffset: 6 },      // 右下に逃がす
+        ];
+        
+        for (const strategy of strategies) {
+            adjusted.xOffset = strategy.xOffset;
+            adjusted.yOffset = strategy.yOffset;
+            
+            if (!hasLabelOverlap(adjusted, positioned)) {
+                positioned.push(adjusted);
+                placed = true;
+                break;
+            }
+        }
+        
+        // 配置できなかった場合は非表示
+        if (!placed) {
+            adjusted.show = false;
+        } else {
+            adjusted.show = true;
+        }
+    });
+    
+    return positioned;
+}
+
 // 散布図を描画
 function drawTimelineChart(keywords) {
     console.log('[DEBUG] Drawing timeline chart with keywords:', keywords);
@@ -3597,21 +3741,28 @@ function drawTimelineChart(keywords) {
     // データ構造を確認
     console.log('[DEBUG] First keyword sample:', keywords[0]);
     
+    // 重要キーワードを選定
+    const importantKeywords = selectImportantKeywords(keywords, 15);
+    const importantKeywordSet = new Set(importantKeywords.map(k => k.keyword));
+    console.log('[DEBUG] Important keywords selected:', importantKeywords.length);
+    
     // データを準備（診断前後で色分け）
     const preDiagnosisData = keywords
         .filter(k => k.time_diff_days < 0)
         .map(k => ({
             x: k.time_diff_days,
-            y: k.estimated_volume || k.search_volume,
-            label: k.keyword
+            y: k.estimated_volume || k.search_volume || 0,
+            label: k.keyword,
+            showLabel: importantKeywordSet.has(k.keyword)
         }));
     
     const postDiagnosisData = keywords
         .filter(k => k.time_diff_days >= 0)
         .map(k => ({
             x: k.time_diff_days,
-            y: k.estimated_volume || k.search_volume,
-            label: k.keyword
+            y: k.estimated_volume || k.search_volume || 0,
+            label: k.keyword,
+            showLabel: importantKeywordSet.has(k.keyword)
         }));
     
     console.log('[DEBUG] Pre-diagnosis data count:', preDiagnosisData.length);
@@ -3655,6 +3806,29 @@ function drawTimelineChart(keywords) {
                             return `${point.label}: ${point.y}回 (${point.x}日)`;
                         }
                     }
+                },
+                datalabels: {
+                    display: function(context) {
+                        // showLabelフラグがtrueのデータのみ表示
+                        return context.dataset.data[context.dataIndex].showLabel === true;
+                    },
+                    align: 'right',        // 右側配置
+                    anchor: 'center',      // バブルの中心から
+                    offset: 10,            // バブルから10px右
+                    clip: false,           // グラフ領域外も表示
+                    formatter: function(value) {
+                        return value.label;  // キーワードを表示
+                    },
+                    font: {
+                        size: 9,
+                        weight: 'normal',
+                        family: 'sans-serif'
+                    },
+                    color: 'rgba(0, 0, 0, 0.8)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 0,
+                    padding: 2,
+                    textAlign: 'left'
                 }
             },
             scales: {

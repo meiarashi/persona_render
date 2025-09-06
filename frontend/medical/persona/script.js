@@ -14,6 +14,10 @@ const patientTypeDetails = {
     '自律決定型': { description: '自分の治療に主体的に関わり、最終決定権を持ちたいと考える', example: '医療リテラシーが高い患者、自己管理を好む慢性疾患患者' }
 };
 
+// --- Global Variables ---
+let currentPersonaResult = null;
+window.currentTimelineAnalysis = null; // タイムライン分析データを保存
+
 // --- Persona Fields Random Value Settings ---
 // 候補値のリスト
 const personaRandomValues = {
@@ -993,6 +997,159 @@ function getWeightedBracketForIncome(incomeValueStr) {
     return null;
 }
 
+// 診療科名のマッピング（API用）
+const departmentDisplayNames = {
+    'ophthalmology': '眼科',
+    'internal_medicine': '内科',
+    'surgery': '外科',
+    'pediatrics': '小児科',
+    'orthopedics': '整形外科',
+    'otorhinolaryngology': '耳鼻咽喉科',
+    'dermatology': '皮膚科',
+    'gynecology': '婦人科',
+    'urology': '泌尿器科',
+    'psychiatry': '精神科',
+    'neurosurgery': '脳神経外科',
+    'general_dentistry': '歯科',
+    'pediatric_dentistry': '小児歯科',
+    'orthodontics': '矯正歯科',
+    'cosmetic_dentistry': '審美歯科',
+    'oral_surgery': '口腔外科',
+    'anesthesiology': '麻酔科',
+    'radiology': '放射線科',
+    'rehabilitation': 'リハビリテーション科',
+    'allergy': 'アレルギー科',
+    'cardiology': '循環器内科',
+    'gastroenterology': '消化器内科',
+    'respiratory_medicine': '呼吸器内科',
+    'diabetes_medicine': '糖尿病内科',
+    'nephrology': '腎臓内科',
+    'neurology': '神経内科',
+    'hematology': '血液内科',
+    'endocrinology': '内分泌内科',
+    'plastic_surgery': '形成外科',
+    'beauty_surgery': '美容外科',
+    'cosmo': '美容外科',
+    'health_checkup': '健診・人間ドック',
+    'elderly_care': '介護・高齢者医療',
+    'home_care': '在宅医療',
+    'industrial_medicine': '産業医',
+    'travel_medicine': '渡航医学'
+};
+
+// 主訴リストを読み込む関数
+async function loadChiefComplaints(departmentValue) {
+    const departmentName = departmentDisplayNames[departmentValue];
+    if (!departmentName) {
+        console.error('Department display name not found for:', departmentValue);
+        return;
+    }
+    
+    try {
+        let chiefComplaints;
+        
+        // カテゴリーを判定
+        let category;
+        const medicalDepts = ['ophthalmology', 'internal_medicine', 'surgery', 'pediatrics', 'orthopedics', 
+                            'otorhinolaryngology', 'dermatology', 'gynecology', 'urology', 'psychiatry', 
+                            'neurosurgery', 'anesthesiology', 'radiology', 'rehabilitation', 'allergy',
+                            'cardiology', 'gastroenterology', 'respiratory_medicine', 'diabetes_medicine',
+                            'nephrology', 'neurology', 'hematology', 'endocrinology', 'plastic_surgery', 'beauty_surgery'];
+        const dentalDepts = ['general_dentistry', 'pediatric_dentistry', 'orthodontics', 'cosmetic_dentistry', 'oral_surgery'];
+        
+        if (medicalDepts.includes(departmentValue)) {
+            category = 'medical';
+        } else if (dentalDepts.includes(departmentValue)) {
+            category = 'dental';
+        } else {
+            throw new Error('Unknown department category');
+        }
+        
+        // グローバルキャッシュから取得を試みる
+        if (window.chiefComplaintsCache) {
+            const cached = window.chiefComplaintsCache.get(category, departmentName);
+            if (cached) {
+                console.log('[DEBUG] Using global cache for chief complaints');
+                chiefComplaints = cached;
+            }
+        }
+        
+        // キャッシュになければAPIから取得
+        if (!chiefComplaints) {
+            const response = await fetch(`/api/chief-complaints/${category}/${departmentName}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch chief complaints');
+            }
+            
+            const data = await response.json();
+            chiefComplaints = data.chief_complaints;
+            
+            // グローバルキャッシュに保存
+            if (window.chiefComplaintsCache) {
+                window.chiefComplaintsCache.set(category, departmentName, chiefComplaints);
+            }
+        }
+        
+        // 主訴選択画面のコンテナを取得
+        const chiefComplaintOptions = document.querySelector('.chief-complaint-options');
+        if (!chiefComplaintOptions) {
+            console.error('Chief complaint options container not found');
+            return;
+        }
+        
+        // 既存の内容をクリア
+        chiefComplaintOptions.innerHTML = '';
+        
+        // 主訴のラジオボタンを生成
+        chiefComplaints.forEach((complaint, index) => {
+            const label = document.createElement('label');
+            const input = document.createElement('input');
+            input.type = 'radio';
+            input.name = 'chief_complaint';
+            input.value = complaint;
+            if (index === 0) input.checked = true; // 最初の項目をデフォルトで選択
+            
+            label.appendChild(input);
+            label.appendChild(document.createTextNode(` ${complaint}`));
+            chiefComplaintOptions.appendChild(label);
+        });
+        
+        // ラジオボタンのスタイルを適用（診療科選択と同じスタイル）
+        chiefComplaintOptions.classList.add('department-options');
+        
+        // 主訴選択のイベントリスナーを追加
+        const chiefComplaintRadios = chiefComplaintOptions.querySelectorAll('input[type="radio"]');
+        chiefComplaintRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                // 選択されたラベルのスタイルを更新
+                const allLabels = chiefComplaintOptions.querySelectorAll('label');
+                allLabels.forEach(label => {
+                    label.classList.remove('selected');
+                });
+                
+                // 選択されたラジオボタンの親ラベルに selected クラスを追加
+                const selectedLabel = this.closest('label');
+                if (selectedLabel) {
+                    selectedLabel.classList.add('selected');
+                }
+            });
+        });
+        
+        // 初期選択項目にselectedクラスを追加
+        const checkedRadio = chiefComplaintOptions.querySelector('input[type="radio"]:checked');
+        if (checkedRadio) {
+            const selectedLabel = checkedRadio.closest('label');
+            if (selectedLabel) {
+                selectedLabel.classList.add('selected');
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error loading chief complaints:', error);
+        alert('主訴の読み込みに失敗しました。');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     // 患者タイプのアイコンを初期化
     if (typeof initializePatientTypeIcons === 'function') {
@@ -1000,24 +1157,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     let currentPersonaResult = null;
-    window.currentTimelineAnalysis = null; // タイムライン分析データを保存
     let hasRandomizedDetailsEver = false; // ランダム初期化実行フラグ
     let loadingStep; // <--- loadingStep をここで宣言
-    
-    // WebP画像のフォールバック適用
-    if (typeof applyWebPFallback === 'function') {
-        applyWebPFallback();
-    }
-    
-    // フクロウ画像のWebP対応
-    const owlImages = document.querySelectorAll('img[src*="owl.png"]');
-    owlImages.forEach(img => {
-        const originalSrc = img.src;
-        img.src = originalSrc.replace('.png', '.webp');
-        img.onerror = function() {
-            this.src = originalSrc;
-        };
-    });
 
     // (Keep checkDepartmentIcons function here if it exists)
     function checkDepartmentIcons() {
@@ -1062,211 +1203,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const TOTAL_FORM_STEPS = 6; // 診療科選択、主訴選択、目的選択、詳細設定、追加質問、確認画面 
     let hasVisitedConfirmationScreen = false;
     const purposeLabels = multiStepForm.querySelectorAll('.purpose-options label');
-    
-    // 診療科と表示名のマッピング
-    const departmentDisplayNames = {
-        'ophthalmology': '眼科',
-        'internal_medicine': '内科',
-        'surgery': '外科',
-        'pediatrics': '小児科',
-        'orthopedics': '整形外科',
-        'otorhinolaryngology': '耳鼻咽喉科',
-        'dermatology': '皮膚科',
-        'gynecology': '婦人科',
-        'urology': '泌尿器科',
-        'psychiatry': '精神科',
-        'neurosurgery': '脳神経外科',
-        'cardiology': '循環器内科',
-        'gastroenterology': '消化器内科',
-        'respiratory_medicine': '呼吸器内科',
-        'diabetes_medicine': '糖尿病内科',
-        'nephrology': '腎臓内科',
-        'neurology': '神経内科',
-        'hematology': '血液内科',
-        'endocrinology': '内分泌科',
-        'general_dentistry': '歯科',
-        'pediatric_dentistry': '小児歯科',
-        'orthodontics': '矯正歯科',
-        'cosmetic_dentistry': '審美歯科',
-        'oral_surgery': '口腔外科',
-        'anesthesiology': '麻酔科',
-        'radiology': '放射線科',
-        'rehabilitation': 'リハビリテーション科',
-        'allergy': 'アレルギー科',
-        'plastic_surgery': '形成外科',
-        'beauty_surgery': '美容外科'
-    };
 
-    // 診療科の表示名マッピング（API用）
-    const departmentDisplayNamesForAPI = {
-        'ophthalmology': '眼科',
-        'internal_medicine': '内科',
-        'surgery': '外科',
-        'pediatrics': '小児科',
-        'orthopedics': '整形外科',
-        'otorhinolaryngology': '耳鼻咽喉科',
-        'dermatology': '皮膚科',
-        'gynecology': '婦人科',
-        'urology': '泌尿器科',
-        'psychiatry': '精神科',
-        'neurosurgery': '脳神経外科',
-        'cardiology': '循環器内科',
-        'gastroenterology': '消化器内科',
-        'respiratory_medicine': '呼吸器内科',
-        'diabetes_medicine': '糖尿病内科',
-        'nephrology': '腎臓内科',
-        'neurology': '神経内科',
-        'hematology': '血液内科',
-        'endocrinology': '内分泌科'
-    };
-
-    // 主訴データのキャッシュ（グローバルキャッシュを使用するため削除）
-    // const chiefComplaintsCache = {};
-    
-    // 主訴を動的に読み込む関数
-    async function loadChiefComplaints(departmentValue) {
-        console.log('[DEBUG] loadChiefComplaints called with:', departmentValue);
-        
-        const departmentName = departmentDisplayNamesForAPI[departmentValue];
-        if (!departmentName) {
-            console.error('Department display name not found for:', departmentValue);
-            return;
-        }
-        
-        try {
-            let chiefComplaints;
-            
-            // グローバルキャッシュから取得を試みる
-            const category = 'medical';
-            if (window.chiefComplaintsCache) {
-                const cached = window.chiefComplaintsCache.get(category, departmentName);
-                if (cached) {
-                    console.log('[DEBUG] Using global cache for chief complaints');
-                    chiefComplaints = cached;
-                }
-            }
-            
-            // ローカルキャッシュは削除（グローバルキャッシュのみ使用） 
-            
-            // キャッシュになければAPIから取得
-            if (!chiefComplaints) {
-                const apiUrl = `/api/chief-complaints/${category}/${departmentName}`;
-                
-                console.log('[DEBUG] Fetching from API:', apiUrl);
-                
-                // APIから主訴リストを取得
-                const response = await fetch(apiUrl);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch chief complaints');
-                }
-                
-                const data = await response.json();
-                console.log('[DEBUG] API Response:', data);
-                chiefComplaints = data.chief_complaints;
-                
-                // キャッシュに保存
-                // グローバルキャッシュに保存済みのため削除
-            }
-            
-            // 主訴選択画面のコンテナを取得
-            const chiefComplaintStep = document.querySelector('[data-step="2"]');
-            console.log('[DEBUG] Chief complaint step element:', chiefComplaintStep);
-            
-            const chiefComplaintContainer = chiefComplaintStep ? chiefComplaintStep.querySelector('.chief-complaint-options') : null;
-            console.log('[DEBUG] Chief complaint container:', chiefComplaintContainer);
-            
-            if (!chiefComplaintContainer) {
-                console.error('Chief complaint options container not found');
-                return;
-            }
-            
-            // 既存の選択肢をクリア
-            chiefComplaintContainer.innerHTML = '';
-            
-            // 主訴の選択肢を追加
-            chiefComplaints.forEach((complaint, index) => {
-                const label = document.createElement('label');
-                label.className = 'option-label';
-                
-                const input = document.createElement('input');
-                input.type = 'radio';
-                input.name = 'chief_complaint';
-                input.value = complaint;
-                input.id = `chief_complaint_${index}`;
-                
-                const span = document.createElement('span');
-                span.textContent = complaint;
-                
-                label.appendChild(input);
-                label.appendChild(span);
-                chiefComplaintContainer.appendChild(label);
-            });
-            
-            console.log(`[DEBUG] Created ${chiefComplaints.length} chief complaint options`);
-            
-            // イベントリスナーを再設定
-            const chiefComplaintRadios = chiefComplaintContainer.querySelectorAll('input[name="chief_complaint"]');
-            chiefComplaintRadios.forEach(radio => {
-                radio.addEventListener('change', function() {
-                    chiefComplaintRadios.forEach(r => {
-                        r.parentElement.classList.remove('selected');
-                    });
-                    this.parentElement.classList.add('selected');
-                });
-            });
-        } catch (error) {
-            console.error('Error loading chief complaints:', error);
-            alert('主訴の読み込みに失敗しました。');
-        }
-    }
-    
-    // 主訴を事前読み込みする関数
-    async function preloadChiefComplaints(departmentValue) {
-        console.log('[DEBUG] preloadChiefComplaints called with:', departmentValue);
-        
-        const departmentName = departmentDisplayNamesForAPI[departmentValue];
-        if (!departmentName) {
-            console.error('Department display name not found for:', departmentValue);
-            return;
-        }
-        
-        // グローバルキャッシュですでにある場合はスキップ
-        const category = 'medical';
-        if (window.chiefComplaintsCache) {
-            const cached = window.chiefComplaintsCache.get(category, departmentName);
-            if (cached) {
-                console.log('[DEBUG] Chief complaints already cached for:', departmentValue);
-                return;
-            }
-        }
-        
-        try {
-            // カテゴリーを判定（医科固定）
-            const category = 'medical';
-            const apiUrl = `/api/chief-complaints/${category}/${departmentName}`;
-            
-            console.log('[DEBUG] Preloading from API:', apiUrl);
-            
-            // APIから主訴リストを取得
-            const response = await fetch(apiUrl);
-            if (!response.ok) {
-                throw new Error('Failed to fetch chief complaints');
-            }
-            
-            const data = await response.json();
-            console.log('[DEBUG] Preloaded API Response:', data);
-            
-            // キャッシュに保存
-            // グローバルキャッシュに保存
-            if (window.chiefComplaintsCache) {
-                window.chiefComplaintsCache.set(category, departmentName, data.chief_complaints);
-            }
-        } catch (error) {
-            console.error('Error preloading chief complaints:', error);
-            // エラーは黙って処理（ユーザーがまだ次へ進んでいないため）
-        }
-    }
-    
     // --- NEW showStep FUNCTION DEFINITION --- 
     function showStep(stepNumberToShow) {
         loadingStep = document.querySelector('.loading-step'); // <--- ここで代入
@@ -1291,7 +1228,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else {
                     console.warn('[DEBUG] showStep: .result-step .prev-step-btn not found inside resultStep element.');
                 }
-                
             }
             currentStep = stepNumberToShow;
             return;
@@ -1417,6 +1353,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         else data['setting_type'] = 'patient_type'; // Default to 'patient_type' if none selected
         const departmentRadio = multiStepForm.querySelector('input[name="department"]:checked');
         if(departmentRadio) data['department'] = departmentRadio.value;
+        const chiefComplaintRadio = multiStepForm.querySelector('input[name="chief_complaint"]:checked');
+        if(chiefComplaintRadio) data['chief_complaint'] = chiefComplaintRadio.value;
         // console.log("Collected Form Data:", data);
         return data;
     }
@@ -1500,7 +1438,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentDepartmentRadios.forEach(originalRadio => {
         const newRadio = originalRadio.cloneNode(true);
         if (originalRadio.parentNode) originalRadio.parentNode.replaceChild(newRadio, originalRadio);
-        newRadio.addEventListener('change', () => {
+        newRadio.addEventListener('change', async () => {
             updateSelectedLabel(multiStepForm.querySelectorAll('input[name="department"]'), 'department');
             // 診療科が選択されたらステップ1の「次の質問へ進む」ボタンを活性化
             if (currentStep === 1) {
@@ -1508,6 +1446,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (step1NextBtn) {
                     step1NextBtn.disabled = false;
                 }
+                
+                // 診療科選択時は主訴を読み込まない（Step 2に移行してから読み込む）
             }
         });
     });
@@ -1534,7 +1474,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (patientTypeSelectionDiv) patientTypeSelectionDiv.style.display = 'none';
                 if (!hasRandomizedDetailsEver && typeof randomizeDetailSettingsFields === 'function') {
                      const currentStepElement = document.querySelector('.form-step.active');
-                     if (currentStepElement && currentStepElement.dataset.step === "4") {
+                     if (currentStepElement && currentStepElement.dataset.step === "3") {
                           randomizeDetailSettingsFields();
                           hasRandomizedDetailsEver = true;
                      }
@@ -1586,20 +1526,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     window.showStep(2);
                 }
                 
-                // 主訴選択画面のコンテナを取得してローディング表示
-                const chiefComplaintContainer = document.querySelector('[data-step="2"] .chief-complaint-options');
-                if (chiefComplaintContainer) {
-                    chiefComplaintContainer.innerHTML = '<div style="text-align: center; padding: 20px;">読み込み中...</div>';
-                }
-                
-                // 主訴リストを即座に読み込む（キャッシュがあれば高速）
-                await loadChiefComplaints(selectedDept.value);
+                // 少し待ってから主訴リストを読み込む（DOMが更新されるのを待つ）
+                setTimeout(async () => {
+                    await loadChiefComplaints(selectedDept.value);
+                }, 100);
                 
                 return; // ここで処理を終了（showStepは既に実行済み）
             }
 
-            // ステップ3で「自動」が選択されている場合の特別処理
-            if (currentStep === 3) {
+            // ステップ4で「自動」が選択されている場合の特別処理
+            if (currentStep === 4) {
                 const settingTypeRadio = multiStepForm.querySelector('input[name="setting_type"]:checked');
                 if (settingTypeRadio && settingTypeRadio.value === 'auto') {
                     // 1. 詳細設定フォームのフィールドをリセット
@@ -1745,47 +1681,62 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = getFormData();
             currentPersonaResult = null;
             
-            // APIエンドポイントは常に/api/generateを使用
-            const apiEndpoint = '/api/generate';
+            // タイムライン分析用のデータを保存（並列処理のため）
+            // departmentを日本語に変換
+            const departmentJapanese = departmentDisplayNames[data.department] || data.department;
+            window.pendingTimelineData = {
+                department: departmentJapanese,
+                chief_complaint: data.chief_complaint,
+                gender: data.gender === 'male' ? '男性' : 
+                        data.gender === 'female' ? '女性' : data.gender,
+                age: (() => {
+                    const ageValue = data.age;
+                    if (!ageValue) return null;
+                    const ageNum = parseInt(ageValue.replace(/[^\d]/g, ''));
+                    if (ageNum >= 0 && ageNum <= 9) return '10代';
+                    else if (ageNum >= 10 && ageNum <= 19) return '10代';
+                    else if (ageNum >= 20 && ageNum <= 29) return '20代';
+                    else if (ageNum >= 30 && ageNum <= 39) return '30代';
+                    else if (ageNum >= 40 && ageNum <= 49) return '40代';
+                    else if (ageNum >= 50 && ageNum <= 59) return '50代';
+                    else if (ageNum >= 60 && ageNum <= 69) return '60代';
+                    else if (ageNum >= 70) return '70代以上';
+                    return null;
+                })()
+            };
             
-            // カテゴリー情報を追加（医科固定）
-            data.category = 'medical';
+            // 主訴が選択されているかチェック
+            const selectedChiefComplaint = data.chief_complaint;
+            const apiEndpoint = '/api/generate'; // Always use the same endpoint
             
-            // departmentを日本語に変換（主訴の有無に関わらず必要）
-            if (data.department && departmentDisplayNamesForAPI[data.department]) {
-                data.department = departmentDisplayNamesForAPI[data.department];
+            // カテゴリー情報を追加
+            // カテゴリー判定用に元のdepartment値を保持
+            const originalDepartment = data.department;
+            
+            // 診療科に基づいてカテゴリーを判定
+            const medicalDepts = ['ophthalmology', 'internal_medicine', 'surgery', 'pediatrics', 'orthopedics', 
+                                'otorhinolaryngology', 'dermatology', 'gynecology', 'urology', 'psychiatry', 
+                                'neurosurgery', 'anesthesiology', 'radiology', 'rehabilitation', 'allergy',
+                                'cardiology', 'gastroenterology', 'respiratory_medicine', 'diabetes_medicine',
+                                'nephrology', 'neurology', 'hematology', 'endocrinology', 'plastic_surgery', 'beauty_surgery'];
+            const dentalDepts = ['general_dentistry', 'pediatric_dentistry', 'orthodontics', 'cosmetic_dentistry', 'oral_surgery'];
+            
+            if (medicalDepts.includes(originalDepartment)) {
+                data.category = 'medical';
+            } else if (dentalDepts.includes(originalDepartment)) {
+                data.category = 'dental';
+            } else {
+                data.category = 'others';
+            }
+            
+            // departmentを日本語に変換
+            if (data.department && departmentDisplayNames[data.department]) {
+                data.department = departmentDisplayNames[data.department];
             }
             
             try {
-                // Log the request data being sent
-                console.error('[DEBUG] API Request Data:', JSON.stringify(data, null, 2));
-                console.error('[DEBUG] API Endpoint:', apiEndpoint);
-                
-                // タイムライン分析用のデータを準備
-                const timelineData = {
-                    department: data.department,
-                    chief_complaint: data.chief_complaint,
-                    gender: data.gender === 'male' ? '男性' : 
-                           data.gender === 'female' ? '女性' : data.gender,
-                    age: data.age
-                };
-                
-                // 年齢を年代形式に変換
-                if (timelineData.age) {
-                    const ageMatch = timelineData.age.match(/(\d+)/);
-                    if (ageMatch) {
-                        const ageNum = parseInt(ageMatch[1]);
-                        if (ageNum < 20) {
-                            timelineData.age = "10代";
-                        } else {
-                            const decade = Math.floor(ageNum / 10) * 10;
-                            timelineData.age = `${decade}代`;
-                        }
-                    }
-                }
-                
                 // ペルソナ生成とタイムライン分析を並列実行
-                const [response] = await Promise.all([
+                const [personaResponse] = await Promise.all([
                     // ペルソナ生成
                     fetch(apiEndpoint, {
                         method: 'POST',
@@ -1793,62 +1744,55 @@ document.addEventListener('DOMContentLoaded', async () => {
                         body: JSON.stringify(data)
                     }),
                     // タイムライン分析（データ取得とAI分析も並列実行）
-                    data.department && data.chief_complaint ? 
+                    window.pendingTimelineData.department && window.pendingTimelineData.chief_complaint ? 
                         fetch('/api/search-timeline', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(timelineData)
-                        }).then(res => res.ok ? res.json() : null).then(timelineDataResult => {
-                            if (timelineDataResult && timelineDataResult.filtered_keywords) {
-                                window.preloadedTimelineData = timelineDataResult;
-                                console.log('[DEBUG] Timeline data preloaded:', timelineDataResult);
+                            body: JSON.stringify(window.pendingTimelineData)
+                        }).then(res => res.ok ? res.json() : null).then(timelineData => {
+                            if (timelineData) {
+                                window.preloadedTimelineData = timelineData;
+                                console.log('[DEBUG] Timeline data preloaded:', timelineData);
                                 
-                                // AI分析も同時に実行
-                                const analysisPayload = {
-                                    filtered_keywords: timelineDataResult.filtered_keywords,
-                                    persona_profile: {
-                                        ...data,
-                                        gender_display: timelineData.gender,
-                                        age_display: timelineData.age
-                                    }
-                                };
-                                console.log('[DEBUG] Preloading AI analysis with:', analysisPayload);
-                                
-                                return fetch('/api/search-timeline-analysis', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(analysisPayload)
-                                }).then(res => res.ok ? res.json() : null).then(analysisData => {
-                                    if (analysisData) {
-                                        window.preloadedAIAnalysis = analysisData;
-                                        console.log('[DEBUG] AI analysis preloaded:', analysisData);
-                                    }
-                                }).catch(err => console.error('[ERROR] AI analysis preload failed:', err));
+                                // filtered_keywordsが存在し、かつ空でない場合のみAI分析を実行
+                                if (timelineData.filtered_keywords && timelineData.filtered_keywords.length > 0) {
+                                    const analysisPayload = {
+                                        filtered_keywords: timelineData.filtered_keywords,
+                                        persona_profile: window.pendingTimelineData
+                                    };
+                                    console.log('[DEBUG] Preloading AI analysis with:', analysisPayload);
+                                    
+                                    return fetch('/api/search-timeline-analysis', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify(analysisPayload)
+                                    }).then(res => res.ok ? res.json() : null).then(analysisData => {
+                                        if (analysisData) {
+                                            window.preloadedAIAnalysis = analysisData;
+                                            console.log('[DEBUG] AI analysis preloaded:', analysisData);
+                                        }
+                                    }).catch(err => {
+                                        console.error('[ERROR] AI analysis preload failed:', err);
+                                    });
+                                } else {
+                                    console.log('[DEBUG] No keywords found, skipping AI analysis preload');
+                                }
                             }
-                        }).catch(err => console.error('[ERROR] Timeline data preload failed:', err))
-                    : Promise.resolve()
+                        }).catch(err => {
+                            console.error('[ERROR] Timeline preload failed:', err);
+                        }) : null
                 ]);
                 
+                const response = personaResponse;
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ detail: 'ペルソナ生成中に不明なエラーが発生しました。' }));
-                    console.error('[DEBUG] Error Response Status:', response.status);
-                    console.error('[DEBUG] Error Response Data:', errorData);
+                    console.error('API Error Response:', errorData);
+                    console.error('Request data:', data);
                     throw new Error(errorData.detail || `サーバーエラー: ${response.status}`);
                 }
 
                 const result = await response.json();
                 console.log('[DEBUG] API Response:', result); // デバッグ用
-                
-                // RAGデータベース情報をコンソールに表示
-                if (result.rag_info) {
-                    console.log('[RAG] ===== RAG DATABASE INFO =====');
-                    console.log('[RAG] Database Path:', result.rag_info.database_path);
-                    console.log('[RAG] Database Type:', result.rag_info.is_local ? 'LOCAL (Code-based)' : 'REMOTE (Render)');
-                    console.log('[RAG] Department:', result.rag_info.department);
-                    console.log('[RAG] Results Found:', result.rag_info.results_count);
-                    console.log('[RAG] =============================');
-                }
-                
                 currentPersonaResult = result; // Store the result
                 
                 // Complete progress animation
@@ -1864,7 +1808,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             } catch (error) {
                 console.error('Error generating persona:', error);
-                console.error('[DEBUG] Full error object:', error);
                 stopProgressAnimation(); // Stop animation on error
                 alert(`ペルソナ生成に失敗しました: ${error.message}`);
                 showStep(TOTAL_FORM_STEPS); // Go back to confirmation screen on error
@@ -2071,9 +2014,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         document.getElementById('header-department').textContent = headerDepartmentDisplay;
-
-        // 主訴の表示
+        
         let headerChiefComplaintDisplay = profile.chief_complaint || result.chief_complaint || '-';
+        if (profile.chief_complaint || result.chief_complaint) {
+            const chiefComplaintRadio = document.querySelector(`input[name="chief_complaint"][value="${profile.chief_complaint || result.chief_complaint}"]`);
+            if (chiefComplaintRadio && chiefComplaintRadio.parentElement && chiefComplaintRadio.parentElement.textContent) {
+                headerChiefComplaintDisplay = chiefComplaintRadio.parentElement.textContent.trim();
+            }
+        }
         document.getElementById('header-chief-complaint').textContent = headerChiefComplaintDisplay;
 
         let headerPurposeDisplay = profile.purpose || '-';
@@ -2227,11 +2175,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // 編集可能フィールドのセットアップ
-        try {
-            setupEditableFields();
-        } catch (error) {
-            console.error('[ERROR] Failed to setup editable fields:', error);
-        }
+        setupEditableFields();
         
         // DEBUG: Final check of download buttons after population
         console.log('After dynamic population - PDF Button by ID:', document.getElementById('download-pdf-result'));
@@ -2246,10 +2190,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         */
         
-        console.log('[DEBUG] Setting up timeline analysis');
-        
-        // タイムライン分析を自動的に読み込む
+        // タブ機能を初期化
         setTimeout(() => {
+            console.log('[DEBUG] Initializing tabs from populateResults');
+            if (typeof window.initializeTabFunctionality === 'function') {
+                window.initializeTabFunctionality();
+            }
+            
+            // タイムライン分析を自動的に読み込む
             if (result.profile && result.profile.department && result.profile.chief_complaint) {
                 console.log('[DEBUG] Loading timeline analysis automatically');
                 if (typeof window.loadTimelineAnalysis === 'function') {
@@ -2361,18 +2309,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             pdfDownloadBtn.disabled = true;
 
             try {
-                // タイムライン分析データも含める
-                const downloadData = {
-                    ...currentPersonaResult,
-                    timeline_analysis: window.currentTimelineAnalysis || null
-                };
-                
                 const response = await fetch('/api/download/pdf', { // Changed to relative path
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(downloadData), // Send the stored result
+                    body: JSON.stringify(currentPersonaResult), // Send the stored result
                 });
 
                 if (!response.ok) {
@@ -2427,7 +2369,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // 診療科の視覚的な選択状態をリセット
                 updateSelectedLabel(departmentRadios, 'department');
                 
-                // 主訴選択画面をクリア
+                // 主訴選択をクリア
                 const chiefComplaintOptions = document.querySelector('.chief-complaint-options');
                 if (chiefComplaintOptions) {
                     chiefComplaintOptions.innerHTML = '';
@@ -2721,7 +2663,25 @@ function applyWebPFallback() {
     });
 }
 
-// 重複したDOMContentLoadedは削除（既に上部で統合済み）
+document.addEventListener('DOMContentLoaded', function() {
+    // Apply WebP fallback to all images
+    applyWebPFallback();
+    
+    // Apply WebP fallback to owl images
+    const owlImages = document.querySelectorAll('img[src*="owl.png"]');
+    owlImages.forEach(img => {
+        const originalSrc = img.src;
+        img.src = originalSrc.replace('.png', '.webp');
+        img.onerror = function() {
+            this.src = originalSrc;
+        };
+    });
+    
+    // 既存のイベントリスナーに加えて
+    initializePatientTypeIcons();
+});
+
+});
 
 // Helper function (can be moved to a more global scope if needed elsewhere)
 function getSelectDisplayTextForResult(selectId, value) {
@@ -2788,6 +2748,9 @@ function getRandomAnnualIncome(ageInYears, currentOccupation, allPossibleHtmlInc
         "農業（小規模）", "漁業（小規模）", "秘書", "事務職（一般）", 
         "事務職（専門）", "受付", "販売員", "接客業" 
     ];
+    
+    // Initialize filteredHtmlIncomeValues at the beginning of the function
+    let filteredHtmlIncomeValues = [...allPossibleHtmlIncomeValues];
 
     if (studentOccupations.includes(currentOccupation) || ageInYears < 18) {
         console.log("Selecting '<100' (100万円未満) due to student status or age < 18");
@@ -3047,8 +3010,6 @@ function getRandomAnnualIncome(ageInYears, currentOccupation, allPossibleHtmlInc
         }
         console.log(`${ageInYears}歳の秘書の収入上限を${ageCap}万円に制限`);
     }
-
-    let filteredHtmlIncomeValues = [...allPossibleHtmlIncomeValues];
 
     // Function to apply income caps and handle empty results
     function applyIncomeCap(incomeValues, cap) {
@@ -3402,32 +3363,40 @@ function stopProgressAnimation() {
 // 画像を表示するコード箇所
 // 関数は他の場所で定義されているため、この重複した定義は削除しました
 
-}); // DOMContentLoaded終了
+// タイムライン分析用のグローバル変数
+let timelineChartInstance = null;
 
-// グローバルスコープに関数を定義（DOMContentLoaded外）
+// Chart.jsにChartDataLabelsプラグインを登録
+if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+    Chart.register(ChartDataLabels);
+}
+
+// メモリリーク防止のためのクリーンアップ
+window.addEventListener('beforeunload', () => {
+    if (timelineChartInstance) {
+        timelineChartInstance.destroy();
+        timelineChartInstance = null;
+    }
+});
+
 // タブ機能を初期化
 function initializeTabFunctionality() {
     console.log('[DEBUG] Initializing tab functionality');
     
-    // persona-detailsが表示されているか確認
-    const personaDetails = document.querySelector('.persona-details');
-    if (personaDetails) {
-        console.log('[DEBUG] persona-details display:', window.getComputedStyle(personaDetails).display);
-        console.log('[DEBUG] persona-details visibility:', window.getComputedStyle(personaDetails).visibility);
-    } else {
-        console.log('[DEBUG] persona-details element not found!');
-    }
-    
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
-    console.log('[DEBUG] Found tab buttons:', tabButtons.length);
-    console.log('[DEBUG] Found tab contents:', tabContents.length);
+    
+    if (tabButtons.length === 0) {
+        console.log('[DEBUG] No tab buttons found');
+        return;
+    }
     
     tabButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const targetTab = this.getAttribute('data-tab');
+        button.addEventListener('click', () => {
+            const targetTab = button.getAttribute('data-tab');
+            console.log('[DEBUG] Tab clicked:', targetTab);
             
-            // すべてのタブボタンから active クラスを削除
+            // すべてのタブボタンとコンテンツから active クラスを削除
             tabButtons.forEach(btn => {
                 btn.classList.remove('active');
                 btn.style.borderBottom = 'none';
@@ -3435,24 +3404,23 @@ function initializeTabFunctionality() {
                 btn.style.fontWeight = 'normal';
             });
             
-            // クリックされたボタンに active クラスを追加
-            this.classList.add('active');
-            this.style.borderBottom = '3px solid #2563eb';
-            this.style.color = '#2563eb';
-            this.style.fontWeight = '600';
-            
-            // すべてのタブコンテンツを非表示
             tabContents.forEach(content => {
-                content.style.display = 'none';
                 content.classList.remove('active');
+                content.style.display = 'none';
             });
             
-            // 対応するタブコンテンツを表示
+            // クリックされたタブをアクティブに
+            button.classList.add('active');
+            button.style.borderBottom = '3px solid #2563eb';
+            button.style.color = '#2563eb';
+            button.style.fontWeight = '600';
+            
+            // 対応するコンテンツを表示
             const targetContent = document.getElementById(`${targetTab}-content`);
             if (targetContent) {
-                targetContent.style.display = 'block';
                 targetContent.classList.add('active');
-                console.log('[DEBUG] Showing tab content:', targetTab);
+                targetContent.style.display = 'block';
+                console.log('[DEBUG] Content displayed:', targetTab);
             }
         });
     });
@@ -3462,86 +3430,56 @@ function initializeTabFunctionality() {
 async function loadTimelineAnalysis(profile) {
     console.log('[DEBUG] Loading timeline analysis for:', profile.department, profile.chief_complaint);
     try {
-        let timelineData;
+        let data;
         
         // 既に取得済みのデータがあるか確認
         if (window.preloadedTimelineData) {
             console.log('[DEBUG] Using preloaded timeline data');
-            timelineData = window.preloadedTimelineData;
+            data = window.preloadedTimelineData;
             window.preloadedTimelineData = null; // 使用後はクリア
         } else {
             console.log('[DEBUG] Fetching timeline data from API');
-            // 年齢を適切な形式に変換（年代形式に）
-            let ageFormatted = profile.age;
-            if (ageFormatted) {
-                // 数値を抽出
-                const ageMatch = ageFormatted.match(/(\d+)/);
-                if (ageMatch) {
-                    const ageNum = parseInt(ageMatch[1]);
-                    if (ageNum < 20) {
-                        ageFormatted = "10代";
-                    } else {
-                        const decade = Math.floor(ageNum / 10) * 10;
-                        ageFormatted = `${decade}代`;
-                    }
+        // 年齢を適切な形式に変換（年代形式に）
+        let ageFormatted = profile.age;
+        if (ageFormatted) {
+            // 数値を抽出
+            const ageMatch = ageFormatted.match(/(\d+)/);
+            if (ageMatch) {
+                const ageNum = parseInt(ageMatch[1]);
+                if (ageNum < 20) {
+                    ageFormatted = '10代';
+                } else {
+                    const decade = Math.floor(ageNum / 10) * 10;
+                    ageFormatted = `${decade}代`;
                 }
             }
-            
-            // 性別を日本語に変換（APIが期待する形式）
-            let genderFormatted = profile.gender;
-            if (genderFormatted === 'male') {
-                genderFormatted = '男性';
-            } else if (genderFormatted === 'female') {
-                genderFormatted = '女性';
-            }
-            
-            // 検索タイムラインデータを取得
-            const timelineResponse = await fetch('/api/search-timeline', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    department: profile.department,
-                    chief_complaint: profile.chief_complaint,
-                    gender: genderFormatted,
-                    age: ageFormatted
-                })
-            });
-            
-            if (!timelineResponse.ok) {
-                const errorText = await timelineResponse.text();
-                throw new Error(`Timeline API error: ${timelineResponse.status} - ${errorText}`);
-            }
-            
-            timelineData = await timelineResponse.json();
         }
         
-        // エラーチェック
-        if (timelineData.error) {
-            throw new Error(timelineData.error);
+        const requestData = {
+            department: profile.department,
+            chief_complaint: profile.chief_complaint,
+            age: ageFormatted,
+            gender: profile.gender === 'male' ? '男性' : 
+                    profile.gender === 'female' ? '女性' : profile.gender
+        };
+        console.log('[DEBUG] Request data:', requestData);
+        
+        const response = await fetch('/api/search-timeline', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.log('[ERROR] Server response:', errorText);
+            throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
         }
         
-        // チャートを描画
-        if (timelineData.filtered_keywords && timelineData.filtered_keywords.length > 0) {
-            drawTimelineChart(timelineData.filtered_keywords);
-        } else {
-            const ctx = document.getElementById('timeline-chart');
-            if (ctx) {
-                // canvas要素は残してメッセージを隣に表示
-                const container = ctx.parentElement;
-                if (container) {
-                    // 既存のメッセージを削除
-                    const existingMsg = container.querySelector('.no-data-message');
-                    if (existingMsg) existingMsg.remove();
-                    
-                    // 新しいメッセージを追加
-                    const message = document.createElement('div');
-                    message.className = 'no-data-message';
-                    message.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666; padding: 20px;';
-                    message.textContent = 'この主訴に関する検索データがありません。';
-                    container.style.position = 'relative';
-                    container.appendChild(message);
-                }
-            }
+            data = await response.json();
+            console.log('[DEBUG] Timeline data received:', data);
+            console.log('[DEBUG] Data has error?', data.error);
+            console.log('[DEBUG] Filtered keywords count:', data.filtered_keywords ? data.filtered_keywords.length : 'undefined');
         }
         
         // AI分析を取得（プリロード済みがあれば使用）
@@ -3551,8 +3489,8 @@ async function loadTimelineAnalysis(profile) {
             console.log('[DEBUG] Using preloaded AI analysis');
             analysisData = window.preloadedAIAnalysis;
             window.preloadedAIAnalysis = null; // 使用後はクリア
-        } else {
-            // プリロードされていない場合は通常通り取得
+        } else if (data.filtered_keywords && data.filtered_keywords.length > 0) {
+            // プリロードされていない場合は通常通り取得（キーワードがある場合のみ）
             const fullPersonaProfile = {
                 ...profile,
                 ...window.currentPersonaResult?.details  // 詳細情報も含める
@@ -3563,7 +3501,7 @@ async function loadTimelineAnalysis(profile) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    filtered_keywords: timelineData.filtered_keywords,
+                    filtered_keywords: data.filtered_keywords,
                     persona_profile: fullPersonaProfile
                 })
             });
@@ -3574,9 +3512,10 @@ async function loadTimelineAnalysis(profile) {
                 const errorText = await analysisResponse.text();
                 console.log('[ERROR] AI analysis failed:', errorText);
             }
+        } else {
+            console.log('[DEBUG] No keywords found, skipping AI analysis');
         }
         
-        // AI分析レポートを表示
         const analysisContent = document.getElementById('timeline-analysis-content');
         if (analysisContent) {
             // HTMLエスケープ関数
@@ -3595,14 +3534,16 @@ async function loadTimelineAnalysis(profile) {
                 console.log('[DEBUG] Final AI text:', aiText);
                 
                 // タイムライン分析データを保存
-                const pre_count = timelineData.filtered_keywords.filter(k => k.time_diff_days < 0).length;
-                const post_count = timelineData.filtered_keywords.filter(k => k.time_diff_days >= 0).length;
+                const pre_count = data.filtered_keywords.filter(k => k.time_diff_days < 0).length;
+                const post_count = data.filtered_keywords.filter(k => k.time_diff_days >= 0).length;
                 
                 window.currentTimelineAnalysis = {
-                    keywords: timelineData.filtered_keywords,
+                    keywords: data.filtered_keywords,
                     ai_analysis: aiText,
                     pre_diagnosis_count: pre_count,
-                    post_diagnosis_count: post_count
+                    post_diagnosis_count: post_count,
+                    pre_keywords: data.filtered_keywords.filter(k => k.time_diff_days < 0),
+                    post_keywords: data.filtered_keywords.filter(k => k.time_diff_days >= 0)
                 };
                 
                 analysisContent.innerHTML = aiText ? 
@@ -3613,27 +3554,178 @@ async function loadTimelineAnalysis(profile) {
             }
         }
         
+        // 散布図を描画
+        if (data.filtered_keywords && data.filtered_keywords.length > 0) {
+            drawTimelineChart(data.filtered_keywords);
+        } else {
+            const ctx = document.getElementById('timeline-chart');
+            if (ctx) {
+                // canvas要素は残してメッセージを隣に表示
+                const container = ctx.parentElement;
+                if (container) {
+                    // 既存のメッセージを削除
+                    const existingMsg = container.querySelector('.no-data-message');
+                    if (existingMsg) existingMsg.remove();
+                    
+                    // 新しいメッセージを追加
+                    const message = document.createElement('div');
+                    message.className = 'no-data-message';
+                    message.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #666; text-align: center;';
+                    message.innerHTML = '<p>該当する時系列データがありません</p>';
+                    container.style.position = 'relative';
+                    container.appendChild(message);
+                }
+            }
+        }
+        
     } catch (error) {
-        console.error('Error loading timeline analysis:', error);
+        console.error('[ERROR] Failed to load timeline analysis:', error);
+        
+        // エラー時の表示
         const analysisContent = document.getElementById('timeline-analysis-content');
         if (analysisContent) {
-            analysisContent.innerHTML = '<p style="color: #dc3545;">タイムライン分析の読み込みに失敗しました。</p>';
+            analysisContent.innerHTML = '<p style="color: #dc2626;">分析の読み込みに失敗しました</p>';
         }
     }
 }
 
-// Chart.js インスタンスを保持するグローバル変数
-let timelineChartInstance = null;
-
-// Chart.jsで散布図を描画
-function drawTimelineChart(keywords) {
-    // Chart.jsライブラリが読み込まれているか確認
-    if (typeof Chart === 'undefined') {
-        console.error('Chart.js library is not loaded');
-        const container = document.querySelector('.chart-container');
-        if (container) {
-            container.innerHTML = '<p style="text-align: center; color: #dc3545; padding: 40px 0;">チャートライブラリの読み込みに失敗しました。</p>';
+// 重要キーワードを選定する関数
+function selectImportantKeywords(keywords, maxLabels = 15) {
+    // データ検証とサニタイズ
+    const validKeywords = keywords.filter(k => 
+        k && typeof k === 'object' && 
+        typeof k.keyword === 'string' &&
+        k.time_diff_days !== undefined &&
+        (typeof k.estimated_volume === 'number' || typeof k.search_volume === 'number' ||
+         !isNaN(Number(k.estimated_volume)) || !isNaN(Number(k.search_volume)))
+    );
+    
+    // 検索ボリュームでソート
+    const sorted = [...validKeywords].sort((a, b) => {
+        const volumeA = Number(a.estimated_volume || a.search_volume || 0);
+        const volumeB = Number(b.estimated_volume || b.search_volume || 0);
+        return volumeB - volumeA;
+    });
+    
+    // 時間軸で分散させる（異なる時間帯から選ぶ）
+    const timeRanges = [-180, -120, -60, -30, 0, 30, 60, 120, 180];
+    const selected = [];
+    const selectedKeywords = new Set();
+    
+    // 各時間帯から最大2個ずつ選択
+    timeRanges.forEach(range => {
+        const rangeKeywords = sorted.filter(k => {
+            const timeDiff = Math.abs(k.time_diff_days - range);
+            return timeDiff < 30 && !selectedKeywords.has(k.keyword);
+        });
+        
+        rangeKeywords.slice(0, 2).forEach(k => {
+            selected.push(k);
+            selectedKeywords.add(k.keyword);
+        });
+    });
+    
+    // 上位から追加で選択（最大数まで）
+    sorted.forEach(k => {
+        if (selected.length < maxLabels && !selectedKeywords.has(k.keyword)) {
+            selected.push(k);
+            selectedKeywords.add(k.keyword);
         }
+    });
+    
+    return selected.slice(0, maxLabels);
+}
+
+// テキスト幅を推定する関数
+function estimateTextWidth(text, fontSize) {
+    // 日本語は1文字約fontSize px、英数字は約0.6倍
+    const japaneseChars = (text.match(/[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]/g) || []).length;
+    const asciiChars = text.length - japaneseChars;
+    return (japaneseChars * fontSize) + (asciiChars * fontSize * 0.6);
+}
+
+// ラベルの重なりを検出する関数
+function hasLabelOverlap(newLabel, existingLabels, labelHeight = 12) {
+    // textプロパティが存在しない場合のlabelを使用
+    const labelText = newLabel.text || newLabel.label || '';
+    const newWidth = estimateTextWidth(labelText, 9);
+    
+    return existingLabels.some(existing => {
+        const existingText = existing.text || existing.label || '';
+        const existingWidth = estimateTextWidth(existingText, 9);
+        
+        // 新ラベルの位置（バブルの右側）
+        const newLeft = newLabel.x + 10;
+        const newRight = newLeft + newWidth;
+        const newTop = newLabel.y + (newLabel.yOffset || 0) - labelHeight/2;
+        const newBottom = newTop + labelHeight;
+        
+        // 既存ラベルの位置
+        const existingLeft = existing.x + 10;
+        const existingRight = existingLeft + existingWidth;
+        const existingTop = existing.y + (existing.yOffset || 0) - labelHeight/2;
+        const existingBottom = existingTop + labelHeight;
+        
+        // 矩形の重なり判定
+        const xOverlap = !(newRight < existingLeft || newLeft > existingRight);
+        const yOverlap = !(newBottom < existingTop || newTop > existingBottom);
+        
+        return xOverlap && yOverlap;
+    });
+}
+
+// ラベル位置を調整する関数
+function adjustLabelPositions(labels, chartArea) {
+    const positioned = [];
+    
+    // 重要度順にソート（重要なものを優先配置）
+    const sorted = [...labels].sort((a, b) => {
+        const volumeA = Number(a.volume || a.y || 0);
+        const volumeB = Number(b.volume || b.y || 0);
+        return volumeB - volumeA;
+    });
+    
+    sorted.forEach(label => {
+        const adjusted = {...label};
+        let placed = false;
+        
+        // 配置戦略の優先順位
+        const strategies = [
+            { xOffset: 10, yOffset: 0 },      // デフォルト位置
+            { xOffset: 10, yOffset: -12 },    // 上にずらす
+            { xOffset: 10, yOffset: 12 },     // 下にずらす
+            { xOffset: 15, yOffset: -6 },     // 右上に逃がす
+            { xOffset: 15, yOffset: 6 },      // 右下に逃がす
+        ];
+        
+        for (const strategy of strategies) {
+            adjusted.xOffset = strategy.xOffset;
+            adjusted.yOffset = strategy.yOffset;
+            
+            if (!hasLabelOverlap(adjusted, positioned)) {
+                positioned.push(adjusted);
+                placed = true;
+                break;
+            }
+        }
+        
+        // 配置できなかった場合は非表示
+        if (!placed) {
+            adjusted.show = false;
+        } else {
+            adjusted.show = true;
+        }
+    });
+    
+    return positioned;
+}
+
+// 散布図を描画
+function drawTimelineChart(keywords) {
+    console.log('[DEBUG] Drawing timeline chart with keywords:', keywords);
+    
+    if (!keywords || keywords.length === 0) {
+        console.log('[DEBUG] No keywords to display');
         return;
     }
     
@@ -3646,23 +3738,37 @@ function drawTimelineChart(keywords) {
         timelineChartInstance = null;
     }
     
+    // データ構造を確認
+    console.log('[DEBUG] First keyword sample:', keywords[0]);
+    
+    // 重要キーワードを選定
+    const importantKeywords = selectImportantKeywords(keywords, 15);
+    const importantKeywordSet = new Set(importantKeywords.map(k => k.keyword));
+    console.log('[DEBUG] Important keywords selected:', importantKeywords.length);
+    
     // データを準備（診断前後で色分け）
     const preDiagnosisData = keywords
         .filter(k => k.time_diff_days < 0)
         .map(k => ({
             x: k.time_diff_days,
-            y: k.estimated_volume,
-            label: k.keyword
+            y: k.estimated_volume || k.search_volume || 0,
+            label: k.keyword,
+            showLabel: importantKeywordSet.has(k.keyword)
         }));
     
     const postDiagnosisData = keywords
         .filter(k => k.time_diff_days >= 0)
         .map(k => ({
             x: k.time_diff_days,
-            y: k.estimated_volume,
-            label: k.keyword
+            y: k.estimated_volume || k.search_volume || 0,
+            label: k.keyword,
+            showLabel: importantKeywordSet.has(k.keyword)
         }));
     
+    console.log('[DEBUG] Pre-diagnosis data count:', preDiagnosisData.length);
+    console.log('[DEBUG] Post-diagnosis data count:', postDiagnosisData.length);
+    
+    // チャート作成
     timelineChartInstance = new Chart(ctx, {
         type: 'scatter',
         data: {
@@ -3670,18 +3776,18 @@ function drawTimelineChart(keywords) {
                 {
                     label: '診断前',
                     data: preDiagnosisData,
-                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
-                    borderColor: 'rgba(255, 99, 132, 1)',
-                    pointRadius: 6,
-                    pointHoverRadius: 8
+                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 },
                 {
                     label: '診断後',
                     data: postDiagnosisData,
-                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    pointRadius: 6,
-                    pointHoverRadius: 8
+                    backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 }
             ]
         },
@@ -3689,38 +3795,57 @@ function drawTimelineChart(keywords) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                title: {
+                legend: {
                     display: true,
-                    text: '検索キーワードタイムライン',
-                    font: {
-                        size: 16
-                    }
+                    position: 'top'
                 },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
                             const point = context.raw;
-                            return [
-                                `キーワード: ${point.label}`,
-                                `検索時期: ${point.x > 0 ? '+' : ''}${point.x}日`,
-                                `推定検索数: ${point.y.toLocaleString()}人`
-                            ];
+                            return `${point.label}: ${point.y}回 (${point.x}日)`;
                         }
                     }
+                },
+                datalabels: {
+                    display: function(context) {
+                        // showLabelフラグがtrueのデータのみ表示
+                        return context.dataset.data[context.dataIndex].showLabel === true;
+                    },
+                    align: 'right',        // 右側配置
+                    anchor: 'center',      // バブルの中心から
+                    offset: 10,            // バブルから10px右
+                    clip: false,           // グラフ領域外も表示
+                    formatter: function(value) {
+                        return value.label;  // キーワードを表示
+                    },
+                    font: {
+                        size: 9,
+                        weight: 'normal',
+                        family: 'sans-serif'
+                    },
+                    color: 'rgba(0, 0, 0, 0.8)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 0,
+                    padding: 2,
+                    textAlign: 'left'
                 }
             },
             scales: {
                 x: {
+                    type: 'linear',
+                    position: 'bottom',
                     title: {
                         display: true,
-                        text: '診断からの日数'
+                        text: '診断日からの日数'
                     },
                     grid: {
+                        drawBorder: true,
                         color: function(context) {
                             if (context.tick.value === 0) {
-                                return 'rgba(0, 0, 0, 0.5)';
+                                return '#000';
                             }
-                            return 'rgba(0, 0, 0, 0.1)';
+                            return '#e0e0e0';
                         },
                         lineWidth: function(context) {
                             if (context.tick.value === 0) {
@@ -3731,15 +3856,10 @@ function drawTimelineChart(keywords) {
                     }
                 },
                 y: {
+                    beginAtZero: true,
                     title: {
                         display: true,
-                        text: '推定検索ボリューム（人）'
-                    },
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return value.toLocaleString();
-                        }
+                        text: '月間検索回数'
                     }
                 }
             }
