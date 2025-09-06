@@ -6,6 +6,12 @@ import pandas as pd
 from pathlib import Path
 from typing import Dict, List, Optional
 import os
+from datetime import datetime, timedelta
+
+# メモリキャッシュ用の辞書
+_timeline_cache = {}
+_cache_timestamps = {}
+CACHE_DURATION = timedelta(minutes=15)  # 15分間キャッシュを保持
 
 def get_timeline_csv_path(department: str, chief_complaint: str) -> Path:
     """主訴別CSVまたはExcelファイルのパスを取得"""
@@ -156,27 +162,59 @@ def analyze_search_timeline(department: str, chief_complaint: str,
     
     print(f"[DEBUG] Analyzing timeline for: department='{department}', chief_complaint='{chief_complaint}'")
     
-    csv_path = get_timeline_csv_path(department, chief_complaint)
+    # キャッシュキーの生成
+    cache_key = f"{department}_{chief_complaint}"
     
-    if not csv_path.exists():
-        return {
-            "error": f"データファイルが見つかりません: {department}/{chief_complaint}",
-            "filtered_keywords": [],
-            "summary": {}
-        }
-    
-    try:
-        # ファイル形式に応じて読み込み
-        if csv_path.suffix == '.csv':
-            df = pd.read_csv(csv_path, encoding='utf-8-sig')
-        elif csv_path.suffix == '.xlsx':
-            df = pd.read_excel(csv_path)
+    # キャッシュの有効性チェック
+    if cache_key in _timeline_cache and cache_key in _cache_timestamps:
+        cache_age = datetime.now() - _cache_timestamps[cache_key]
+        if cache_age < CACHE_DURATION:
+            print(f"[CACHE] Using cached data for {cache_key} (age: {cache_age.seconds}s)")
+            df = _timeline_cache[cache_key].copy()
         else:
+            print(f"[CACHE] Cache expired for {cache_key}, reloading")
+            df = None
+    else:
+        df = None
+    
+    # キャッシュにない場合はファイルから読み込み
+    if df is None:
+        csv_path = get_timeline_csv_path(department, chief_complaint)
+        
+        if not csv_path.exists():
             return {
-                "error": f"サポートされていないファイル形式: {csv_path.suffix}",
+                "error": f"データファイルが見つかりません: {department}/{chief_complaint}",
                 "filtered_keywords": [],
                 "summary": {}
             }
+        
+        try:
+            # ファイル形式に応じて読み込み
+            if csv_path.suffix == '.csv':
+                df = pd.read_csv(csv_path, encoding='utf-8-sig')
+            elif csv_path.suffix == '.xlsx':
+                df = pd.read_excel(csv_path)
+            else:
+                return {
+                    "error": f"サポートされていないファイル形式: {csv_path.suffix}",
+                    "filtered_keywords": [],
+                    "summary": {}
+                }
+            
+            # キャッシュに保存
+            _timeline_cache[cache_key] = df.copy()
+            _cache_timestamps[cache_key] = datetime.now()
+            print(f"[CACHE] Cached data for {cache_key}")
+            
+        except Exception as e:
+            print(f"[ERROR] Failed to load file: {e}")
+            return {
+                "error": f"ファイルの読み込みに失敗しました: {str(e)}",
+                "filtered_keywords": [],
+                "summary": {}
+            }
+    
+    try:
         
         # 性別・年齢でフィルタリング
         if gender or age:
@@ -220,6 +258,7 @@ def analyze_search_timeline(department: str, chief_complaint: str,
             keywords.append({
                 "keyword": row['出力キーワード'],
                 "search_volume": int(row['検索ボリューム(人)']),
+                "duplicate_volume": int(row.get('重複ボリューム(人)', 0)),  # 重複ボリュームを追加
                 "estimated_volume": int(row['推定検索ボリューム']),
                 "time_diff_days": float(row['検索時間差(日)']),
                 "distinctiveness": float(row['特徴度']),
@@ -274,3 +313,27 @@ def analyze_search_timeline(department: str, chief_complaint: str,
             "filtered_keywords": [],
             "summary": {}
         }
+
+def clear_expired_cache():
+    """期限切れのキャッシュをクリア"""
+    now = datetime.now()
+    expired_keys = []
+    
+    for key, timestamp in _cache_timestamps.items():
+        if now - timestamp > CACHE_DURATION:
+            expired_keys.append(key)
+    
+    for key in expired_keys:
+        del _timeline_cache[key]
+        del _cache_timestamps[key]
+        print(f"[CACHE] Cleared expired cache for {key}")
+    
+    return len(expired_keys)
+
+def clear_all_cache():
+    """すべてのキャッシュをクリア"""
+    count = len(_timeline_cache)
+    _timeline_cache.clear()
+    _cache_timestamps.clear()
+    print(f"[CACHE] Cleared all cache ({count} entries)")
+    return count

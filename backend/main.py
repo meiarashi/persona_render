@@ -168,6 +168,18 @@ if frontend_dir.exists() and frontend_dir.is_dir():
     if images_dir.exists() and images_dir.is_dir():
         app.mount("/images", StaticFiles(directory=images_dir), name="image_assets")
         print(f"Serving image files from: {images_dir}")
+    
+    # Serve Excel template file from root directory
+    @app.get("/クリニック情報.xlsx", include_in_schema=False)
+    async def serve_clinic_template():
+        excel_path = project_root_dir / "クリニック情報.xlsx"
+        if excel_path.exists():
+            return FileResponse(
+                excel_path,
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                filename="クリニック情報.xlsx"
+            )
+        raise HTTPException(status_code=404, detail="Excel template not found")
 
     @app.get("/admin", include_in_schema=False)
     async def serve_admin_html(username: str = Depends(verify_admin_credentials)):
@@ -412,11 +424,11 @@ async def startup_event():
     print("Running startup migration...")
     migrate_image_model_settings()
     
-    # RAGデータベースの初期化をスキップ
-    # データベースは既に存在し、読み取り専用でアクセスするため
-    print("[RAG] Skipping database initialization - using read-only access")
+    # RAGデータベースの初期化（テーブル作成のみ、CSVは読み込まない）
+    print("[RAG] Initializing database with lazy loading mode...")
+    rag_processor.init_rag_database()
     
-    # データベースファイルの存在確認のみ
+    # データベースファイルの存在確認
     from pathlib import Path
     import os
     
@@ -424,10 +436,10 @@ async def startup_event():
     rag_db_path = Path("./app_settings/rag_data.db")
     
     if rag_db_path.exists():
-        print(f"[RAG] Database confirmed at: {rag_db_path}")
+        print(f"[RAG] Database initialized at: {rag_db_path}")
+        print("[RAG] CSV data will be loaded on-demand for each department")
     else:
-        # この警告は表示用のみ - 実際のRAG機能は正常に動作
-        print(f"[RAG] Startup check: Database path will be resolved at runtime")
+        print(f"[RAG] Warning: Database file not found at: {rag_db_path}")
 
 # --- AI Client Initialization Helper --- 
 def get_ai_client(model_name, api_key):
@@ -985,8 +997,8 @@ async def generate_persona(request: Request, username: str = Depends(verify_admi
             limit_values = os.environ.get("LIMIT_VALUES", "100")
             limit_demands = os.environ.get("LIMIT_DEMANDS", "100")
         
-        # RAGデータベースの初期化
-        rag_processor.init_rag_database()
+        # RAGデータベースは起動時に一度だけ初期化されているので、ここでは不要
+        # rag_processor.init_rag_database()  # コメントアウト - 遅延読み込みのため不要
         
         # RAGデータの検索
         rag_context = ""

@@ -110,8 +110,8 @@ def init_rag_database():
         conn.close()
         print(f"RAG database initialized at: {RAG_DB_PATH}")
         
-        # CSVファイルから自動的にデータをロード
-        load_csv_data_from_directory()
+        # 遅延読み込みモードを有効化 - 初回起動時は何もロードしない
+        print("[RAG] Lazy loading mode enabled - CSV data will be loaded on demand")
         
     except Exception as e:
         print(f"Error initializing RAG database: {e}")
@@ -212,6 +212,9 @@ def _save_rag_data_internal(specialty: str, df: pd.DataFrame, original_filename:
 def search_rag_data(specialty: str, age_group: str = None, gender: str = None, chief_complaint: str = None, limit: int = 10) -> List[Dict]:
     """RAGデータから関連キーワードを検索（主訴を考慮）"""
     try:
+        # 必要に応じて該当診療科のデータを遅延読み込み
+        ensure_department_data_loaded(specialty, chief_complaint)
+        
         conn = create_connection()
         cursor = conn.cursor()
         
@@ -491,6 +494,83 @@ def should_update_rag_data(conn, base_dir):
                     return True
     
     return False
+
+def ensure_department_data_loaded(department: str, chief_complaint: str = None):
+    """指定された診療科のデータが読み込まれていることを確認（遅延読み込み）"""
+    conn = create_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # まず主訴別データの存在確認
+        if chief_complaint:
+            specialty_with_cc = f"{department}_{chief_complaint}"
+            cursor.execute("SELECT COUNT(*) FROM rag_data WHERE specialty = ?", [specialty_with_cc])
+            if cursor.fetchone()[0] > 0:
+                conn.close()
+                return  # 既にデータが存在
+        
+        # 診療科データの存在確認
+        cursor.execute("SELECT COUNT(*) FROM rag_data WHERE specialty = ?", [department])
+        if cursor.fetchone()[0] > 0:
+            conn.close()
+            return  # 既にデータが存在
+        
+        conn.close()
+        
+        # データが存在しない場合は、該当診療科のみ読み込み
+        print(f"[RAG] Loading data for department: {department}")
+        load_department_csv_data(department, chief_complaint)
+        
+    except Exception as e:
+        print(f"Error ensuring department data: {e}")
+        conn.close()
+
+def load_department_csv_data(department: str, chief_complaint: str = None):
+    """特定の診療科のCSVデータのみを読み込み"""
+    base_dir = get_rag_base_dir()
+    dept_dir = base_dir / department
+    
+    if not dept_dir.exists():
+        print(f"[RAG] Department directory not found: {dept_dir}")
+        return
+    
+    loaded_count = 0
+    
+    # 1. まず主訴別データを読み込み（指定されている場合）
+    if chief_complaint:
+        cc_csv = dept_dir / "主訴" / f"{chief_complaint}_全体.csv"
+        if cc_csv.exists():
+            try:
+                df = pd.read_csv(cc_csv, encoding='utf-8-sig')
+                specialty_with_cc = f"{department}_{chief_complaint}"
+                result = _save_rag_data_internal(specialty_with_cc, df, cc_csv.name)
+                if result['success']:
+                    print(f"[RAG] Loaded {chief_complaint}: {result['inserted_count']} records")
+                    loaded_count += result['inserted_count']
+            except Exception as e:
+                print(f"[RAG] Error loading chief complaint CSV: {e}")
+    
+    # 2. 診療科全体のデータが未読み込みの場合は読み込み
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM rag_data WHERE specialty = ?", [department])
+    dept_data_exists = cursor.fetchone()[0] > 0
+    conn.close()
+    
+    if not dept_data_exists:
+        csv_file = dept_dir / f"{department}_全体.csv"
+        if csv_file.exists():
+            try:
+                df = pd.read_csv(csv_file, encoding='utf-8-sig')
+                result = _save_rag_data_internal(department, df, csv_file.name)
+                if result['success']:
+                    print(f"[RAG] Loaded {department}: {result['inserted_count']} records")
+                    loaded_count += result['inserted_count']
+            except Exception as e:
+                print(f"[RAG] Error loading department CSV: {e}")
+    
+    if loaded_count > 0:
+        print(f"[RAG] Total loaded for {department}: {loaded_count} records")
 
 def reload_csv_data():
     """CSVデータを再ロード（開発/更新用）"""

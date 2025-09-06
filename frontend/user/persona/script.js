@@ -3590,7 +3590,7 @@ async function loadTimelineAnalysis(profile) {
 }
 
 // 重要キーワードを選定する関数（重複ボリューム基準）
-function selectImportantKeywords(keywords, maxLabels = 8) {  // 8個でバランスを取る
+function selectImportantKeywords(keywords, maxLabels = 30) {  // 上限を緩和してより多く表示
     // データ検証とサニタイズ
     const validKeywords = keywords.filter(k => 
         k && typeof k === 'object' && 
@@ -3601,24 +3601,17 @@ function selectImportantKeywords(keywords, maxLabels = 8) {  // 8個でバラン
     );
     
     // 重複ボリューム基準でソート
-    // 重複ボリューム = 検索ボリューム × 関連度スコア（0.1〜1.0で推定）
-    // メインキーワード（主訴）との共起性が高いものを優先
-    const sorted = [...validKeywords].sort((a, b) => {
-        // 検索ボリュームを取得
-        const volumeA = Number(a.estimated_volume || a.search_volume || 0);
-        const volumeB = Number(b.estimated_volume || b.search_volume || 0);
-        
-        // 関連度スコアを推定（時間的近接性と検索頻度から推定）
-        // 診断日に近いほど関連度が高いと仮定
-        const proximityScoreA = Math.max(0.1, 1 - Math.abs(a.time_diff_days) / 180);
-        const proximityScoreB = Math.max(0.1, 1 - Math.abs(b.time_diff_days) / 180);
-        
-        // 重複ボリューム = 検索ボリューム × 関連度スコア
-        const overlapVolumeA = volumeA * proximityScoreA;
-        const overlapVolumeB = volumeB * proximityScoreB;
-        
-        return overlapVolumeB - overlapVolumeA;
-    });
+    // CSVに含まれる実際の重複ボリュームを優先的に使用
+    const sorted = [...validKeywords]
+        .map(k => {
+            // 各キーワードに重複ボリュームを計算して追加
+            const overlapVolume = k.duplicate_volume || 
+                (Number(k.estimated_volume || k.search_volume || 0) * 
+                 Math.max(0.1, 1 - Math.abs(k.time_diff_days) / 180));
+            return { ...k, calculatedOverlapVolume: overlapVolume };
+        })
+        .filter(k => k.calculatedOverlapVolume > 100)  // 重複ボリューム100以上のみ（ノイズ除去）
+        .sort((a, b) => b.calculatedOverlapVolume - a.calculatedOverlapVolume);
     
     if (sorted.length === 0) return [];
     
@@ -3630,8 +3623,8 @@ function selectImportantKeywords(keywords, maxLabels = 8) {  // 8個でバラン
     const maxVolume = Number(sorted[0].estimated_volume || sorted[0].search_volume || 1);
     
     // ゾーンのサイズ定義（ラベルが占める領域）
-    const ZONE_WIDTH = 50;  // X軸方向の幅（日数）
-    const ZONE_HEIGHT = 25; // Y軸方向の高さ（%）
+    const ZONE_WIDTH = 30;  // X軸方向の幅を狭くしてより細かく判定
+    const ZONE_HEIGHT = 15; // Y軸方向の高さも細かく
     
     for (const keyword of sorted) {
         if (selected.length >= maxLabels) break;
@@ -3781,16 +3774,20 @@ function drawTimelineChart(keywords) {
     console.log('[DEBUG] First keyword sample:', keywords[0]);
     
     // 重要キーワードを選定（重複ボリューム基準）
-    const importantKeywords = selectImportantKeywords(keywords, 15);
+    // 重ならないラベルをできるだけ多く表示
+    const importantKeywords = selectImportantKeywords(keywords, 50);  // 上限大幅緩和
     const importantKeywordSet = new Set(importantKeywords.map(k => k.keyword));
     console.log('[DEBUG] Important keywords selected:', importantKeywords.length);
     
-    // 重複ボリュームを計算する関数
-    function calculateOverlapVolume(keyword) {
+    // 重複ボリュームを取得する関数
+    function getOverlapVolume(keyword) {
+        // CSVに含まれる実際の重複ボリュームを使用
+        if (keyword.duplicate_volume !== undefined && keyword.duplicate_volume > 0) {
+            return keyword.duplicate_volume;
+        }
+        // フォールバック: 重複ボリュームがない場合は推定値を計算
         const volume = Number(keyword.estimated_volume || keyword.search_volume || 0);
-        // 診断日からの距離に基づく関連度スコア（0.1〜1.0）
         const proximityScore = Math.max(0.1, 1 - Math.abs(keyword.time_diff_days) / 180);
-        // 重複ボリューム = 検索ボリューム × 関連度スコア
         return Math.round(volume * proximityScore);
     }
     
@@ -3799,7 +3796,7 @@ function drawTimelineChart(keywords) {
         .filter(k => k.time_diff_days < 0)
         .map(k => ({
             x: k.time_diff_days,
-            y: calculateOverlapVolume(k),  // 重複ボリュームを使用
+            y: getOverlapVolume(k),  // 実際の重複ボリュームを使用
             originalVolume: k.estimated_volume || k.search_volume || 0,
             label: k.keyword,
             showLabel: importantKeywordSet.has(k.keyword)
@@ -3809,7 +3806,7 @@ function drawTimelineChart(keywords) {
         .filter(k => k.time_diff_days >= 0)
         .map(k => ({
             x: k.time_diff_days,
-            y: calculateOverlapVolume(k),  // 重複ボリュームを使用
+            y: getOverlapVolume(k),  // 実際の重複ボリュームを使用
             originalVolume: k.estimated_volume || k.search_volume || 0,
             label: k.keyword,
             showLabel: importantKeywordSet.has(k.keyword)
