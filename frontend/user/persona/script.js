@@ -3589,7 +3589,7 @@ async function loadTimelineAnalysis(profile) {
     }
 }
 
-// 重要キーワードを選定する関数
+// 重要キーワードを選定する関数（重複ボリューム基準）
 function selectImportantKeywords(keywords, maxLabels = 8) {  // 8個でバランスを取る
     // データ検証とサニタイズ
     const validKeywords = keywords.filter(k => 
@@ -3600,11 +3600,24 @@ function selectImportantKeywords(keywords, maxLabels = 8) {  // 8個でバラン
          !isNaN(Number(k.estimated_volume)) || !isNaN(Number(k.search_volume)))
     );
     
-    // 検索ボリュームでソート（上位のキーワードを優先）
+    // 重複ボリューム基準でソート
+    // 重複ボリューム = 検索ボリューム × 関連度スコア（0.1〜1.0で推定）
+    // メインキーワード（主訴）との共起性が高いものを優先
     const sorted = [...validKeywords].sort((a, b) => {
+        // 検索ボリュームを取得
         const volumeA = Number(a.estimated_volume || a.search_volume || 0);
         const volumeB = Number(b.estimated_volume || b.search_volume || 0);
-        return volumeB - volumeA;
+        
+        // 関連度スコアを推定（時間的近接性と検索頻度から推定）
+        // 診断日に近いほど関連度が高いと仮定
+        const proximityScoreA = Math.max(0.1, 1 - Math.abs(a.time_diff_days) / 180);
+        const proximityScoreB = Math.max(0.1, 1 - Math.abs(b.time_diff_days) / 180);
+        
+        // 重複ボリューム = 検索ボリューム × 関連度スコア
+        const overlapVolumeA = volumeA * proximityScoreA;
+        const overlapVolumeB = volumeB * proximityScoreB;
+        
+        return overlapVolumeB - overlapVolumeA;
     });
     
     if (sorted.length === 0) return [];
@@ -3767,17 +3780,27 @@ function drawTimelineChart(keywords) {
     // データ構造を確認
     console.log('[DEBUG] First keyword sample:', keywords[0]);
     
-    // 重要キーワードを選定
+    // 重要キーワードを選定（重複ボリューム基準）
     const importantKeywords = selectImportantKeywords(keywords, 15);
     const importantKeywordSet = new Set(importantKeywords.map(k => k.keyword));
     console.log('[DEBUG] Important keywords selected:', importantKeywords.length);
     
-    // データを準備（診断前後で色分け）
+    // 重複ボリュームを計算する関数
+    function calculateOverlapVolume(keyword) {
+        const volume = Number(keyword.estimated_volume || keyword.search_volume || 0);
+        // 診断日からの距離に基づく関連度スコア（0.1〜1.0）
+        const proximityScore = Math.max(0.1, 1 - Math.abs(keyword.time_diff_days) / 180);
+        // 重複ボリューム = 検索ボリューム × 関連度スコア
+        return Math.round(volume * proximityScore);
+    }
+    
+    // データを準備（診断前後で色分け、Y軸は重複ボリューム）
     const preDiagnosisData = keywords
         .filter(k => k.time_diff_days < 0)
         .map(k => ({
             x: k.time_diff_days,
-            y: k.estimated_volume || k.search_volume || 0,
+            y: calculateOverlapVolume(k),  // 重複ボリュームを使用
+            originalVolume: k.estimated_volume || k.search_volume || 0,
             label: k.keyword,
             showLabel: importantKeywordSet.has(k.keyword)
         }));
@@ -3786,7 +3809,8 @@ function drawTimelineChart(keywords) {
         .filter(k => k.time_diff_days >= 0)
         .map(k => ({
             x: k.time_diff_days,
-            y: k.estimated_volume || k.search_volume || 0,
+            y: calculateOverlapVolume(k),  // 重複ボリュームを使用
+            originalVolume: k.estimated_volume || k.search_volume || 0,
             label: k.keyword,
             showLabel: importantKeywordSet.has(k.keyword)
         }));
@@ -3851,7 +3875,15 @@ function drawTimelineChart(keywords) {
                     callbacks: {
                         label: function(context) {
                             const point = context.raw;
-                            return `${point.label}: ${point.y}回 (${point.x}日)`;
+                            const overlapVolume = point.y;
+                            const originalVolume = point.originalVolume || point.y;
+                            const days = point.x < 0 ? `${Math.abs(point.x)}日前` : `${point.x}日後`;
+                            return [
+                                `${point.label}`,
+                                `重複ボリューム: ${overlapVolume.toLocaleString()}`,
+                                `検索ボリューム: ${originalVolume.toLocaleString()}`,
+                                `時期: ${days}`
+                            ];
                         }
                     }
                 },
@@ -3935,7 +3967,7 @@ function drawTimelineChart(keywords) {
                     suggestedMax: suggestedMaxY,  // Y軸の最大値を設定
                     title: {
                         display: true,
-                        text: '月間検索回数'
+                        text: '重複ボリューム（主訴との関連度）'
                     },
                     ticks: {
                         callback: function(value) {
