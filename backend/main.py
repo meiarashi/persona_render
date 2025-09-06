@@ -586,7 +586,7 @@ async def generate_text_response(prompt_text, model_name, api_key):
                         
                         response = client.messages.create(
                             model=model_name,
-                            max_tokens=2500  # 502エラー対策で削減,
+                            max_tokens=2500,  # 502エラー対策で削減
                             messages=messages_to_send,
                             temperature=0.7
                         )
