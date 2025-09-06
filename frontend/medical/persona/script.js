@@ -3615,16 +3615,15 @@ function selectImportantKeywords(keywords, maxLabels = 30) {  // 上限を緩和
     
     if (sorted.length === 0) return [];
     
-    // グリッドベースのアプローチで重複を回避
+    // 距離ベースのアプローチで重複を回避
     const selected = [];
-    const occupiedZones = [];  // 占有されたゾーンを記録
     
     // 最大ボリュームを取得（Y軸の正規化用）
     const maxVolume = Number(sorted[0].estimated_volume || sorted[0].search_volume || 1);
     
-    // ゾーンのサイズ定義（ラベルが占める領域）
-    const ZONE_WIDTH = 30;  // X軸方向の幅を狭くしてより細かく判定
-    const ZONE_HEIGHT = 15; // Y軸方向の高さも細かく
+    // より単純な重複判定に変更（距離ベース）
+    const MIN_X_DISTANCE = 20;  // X軸の最小距離（日数）
+    const MIN_Y_DISTANCE = 10;  // Y軸の最小距離（%）
     
     for (const keyword of sorted) {
         if (selected.length >= maxLabels) break;
@@ -3634,25 +3633,26 @@ function selectImportantKeywords(keywords, maxLabels = 30) {  // 上限を緩和
         const yPos = (volume / maxVolume) * 100;
         const xPos = keyword.time_diff_days;
         
-        // このキーワードが占めるゾーンを計算
-        const xZone = Math.floor(xPos / ZONE_WIDTH);
-        const yZone = Math.floor(yPos / ZONE_HEIGHT);
-        const zoneKey = `${xZone},${yZone}`;
-        
-        // 隣接ゾーンも含めてチェック（より厳密な重複回避）
-        const adjacentZones = [
-            `${xZone},${yZone}`,
-            `${xZone-1},${yZone}`,
-            `${xZone+1},${yZone}`,
-            `${xZone},${yZone-1}`,
-            `${xZone},${yZone+1}`
-        ];
-        
-        const hasConflict = adjacentZones.some(zone => occupiedZones.includes(zone));
+        // 既に選択されたキーワードとの距離をチェック
+        let hasConflict = false;
+        for (const selectedKeyword of selected) {
+            const selectedVolume = Number(selectedKeyword.estimated_volume || selectedKeyword.search_volume || 0);
+            const selectedY = (selectedVolume / maxVolume) * 100;
+            const selectedX = selectedKeyword.time_diff_days;
+            
+            // X軸とY軸の距離を計算
+            const xDistance = Math.abs(xPos - selectedX);
+            const yDistance = Math.abs(yPos - selectedY);
+            
+            // 両軸で最小距離以内の場合は重複と判定
+            if (xDistance < MIN_X_DISTANCE && yDistance < MIN_Y_DISTANCE) {
+                hasConflict = true;
+                break;
+            }
+        }
         
         if (!hasConflict) {
             selected.push(keyword);
-            occupiedZones.push(zoneKey);
         }
     }
     
