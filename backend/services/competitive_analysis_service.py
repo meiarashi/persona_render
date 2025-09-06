@@ -293,35 +293,40 @@ class CompetitiveAnalysisService:
                     review_analysis_info += f"  {point}\n"
         
         prompt = f"""
-以下の詳細情報を基に、医療機関の具体的で実行可能なSWOT分析を行ってください。
+医療経営コンサルタントとして、以下の情報から戦略的なSWOT分析と競争戦略を立案してください。
 
-【自院情報】
-- 名称: {clinic.get('name', '')}
-- 住所: {clinic.get('address', '')}
-- 診療科: {department}
-- 特徴・強み: {clinic.get('features', '')}
-- ターゲット層: {analysis_data.get('additional_context', '')}
+【自院プロファイル】
+- 医療機関名: {clinic.get('name', '')}
+- 立地: {clinic.get('address', '')}
+- 標榜診療科: {department}
+- 差別化要素: {clinic.get('features', '')}
+- 主要ターゲット: {analysis_data.get('additional_context', '')}
 
-【市場環境分析】
-- 半径{analysis_data['clinic'].get('search_radius', 3000)/1000}km圏内の競合数: {stats['total_competitors']}院
-- 競合の平均評価: {stats['average_rating']}
-- 評価分布:
-  - 高評価（4.0以上）: {stats['rating_distribution']['above_4']}院
-  - 中評価（3.0-4.0）: {stats['rating_distribution']['3_to_4']}院
-  - 低評価（3.0未満）: {stats['rating_distribution']['below_3']}院
+【医療圏分析データ】
+- 診療圏域: 半径{analysis_data['clinic'].get('search_radius', 3000)/1000}km
+- 競合医療機関数: {stats['total_competitors']}院（同一診療圏内）
+- 市場競争強度: {'高' if stats['total_competitors'] > 10 else '中' if stats['total_competitors'] > 5 else '低'}
+- 平均患者満足度: {stats['average_rating']}/5.0
+- 市場成熟度指標:
+  - 高評価施設（4.0+）: {stats['rating_distribution']['above_4']}院（{stats['rating_distribution']['above_4']/max(stats['total_competitors'],1)*100:.1f}%）
+  - 中評価施設（3.0-4.0）: {stats['rating_distribution']['3_to_4']}院
+  - 改善余地施設（<3.0）: {stats['rating_distribution']['below_3']}院
 
-【主要競合の詳細情報】
+【競合ベンチマーク（上位5施設）】
 {top_competitors_info}
 
-【診療科タイプの分布】
-{dept_distribution_info if dept_distribution_info else 'データなし'}
-{review_analysis_info}
-【分析の注意点】
-1. 競合の具体的な名前や評価を踏まえた分析を行う
-2. 地域の医療ニーズや競合状況を具体的に考慮する
-3. 口コミで評価されている点や問題点を踏まえ、自院の差別化戦略に活用する
-4. 自院の特徴・強みとターゲット層を重視した分析を行う
-5. 実行可能で具体的な施策につながる分析を心がける
+【診療科別競争環境】
+{dept_distribution_info if dept_distribution_info else '- データ取得中'}
+
+【患者ニーズ分析（口コミインサイト）】{review_analysis_info if review_analysis_info else '\n- 詳細データ取得中'}
+
+【分析フレームワーク】
+以下の医療経営指標を考慮して分析してください：
+1. 患者アクセシビリティ（立地、診療時間、予約システム）
+2. 医療サービスの質（専門性、設備、スタッフ対応）
+3. 患者体験価値（待ち時間、院内環境、コミュニケーション）
+4. 地域医療連携（病診連携、介護連携、在宅医療）
+5. 経営効率性（集患力、リピート率、単価向上）
 
 以下の形式でSWOT分析を提供してください：
 
@@ -351,25 +356,27 @@ class CompetitiveAnalysisService:
 
 ---
 
-続いて、上記のSWOT分析を踏まえて、最も重要な戦略的提案を3つ厳選して提供してください。
-各提案は以下の形式で記載してください：
+SWOT分析に基づき、以下の競争戦略を提案してください：
 
-**戦略的提案**
+**競争優位戦略（3つの重点施策）**
 
-1. **[提案タイトル（20文字以内）]**
-   - 内容: [具体的な施策内容（100文字程度）]
+1. **[施策名（20文字以内）]**
+   - 実施内容: [具体的なアクションプラン（100文字程度）]
    - 優先度: [high/medium/lowのいずれか]
-   - 期待効果: [期待される成果（50文字程度）]
+   - KPI: [測定可能な成果指標]
+   - 想定ROI: [投資対効果の見込み]
 
-2. **[提案タイトル]**
-   - 内容: [具体的な施策内容]
+2. **[施策名]**
+   - 実施内容: [具体的なアクションプラン]
    - 優先度: [high/medium/lowのいずれか]
-   - 期待効果: [期待される成果]
+   - KPI: [測定可能な成果指標]
+   - 想定ROI: [投資対効果の見込み]
 
-3. **[提案タイトル]**
-   - 内容: [具体的な施策内容]
+3. **[施策名]**
+   - 実施内容: [具体的なアクションプラン]
    - 優先度: [high/medium/lowのいずれか]
-   - 期待効果: [期待される成果]
+   - KPI: [測定可能な成果指標]
+   - 想定ROI: [投資対効果の見込み]
 
 【戦略立案の観点】
 - SO戦略（強み×機会）：強みを活かして機会を最大化

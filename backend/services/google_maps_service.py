@@ -264,15 +264,20 @@ class GoogleMapsService:
             return None
     
     async def _get_place_details(self, place_id: str) -> Dict[str, Any]:
-        """場所の詳細情報を取得"""
+        """場所の詳細情報を取得（拡張版）"""
         try:
             # レート制限を適用
             await self.rate_limiter.acquire_with_wait()
             
             async with aiohttp.ClientSession() as session:
+                # より多くのフィールドを取得
                 params = {
                     "place_id": place_id,
-                    "fields": "formatted_address,formatted_phone_number,website,opening_hours,reviews",
+                    "fields": (
+                        "formatted_address,formatted_phone_number,website,"
+                        "opening_hours,reviews,current_opening_hours,"
+                        "wheelchair_accessible_entrance,business_status"
+                    ),
                     "key": self.api_key,
                     "language": "ja"
                 }
@@ -282,13 +287,51 @@ class GoogleMapsService:
                     data = await response.json()
                     
                     if data.get("status") == "OK":
-                        return data.get("result", {})
+                        result = data.get("result", {})
+                        
+                        # 診療時間の解析
+                        if result.get("current_opening_hours") or result.get("opening_hours"):
+                            result["parsed_hours"] = self._parse_opening_hours(
+                                result.get("current_opening_hours") or result.get("opening_hours", {})
+                            )
+                        
+                        return result
                     else:
                         return {}
                         
         except Exception as e:
             logger.error(f"Error getting place details: {str(e)}")
             return {}
+    
+    def _parse_opening_hours(self, opening_hours: Dict) -> Dict:
+        """診療時間を解析して構造化"""
+        parsed = {
+            "is_open_weekends": False,
+            "is_open_late": False,
+            "weekday_hours": []
+        }
+        
+        try:
+            weekday_text = opening_hours.get("weekday_text", [])
+            for day_text in weekday_text:
+                # 土日診療チェック
+                if ("土曜日" in day_text or "日曜日" in day_text) and "休業" not in day_text:
+                    if ":" in day_text:  # 営業時間が記載されている
+                        parsed["is_open_weekends"] = True
+                
+                # 夜間診療チェック（19時以降）
+                import re
+                time_matches = re.findall(r'(\d{1,2}):(\d{2})', day_text)
+                for hour, minute in time_matches:
+                    if int(hour) >= 19:
+                        parsed["is_open_late"] = True
+                        break
+                
+                parsed["weekday_hours"].append(day_text)
+        except Exception as e:
+            logger.warning(f"Error parsing opening hours: {e}")
+        
+        return parsed
     
     def calculate_distance(self, lat1: float, lng1: float, lat2: float, lng2: float) -> float:
         """
