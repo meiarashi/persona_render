@@ -435,7 +435,7 @@ def get_ai_client(model_name, api_key):
     if model_name.startswith("gpt"):
         if not OpenAI: raise ValueError("OpenAI library not loaded.")
         if not api_key: raise ValueError("OpenAI APIキーが設定されていません。")
-        try: return OpenAI(api_key=api_key)
+        try: return OpenAI(api_key=api_key, timeout=120.0)  # タイムアウトを120秒に設定
         except Exception as e: raise ValueError(f"OpenAI Client Error: {e}")
     elif model_name.startswith("claude"):
         if not Anthropic: 
@@ -447,6 +447,7 @@ def get_ai_client(model_name, api_key):
             
             client = Anthropic(
                 api_key=api_key,
+                timeout=120.0,  # タイムアウトを120秒に設定
                 max_retries=2,  # SDK レベルでのリトライ
             )
             return client
@@ -501,14 +502,14 @@ async def generate_text_response(prompt_text, model_name, api_key):
                     model=model_name,
                     messages=[{"role": "user", "content": prompt_text}],
                     temperature=1.0,  # GPT-5 only supports default temperature of 1.0
-                    max_completion_tokens=4096
+                    max_completion_tokens=2500  # 502エラー対策で削減
                 )
             else:
                 completion = client.chat.completions.create(
                     model=model_name,
                     messages=[{"role": "user", "content": prompt_text}],
                     temperature=0.7,
-                    max_tokens=4096
+                    max_tokens=2500  # 502エラー対策で削減
                 )
             return completion.choices[0].message.content
             
@@ -545,7 +546,7 @@ async def generate_text_response(prompt_text, model_name, api_key):
                             print(f"[INFO] Retry attempt {attempt + 1}/{max_retries} for Claude API after {wait_time}s delay")
                             time.sleep(wait_time)
                         
-                        async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as http_client:
+                        async with httpx.AsyncClient(timeout=httpx.Timeout(120.0)) as http_client:  # タイムアウトを120秒に延長
                             http_response = await http_client.post(
                                 "https://api.anthropic.com/v1/messages",
                                 headers={
@@ -555,7 +556,7 @@ async def generate_text_response(prompt_text, model_name, api_key):
                                 },
                                 json={
                                     "model": model_name,
-                                    "max_tokens": 4096,
+                                    "max_tokens": 2500,  # 502エラー対策で削減
                                     "messages": messages_to_send,
                                     "temperature": 0.7
                                 }
@@ -585,7 +586,7 @@ async def generate_text_response(prompt_text, model_name, api_key):
                         
                         response = client.messages.create(
                             model=model_name,
-                            max_tokens=4096,
+                            max_tokens=2500  # 502エラー対策で削減,
                             messages=messages_to_send,
                             temperature=0.7
                         )
