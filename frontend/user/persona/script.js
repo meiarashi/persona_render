@@ -3794,6 +3794,15 @@ function drawTimelineChart(keywords) {
     const maxY = Math.max(...allYValues);
     const suggestedMaxY = Math.ceil(maxY * 1.3 / 100) * 100;  // 30%余裕を持たせて100単位で丸める
     
+    // X軸の範囲を動的に計算
+    const allXValues = [...preDiagnosisData, ...postDiagnosisData].map(d => d.x);
+    const minX = Math.min(...allXValues);
+    const maxX = Math.max(...allXValues);
+    const xRange = maxX - minX;
+    const xPadding = xRange * 0.15;  // 15%の余白を追加
+    const dynamicMinX = Math.floor((minX - xPadding) / 10) * 10;  // 10単位で丸める
+    const dynamicMaxX = Math.ceil((maxX + xPadding * 2) / 10) * 10;  // 右側は多めに余白を取る
+    
     // チャート作成
     timelineChartInstance = new Chart(ctx, {
         type: 'scatter',
@@ -3820,6 +3829,14 @@ function drawTimelineChart(keywords) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    left: 10,
+                    right: 100,  // ラベル用に右側に十分な余白
+                    top: 10,
+                    bottom: 10
+                }
+            },
             plugins: {
                 legend: {
                     display: true,
@@ -3863,6 +3880,8 @@ function drawTimelineChart(keywords) {
                 x: {
                     type: 'linear',
                     position: 'bottom',
+                    min: dynamicMinX,
+                    max: dynamicMaxX,  // 動的に計算された範囲を使用
                     title: {
                         display: true,
                         text: '診断日からの日数'
