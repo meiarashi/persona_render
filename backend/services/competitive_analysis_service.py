@@ -309,68 +309,51 @@ class CompetitiveAnalysisService:
         if provider == "openai" and openai_available:
             client = OpenAI(api_key=api_key, timeout=30.0)
             
-            # GPT-5は新しいAPI形式を使用
-            if model == "gpt-5":
+            # GPT-5は新しいresponses APIを使用
+            if "gpt-5" in model:
                 try:
-                    # 新しいresponses APIを使用
+                    # 新しいresponses APIを使用（最小実装）
                     full_prompt = f"{system_prompt}\n\n{prompt}"
                     response = client.responses.create(
                         model="gpt-5",
                         input=full_prompt,
-                        reasoning={"effort": "high"},  # SWOT分析は詳細な推論が必要
-                        text={"verbosity": "medium"}
+                        reasoning={"effort": "high"}  # SWOT分析は詳細な推論が必要
                     )
                     content = response.output_text
-                    logger.info(f"GPT-5 response length: {len(content) if content else 0} characters")
+                    logger.info(f"GPT-5 responses API - response length: {len(content) if content else 0} characters")
                     return content
                 except Exception as e:
-                    logger.error(f"GPT-5 API error: {str(e)}")
-                    # フォールバックとしてGPT-4を使用
-                    logger.info("Falling back to GPT-4 API")
-                    response = client.chat.completions.create(
-                        model="gpt-4-turbo-preview",
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": prompt}
-                        ],
-                        temperature=0.7,
-                        max_tokens=2000
-                    )
-                    content = response.choices[0].message.content
-                    logger.info(f"GPT-4 response length: {len(content) if content else 0} characters")
-                    return content
-            else:
-                # GPT-4以前のモデル（またはGPT-5の通常のchat API）
-                # GPT-5はmax_completion_tokensを使用
-                if "gpt-5" in model:
-                    response = client.chat.completions.create(
-                        model=model,
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": prompt}
-                        ],
-                        temperature=1.0,  # GPT-5はデフォルト値のみサポート
-                        max_completion_tokens=2000
-                    )
-                else:
-                    response = client.chat.completions.create(
-                        model=model,
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": prompt}
-                        ],
-                        temperature=0.7,
-                        max_tokens=2000
-                    )
-                # デバッグ: レスポンスの詳細を確認
-                logger.info(f"OpenAI API response object: {response}")
-                logger.info(f"Response choices: {response.choices}")
-                if response.choices:
-                    logger.info(f"First choice: {response.choices[0]}")
-                    logger.info(f"Message object: {response.choices[0].message}")
+                    logger.error(f"GPT-5 responses API error: {str(e)}")
                     
+                    # chat.completions APIでリトライ（フォールバック）
+                    try:
+                        response = client.chat.completions.create(
+                            model=model,
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": prompt}
+                            ],
+                            temperature=1.0,  # GPT-5はデフォルト値のみサポート
+                            max_completion_tokens=2000
+                        )
+                        content = response.choices[0].message.content if response.choices else None
+                        logger.info(f"GPT-5 chat API fallback - response length: {len(content) if content else 0} characters")
+                        return content
+                    except Exception as e2:
+                        logger.error(f"GPT-5 chat API error: {str(e2)}")
+                        return None
+            else:
+                # GPT-4以前のモデル
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=2000
+                )
                 content = response.choices[0].message.content if response.choices else None
-                logger.info(f"OpenAI response content: {content}")
                 logger.info(f"OpenAI response length: {len(content) if content else 0} characters")
                 return content
             

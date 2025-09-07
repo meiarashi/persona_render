@@ -531,45 +531,40 @@ async def generate_text_response(prompt_text, model_name, api_key):
         
         if model_name.startswith("gpt"):
             # OpenAI API call
-            # GPT-5 uses new responses API
-            if model_name == "gpt-5":
+            # GPT-5の判定とAPI選択
+            if "gpt-5" in model_name:
                 try:
-                    # GPT-5の新しいresponses APIを使用
+                    # GPT-5の新しいresponses APIを使用（最小実装）
                     response = client.responses.create(
                         model="gpt-5",
                         input=prompt_text,
-                        reasoning={"effort": "high"},  # ペルソナ生成は詳細な推論が必要
-                        text={"verbosity": "medium"}
+                        reasoning={"effort": "high"}  # ペルソナ生成は詳細な推論が必要
                     )
                     return response.output_text
                 except Exception as e:
-                    print(f"[ERROR] GPT-5 API error: {str(e)}")
-                    # フォールバックとしてGPT-4を使用
-                    print("[INFO] Falling back to GPT-4 API")
-                    completion = client.chat.completions.create(
-                        model="gpt-4-turbo-preview",
-                        messages=[{"role": "user", "content": prompt_text}],
-                        temperature=0.7,
-                        max_tokens=2500
-                    )
-                    return completion.choices[0].message.content
+                    print(f"[ERROR] GPT-5 responses API error: {str(e)}")
+                    print("[INFO] Trying GPT-5 with chat.completions API")
+                    
+                    # chat.completions APIでリトライ
+                    try:
+                        completion = client.chat.completions.create(
+                            model=model_name,
+                            messages=[{"role": "user", "content": prompt_text}],
+                            temperature=1.0,  # GPT-5はデフォルト値のみサポート
+                            max_completion_tokens=2500  # GPT-5用
+                        )
+                        return completion.choices[0].message.content
+                    except Exception as e2:
+                        print(f"[ERROR] GPT-5 chat API error: {str(e2)}")
+                        return None
             else:
-                # GPT-4以前のモデル（またはGPT-5の通常のchat API）
-                # GPT-5はmax_completion_tokensを使用
-                if "gpt-5" in model_name:
-                    completion = client.chat.completions.create(
-                        model=model_name,
-                        messages=[{"role": "user", "content": prompt_text}],
-                        temperature=1.0,  # GPT-5はデフォルト値のみサポート
-                        max_completion_tokens=2500  # GPT-5用
-                    )
-                else:
-                    completion = client.chat.completions.create(
-                        model=model_name,
-                        messages=[{"role": "user", "content": prompt_text}],
-                        temperature=0.7,
-                        max_tokens=2500  # GPT-4以前用
-                    )
+                # GPT-4以前のモデル
+                completion = client.chat.completions.create(
+                    model=model_name,
+                    messages=[{"role": "user", "content": prompt_text}],
+                    temperature=0.7,
+                    max_tokens=2500
+                )
                 return completion.choices[0].message.content
             
         elif model_name.startswith("claude"):
