@@ -285,38 +285,46 @@ class WebResearchService:
                         # HTMLタグを除去し、テキストのみ抽出
                         text_content = self._extract_text_from_html(html_content)[:8000]
                         
-                        # OpenAIで情報抽出
-                        try:
-                            from openai import AsyncOpenAI
-                            client = AsyncOpenAI(api_key=self.openai_api_key)
-                            
-                            prompt = f"""
-                            以下のウェブサイトの内容から医療機関の情報を抽出してください：
-                            
-                            {text_content}
-                            
-                            以下の項目を抽出：
-                            1. 診療時間
-                            2. 医師・スタッフ情報
-                            3. 診療科目・専門分野
-                            4. 設備・機器
-                            5. 特徴的なサービス
-                            6. アクセス情報
-                            
-                            JSON形式で返してください。
-                            """
-                            
-                            response = await client.chat.completions.create(
-                                model="gpt-4-turbo-preview",
-                                messages=[{"role": "user", "content": prompt}],
-                                response_format={"type": "json_object"}
-                            )
-                            
-                            return json.loads(response.choices[0].message.content)
-                            
-                        except Exception as e:
-                            logger.error(f"OpenAI extraction error: {e}")
-                            return {"extracted_text": text_content[:1000]}
+                        # OpenAIで情報抽出（クォータエラー対策でスキップ可能）
+                        if self.openai_api_key and False:  # 一時的に無効化
+                            try:
+                                from openai import AsyncOpenAI
+                                client = AsyncOpenAI(api_key=self.openai_api_key)
+                                
+                                prompt = f"""
+                                以下のウェブサイトの内容から医療機関の情報を抽出してください：
+                                
+                                {text_content}
+                                
+                                以下の項目を抽出：
+                                1. 診療時間
+                                2. 医師・スタッフ情報
+                                3. 診療科目・専門分野
+                                4. 設備・機器
+                                5. 特徴的なサービス
+                                6. アクセス情報
+                                
+                                JSON形式で返してください。
+                                """
+                                
+                                response = await client.chat.completions.create(
+                                    model="gpt-4-turbo-preview",
+                                    messages=[{"role": "user", "content": prompt}],
+                                    response_format={"type": "json_object"},
+                                    timeout=10.0  # タイムアウトを追加
+                                )
+                                
+                                return json.loads(response.choices[0].message.content)
+                                
+                            except Exception as e:
+                                logger.warning(f"OpenAI extraction skipped due to error: {e}")
+                                # フォールバックとして基本的な情報を返す
+                        
+                        # OpenAI APIを使わずに基本的な情報抽出
+                        return {
+                            "extracted_text": text_content[:1000],
+                            "特徴的なサービス": "詳細はウェブサイトをご確認ください"
+                        }
                             
         except Exception as e:
             logger.error(f"Website analysis error: {e}")

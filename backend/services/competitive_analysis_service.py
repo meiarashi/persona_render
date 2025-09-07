@@ -52,15 +52,15 @@ class CompetitiveAnalysisService:
                 else:
                     self.selected_provider = "openai"
             else:
-                # 古いフィールド名にフォールバック（Geminiを優先）
-                self.selected_model = getattr(self.settings.model_settings, 'selected_model', "gemini-2.5-pro-preview-06-05") if hasattr(self.settings, 'model_settings') else "gemini-2.5-pro-preview-06-05"
-                self.selected_provider = getattr(self.settings.model_settings, 'selected_provider', "google") if hasattr(self.settings, 'model_settings') else "google"
+                # 古いフィールド名にフォールバック
+                self.selected_model = getattr(self.settings.model_settings, 'selected_model', "gpt-4-turbo-preview") if hasattr(self.settings, 'model_settings') else "gpt-4-turbo-preview"
+                self.selected_provider = getattr(self.settings.model_settings, 'selected_provider', "openai") if hasattr(self.settings, 'model_settings') else "openai"
             
             logger.info(f"[CompetitiveAnalysis] Using model: {self.selected_model} (provider: {self.selected_provider})")
         except Exception as e:
             logger.warning(f"Failed to read settings: {e}")
-            self.selected_model = "gemini-2.5-pro-preview-06-05"
-            self.selected_provider = "google"
+            self.selected_model = "gpt-4-turbo-preview"
+            self.selected_provider = "openai"
     
     async def analyze_competitors(
         self,
@@ -249,8 +249,44 @@ class CompetitiveAnalysisService:
             print(f"[CompetitiveAnalysis] Provider: {self.selected_provider}")
             print("="*60)
             
-            # 選択されたプロバイダーに応じてAIを使用（Geminiを優先）
-            if self.selected_provider == "google" and self.google_api_key and google_genai_available:
+            # 選択されたプロバイダーに応じてAIを使用
+            if self.selected_provider == "openai" and self.openai_api_key and openai_available:
+                client = OpenAI(api_key=self.openai_api_key, timeout=30.0)  # 30秒のタイムアウトに最適化
+                # GPT-5 uses max_completion_tokens instead of max_tokens and temperature must be 1.0
+                if "gpt-5" in self.selected_model:
+                    response = client.chat.completions.create(
+                        model=self.selected_model,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=1.0,  # GPT-5 only supports default temperature of 1.0
+                        max_completion_tokens=1500  # レスポンスを最適化して処理時間短縮
+                    )
+                else:
+                    response = client.chat.completions.create(
+                        model=self.selected_model,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.7,
+                        max_tokens=1500  # レスポンスを最適化して処理時間短縮
+                    )
+                content = response.choices[0].message.content
+                
+            elif self.selected_provider == "anthropic" and self.anthropic_api_key and anthropic_available:
+                client = Anthropic(api_key=self.anthropic_api_key, timeout=30.0)  # 30秒のタイムアウトに最適化
+                response = client.messages.create(
+                    model=self.selected_model,
+                    max_tokens=1500,  # レスポンスを最適化して処理時間短縮
+                    temperature=0.7,
+                    system=system_prompt,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                content = response.content[0].text
+                
+            elif self.selected_provider == "google" and self.google_api_key and google_genai_available:
                 import asyncio
                 client = google_genai_sdk.Client(api_key=self.google_api_key)
                 # Google Gemini APIは同期的なので、asyncioで実行
