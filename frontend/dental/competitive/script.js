@@ -773,7 +773,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // 地図を初期化して競合を表示
-    function initMap(result) {
+    function initMap(response) {
         if (!googleMapsLoaded) {
             console.error('Google Maps not loaded yet');
             return;
@@ -781,6 +781,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const mapContainer = document.getElementById('competitors-map');
         if (!mapContainer) return;
+        
+        // レスポンスからデータを取得
+        const result = response.data || response;
+        const clinicInfo = result.clinic || result.clinic_info;
+        const competitors = result.competitors || [];
+        const marketAnalysis = result.market_analysis || {};
         
         // 中心座標（自院の位置）を設定
         let center = { lat: 35.6762, lng: 139.6503 }; // デフォルト（東京）
@@ -831,7 +837,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const clinicMarker = new google.maps.Marker({
             position: center,
             map: mapInstance,
-            title: result.clinic_info.name,
+            title: clinicInfo.name || '',
             icon: {
                 url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
             }
@@ -840,9 +846,9 @@ document.addEventListener('DOMContentLoaded', function() {
         clinicMarker.addListener('click', () => {
             infoWindow.setContent(`
                 <div class="map-info-window">
-                    <h4>${sanitizeHtml(result.clinic_info.name)}</h4>
+                    <h4>${sanitizeHtml(clinicInfo.name || '')}</h4>
                     <p class="info-type">自院</p>
-                    <p>${sanitizeHtml(result.clinic_info.address)}</p>
+                    <p>${sanitizeHtml(clinicInfo.address || '')}</p>
                 </div>
             `);
             infoWindow.open(mapInstance, clinicMarker);
@@ -857,11 +863,11 @@ document.addEventListener('DOMContentLoaded', function() {
             fillOpacity: 0.1,
             map: mapInstance,
             center: center,
-            radius: result.search_radius || 3000  // メートル単位
+            radius: marketAnalysis.search_radius || clinicInfo.radius || 3000  // メートル単位
         });
         
         // 競合のマーカーを追加
-        result.competitors.forEach((competitor, index) => {
+        competitors.forEach((competitor, index) => {
             if (!competitor.location || !competitor.location.lat || !competitor.location.lng) return;
             
             // 距離を計算（デバッグ用）
@@ -869,7 +875,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 new google.maps.LatLng(center.lat, center.lng),
                 new google.maps.LatLng(competitor.location.lat, competitor.location.lng)
             );
-            // console.log(`${competitor.name}: ${Math.round(distance)}m (範囲: ${result.search_radius}m)`);
+            // console.log(`${competitor.name}: ${Math.round(distance)}m (範囲: ${marketAnalysis.search_radius || clinicInfo.radius || 3000}m)`);
             
             const marker = new google.maps.Marker({
                 position: {
@@ -914,11 +920,15 @@ document.addEventListener('DOMContentLoaded', function() {
         mapInstance.fitBounds(bounds);
     }
     
-    function displayResult(result) {
-        // console.log('分析結果:', result);
-        // console.log('自院の住所:', result.clinic_info.address);
-        // console.log('APIが返した中心座標:', result.center);
-        // console.log('競合医院の座標:', result.competitors.map(c => ({name: c.name, location: c.location})));
+    function displayResult(response) {
+        // レスポンスからデータを取得
+        const result = response.data || response;
+        
+        // データ構造を正規化
+        const clinicInfo = result.clinic || result.clinic_info;
+        const competitors = result.competitors || [];
+        const swotAnalysis = result.swot_analysis;
+        const marketAnalysis = result.market_analysis || {};
         
         // Google Maps APIを読み込む
         // Google Maps APIは使用しない（静的マップで代替）
@@ -926,8 +936,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 結果画面のHTMLを生成
         let competitorsHtml = '';
-        if (result.competitors && result.competitors.length > 0) {
-            competitorsHtml = result.competitors.map((competitor, index) => `
+        if (competitors && competitors.length > 0) {
+            competitorsHtml = competitors.map((competitor, index) => `
                 <div class="competitor-card">
                     <h4>${index + 1}. ${sanitizeHtml(competitor.name)}</h4>
                     <p class="competitor-address">${sanitizeHtml(competitor.formatted_address || competitor.address)}</p>
@@ -940,7 +950,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         let swotHtml = '';
-        if (result.swot_analysis) {
+        if (swotAnalysis) {
             swotHtml = `
                 <div class="swot-analysis">
                     <h3>SWOT分析</h3>
@@ -948,25 +958,25 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="swot-section strengths">
                             <h4>強み (Strengths)</h4>
                             <ul>
-                                ${result.swot_analysis.strengths.map(s => `<li>${sanitizeHtml(s)}</li>`).join('')}
+                                ${swotAnalysis.strengths ? swotAnalysis.strengths.map(s => `<li>${sanitizeHtml(s)}</li>`).join('') : ''}
                             </ul>
                         </div>
                         <div class="swot-section weaknesses">
                             <h4>弱み (Weaknesses)</h4>
                             <ul>
-                                ${result.swot_analysis.weaknesses.map(w => `<li>${sanitizeHtml(w)}</li>`).join('')}
+                                ${swotAnalysis.weaknesses ? swotAnalysis.weaknesses.map(w => `<li>${sanitizeHtml(w)}</li>`).join('') : ''}
                             </ul>
                         </div>
                         <div class="swot-section opportunities">
                             <h4>機会 (Opportunities)</h4>
                             <ul>
-                                ${result.swot_analysis.opportunities.map(o => `<li>${sanitizeHtml(o)}</li>`).join('')}
+                                ${swotAnalysis.opportunities ? swotAnalysis.opportunities.map(o => `<li>${sanitizeHtml(o)}</li>`).join('') : ''}
                             </ul>
                         </div>
                         <div class="swot-section threats">
                             <h4>脅威 (Threats)</h4>
                             <ul>
-                                ${result.swot_analysis.threats.map(t => `<li>${sanitizeHtml(t)}</li>`).join('')}
+                                ${swotAnalysis.threats ? swotAnalysis.threats.map(t => `<li>${sanitizeHtml(t)}</li>`).join('') : ''}
                             </ul>
                         </div>
                     </div>
@@ -994,10 +1004,10 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="result-header">
                 <h2>競合分析結果</h2>
                 <div class="analysis-summary">
-                    <p>分析対象: ${sanitizeHtml(result.clinic_info.name)}</p>
-                    <p>検索範囲: 半径${sanitizeHtml(String(result.search_radius / 1000))}km</p>
-                    <p>競合数: ${sanitizeHtml(String(result.competitors_found))}件</p>
-                    <p>分析日時: ${new Date(result.analysis_date).toLocaleString('ja-JP')}</p>
+                    <p>分析対象: ${sanitizeHtml(clinicInfo.name || '')}</p>
+                    <p>検索範囲: 半径${sanitizeHtml(String((marketAnalysis.search_radius || clinicInfo.radius || 3000) / 1000))}km</p>
+                    <p>競合数: ${sanitizeHtml(String(marketAnalysis.total_competitors || competitors.length || 0))}件</p>
+                    <p>分析日時: ${new Date(result.timestamp || new Date()).toLocaleString('ja-JP')}</p>
                 </div>
             </div>
             
@@ -1027,13 +1037,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Google Maps APIが読み込まれたら地図を初期化
         if (googleMapsLoaded) {
-            setTimeout(() => initMap(result), 100);
+            setTimeout(() => initMap(response), 100);
         } else {
             // APIの読み込みを待つ
             const checkInterval = setInterval(() => {
                 if (googleMapsLoaded) {
                     clearInterval(checkInterval);
-                    initMap(result);
+                    initMap(response);
                 }
             }, 100);
         }
