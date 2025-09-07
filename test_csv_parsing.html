@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>CSV解析テスト</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>CSV解析機能テスト</h1>
+    
+    <div class="test-section">
+        <h2>テスト1: 基本的なCSV解析</h2>
+        <button onclick="testBasicCSV()">基本CSVテスト</button>
+        <div id="result1" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>テスト2: 引用符を含むCSV</h2>
+        <button onclick="testQuotedCSV()">引用符CSVテスト</button>
+        <div id="result2" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>テスト3: 改行を含むCSV</h2>
+        <button onclick="testMultilineCSV()">改行CSVテスト</button>
+        <div id="result3" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>テスト4: ファイルアップロード</h2>
+        <input type="file" id="csvFile" accept=".csv">
+        <button onclick="testFileUpload()">ファイルテスト</button>
+        <div id="result4" class="result"></div>
+    </div>
+
+    <script>
+        // CSVパース関数（script.jsから）
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                const nextChar = line[i + 1];
+                
+                if (char === '"') {
+                    if (inQuotes && nextChar === '"') {
+                        // エスケープされた引用符
+                        current += '"';
+                        i++; // 次の引用符をスキップ
+                    } else {
+                        // 引用符の開始/終了
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    // フィールドの区切り
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            // 最後のフィールドを追加
+            if (current || line.endsWith(',')) {
+                result.push(current.trim());
+            }
+            
+            return result;
+        }
+        
+        function testBasicCSV() {
+            const csv = 'クリニック名,郵便番号,住所,診療科,クリニックの強み・特徴,主なターゲット層\n田中内科クリニック,107-0052,東京都港区赤坂4-9-11,内科,土日診療対応・最新機器導入・専門医3名在籍,働く世代・ファミリー層';
+            const lines = csv.split('\n');
+            const headers = parseCSVLine(lines[0]);
+            const data = parseCSVLine(lines[1]);
+            
+            let result = '<div class="success">解析成功！</div>';
+            result += '<strong>ヘッダー:</strong> ' + JSON.stringify(headers) + '<br>';
+            result += '<strong>データ:</strong> ' + JSON.stringify(data) + '<br>';
+            result += '<strong>マッピング:</strong><br>';
+            headers.forEach((h, i) => {
+                result += `　${h}: ${data[i]}<br>`;
+            });
+            
+            document.getElementById('result1').innerHTML = result;
+        }
+        
+        function testQuotedCSV() {
+            const csv = 'フィールド1,"引用符,カンマ含む",フィールド3\n値1,"値,2",値3';
+            const lines = csv.split('\n');
+            const headers = parseCSVLine(lines[0]);
+            const data = parseCSVLine(lines[1]);
+            
+            let result = '<div class="success">解析成功！</div>';
+            result += '<strong>ヘッダー:</strong> ' + JSON.stringify(headers) + '<br>';
+            result += '<strong>データ:</strong> ' + JSON.stringify(data) + '<br>';
+            
+            document.getElementById('result2').innerHTML = result;
+        }
+        
+        function testMultilineCSV() {
+            const csv = 'フィールド1,フィールド2,フィールド3\n値1,"複数行\nの\n値",値3';
+            const lines = csv.split(/\r?\n/);
+            
+            let result = '<div class="success">テスト実行</div>';
+            result += '<strong>行数:</strong> ' + lines.length + '<br>';
+            result += '<strong>各行:</strong><br>';
+            lines.forEach((line, i) => {
+                result += `　行${i+1}: ${JSON.stringify(line)}<br>`;
+            });
+            
+            document.getElementById('result3').innerHTML = result;
+        }
+        
+        function testFileUpload() {
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                document.getElementById('result4').innerHTML = '<div class="error">ファイルを選択してください</div>';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const lines = content.split(/\r?\n/).filter(line => line.trim());
+                
+                let result = '<div class="success">ファイル読み込み成功！</div>';
+                result += '<strong>ファイル名:</strong> ' + file.name + '<br>';
+                result += '<strong>サイズ:</strong> ' + file.size + ' bytes<br>';
+                result += '<strong>行数:</strong> ' + lines.length + '<br>';
+                
+                if (lines.length > 0) {
+                    const headers = parseCSVLine(lines[0]);
+                    result += '<strong>ヘッダー:</strong> ' + JSON.stringify(headers) + '<br>';
+                    
+                    if (lines.length > 1) {
+                        const data = parseCSVLine(lines[1]);
+                        result += '<strong>最初のデータ行:</strong> ' + JSON.stringify(data) + '<br>';
+                    }
+                }
+                
+                document.getElementById('result4').innerHTML = result;
+            };
+            
+            reader.onerror = function() {
+                document.getElementById('result4').innerHTML = '<div class="error">ファイル読み込みエラー</div>';
+            };
+            
+            // 複数のエンコーディングを試す
+            reader.readAsText(file, 'UTF-8');
+        }
+    </script>
+</body>
+</html>

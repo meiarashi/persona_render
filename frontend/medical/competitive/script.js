@@ -117,6 +117,28 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 郵便番号検索機能
         setupPostalCodeSearch();
+        
+        // デバッグ用: サンプルCSVを自動入力するボタンを追加（開発時のみ）
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            addDebugButton();
+        }
+    }
+    
+    // デバッグ用ボタンを追加
+    function addDebugButton() {
+        const csvUploadSection = document.querySelector('.csv-upload-section');
+        if (csvUploadSection) {
+            const debugBtn = document.createElement('button');
+            debugBtn.type = 'button';
+            debugBtn.textContent = '[デバッグ] サンプルCSVをテスト';
+            debugBtn.style.cssText = 'margin-top: 10px; padding: 8px 16px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;';
+            debugBtn.onclick = function() {
+                console.log('=== デバッグ: サンプルCSVテスト ===');
+                const sampleCSV = 'クリニック名,郵便番号,住所,診療科,クリニックの強み・特徴,主なターゲット層\n田中内科クリニック,107-0052,東京都港区赤坂 4-9-11,内科,土日診療対応・最新機器導入・専門医3名在籍,働く世代・ファミリー層';
+                parseAndFillCSVData(sampleCSV);
+            };
+            csvUploadSection.appendChild(debugBtn);
+        }
     }
     
     // 診療科名とアイコンファイル名のマッピング
@@ -240,12 +262,95 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // CSVファイル処理
     function handleCSVFile(file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const csvContent = e.target.result;
-            parseAndFillCSVData(csvContent);
+        console.log('=== CSVファイル処理開始 ===');
+        console.log('ファイル名:', file.name);
+        console.log('ファイルサイズ:', file.size, 'bytes');
+        console.log('ファイルタイプ:', file.type || 'タイプ不明');
+        console.log('最終更新日時:', new Date(file.lastModified).toLocaleString());
+        
+        // エンコーディング検出のため、まずバイナリで読み込む
+        const binaryReader = new FileReader();
+        binaryReader.onload = function(e) {
+            const arrayBuffer = e.target.result;
+            const bytes = new Uint8Array(arrayBuffer);
+            
+            // BOM検出
+            let encoding = 'UTF-8';
+            let hasBOM = false;
+            if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+                console.log('UTF-8 BOMを検出');
+                hasBOM = true;
+            } else if (bytes[0] === 0xFF && bytes[1] === 0xFE) {
+                console.log('UTF-16 LE BOMを検出');
+                encoding = 'UTF-16LE';
+                hasBOM = true;
+            } else if (bytes[0] === 0xFE && bytes[1] === 0xFF) {
+                console.log('UTF-16 BE BOMを検出');
+                encoding = 'UTF-16BE';
+                hasBOM = true;
+            }
+            
+            console.log('検出されたエンコーディング:', encoding);
+            console.log('BOMあり:', hasBOM);
+            
+            // テキストとして読み込み
+            const textReader = new FileReader();
+            textReader.onload = function(e) {
+                console.log('FileReader onloadイベント発生');
+                let csvContent = e.target.result;
+                console.log('CSVコンテンツの長さ:', csvContent.length);
+                
+                // 最初の数文字のコードポイントを表示
+                console.log('最初の10文字のコードポイント:');
+                for (let i = 0; i < Math.min(10, csvContent.length); i++) {
+                    console.log(`  [${i}]: '${csvContent[i]}' (${csvContent.charCodeAt(i).toString(16)})`);
+                }
+                
+                console.log('CSVコンテンツの最初の200文字:', csvContent.substring(0, 200));
+                
+                // 改行コードの種類を確認
+                const hasWindowsNewline = csvContent.includes('\r\n');
+                const hasUnixNewline = csvContent.includes('\n');
+                const hasMacNewline = csvContent.includes('\r') && !hasWindowsNewline;
+                console.log('改行コード: Windows(\\r\\n):', hasWindowsNewline, ', Unix(\\n):', hasUnixNewline, ', Mac(\\r):', hasMacNewline);
+                
+                parseAndFillCSVData(csvContent);
+            };
+            textReader.onerror = function(error) {
+                console.error('FileReaderエラー:', error);
+                showModal('CSVファイルの読み込みに失敗しました。');
+            };
+            
+            // 検出したエンコーディングで読み込み（Shift-JISの可能性も考慮）
+            // ExcelからエクスポートされたCSVはShift-JISのことが多い
+            if (!hasBOM && encoding === 'UTF-8') {
+                // BOMがない場合、Shift-JISの可能性を考慮
+                console.log('BOMがないため、まずShift-JISで読み込みを試みます');
+                textReader.readAsText(file, 'Shift-JIS');
+                
+                // Shift-JISで失敗した場合のUTF-8フォールバック
+                const originalOnError = textReader.onerror;
+                textReader.onerror = function(error) {
+                    console.log('Shift-JISでの読み込み失敗、UTF-8で再試行');
+                    const utf8Reader = new FileReader();
+                    utf8Reader.onload = textReader.onload;
+                    utf8Reader.onerror = originalOnError;
+                    utf8Reader.readAsText(file, 'UTF-8');
+                };
+            } else {
+                try {
+                    textReader.readAsText(file, encoding);
+                } catch(e) {
+                    console.log('指定エンコーディングでの読み込み失敗、UTF-8で再試行');
+                    textReader.readAsText(file, 'UTF-8');
+                }
+            }
         };
-        reader.readAsText(file, 'UTF-8');
+        binaryReader.onerror = function(error) {
+            console.error('バイナリ読み込みエラー:', error);
+            showModal('CSVファイルの読み込みに失敗しました。');
+        };
+        binaryReader.readAsArrayBuffer(file);
     }
     
     // CSVを正しくパースする関数
@@ -287,31 +392,61 @@ document.addEventListener('DOMContentLoaded', function() {
     // CSV解析とフォーム自動入力
     function parseAndFillCSVData(csvContent) {
         try {
-            console.log('CSV content received:', csvContent);
+            console.log('=== CSV解析開始 ===');
+            console.log('CSV content received (最初の200文字):', csvContent.substring(0, 200));
+            console.log('CSV全体の文字数:', csvContent.length);
+            
+            // 空のコンテンツチェック
+            if (!csvContent || csvContent.trim().length === 0) {
+                throw new Error('CSVファイルが空です');
+            }
             
             // BOMを削除（UTF-8 BOMがある場合）
             if (csvContent.charCodeAt(0) === 0xFEFF) {
+                console.log('BOMを検出しました。削除します。');
                 csvContent = csvContent.slice(1);
             }
             
             const lines = csvContent.split(/\r?\n/).filter(line => line.trim());
-            console.log('Lines:', lines);
+            console.log('行数:', lines.length);
+            console.log('各行の内容:');
+            lines.forEach((line, index) => {
+                console.log(`  行${index + 1}: "${line.substring(0, 100)}${line.length > 100 ? '...' : ''}"`);
+            });
             
             // ヘッダー行とデータ行を分離（改良版パーサーを使用）
+            console.log('\n--- ヘッダー行パース ---');
             const headers = parseCSVLine(lines[0]);
-            const data = lines[1] ? parseCSVLine(lines[1]) : [];
+            console.log('ヘッダー数:', headers.length);
+            console.log('ヘッダー内容:', headers);
             
-            console.log('Headers:', headers);
-            console.log('Data:', data);
+            console.log('\n--- データ行パース ---');
+            const data = lines[1] ? parseCSVLine(lines[1]) : [];
+            console.log('データ数:', data.length);
+            console.log('データ内容:', data);
             
             // データマッピング
+            console.log('\n--- データマッピング ---');
             const dataMap = {};
             headers.forEach((header, index) => {
-                dataMap[header] = data[index] || '';
+                const trimmedHeader = header.trim();
+                const value = data[index] || '';
+                dataMap[trimmedHeader] = value;
+                console.log(`  "${trimmedHeader}" => "${value}"`);
             });
-            console.log('Data map:', dataMap);
+            console.log('\n完成したデータマップ:', dataMap);
             
             // フォームに値を設定
+            console.log('\n=== フォームへの値設定開始 ===');
+            
+            // 現在のフォーム要素を確認
+            console.log('\n--- フォーム要素の存在確認 ---');
+            console.log('clinic-name:', document.getElementById('clinic-name') ? '存在' : '不在');
+            console.log('postal-code:', document.getElementById('postal-code') ? '存在' : '不在');
+            console.log('address:', document.getElementById('address') ? '存在' : '不在');
+            console.log('clinic-features:', document.getElementById('clinic-features') ? '存在' : '不在');
+            console.log('target-patients:', document.getElementById('target-patients') ? '存在' : '不在');
+            
             // クリニック名
             if (dataMap['クリニック名']) {
                 const clinicNameField = document.getElementById('clinic-name');
@@ -348,15 +483,55 @@ document.addEventListener('DOMContentLoaded', function() {
             // 診療科の選択
             if (dataMap['診療科']) {
                 const department = dataMap['診療科'];
+                console.log(`診療科を設定しようとしています: "${department}"`);
+                
+                // 利用可能な診療科をすべて表示
+                const allDeptRadios = document.querySelectorAll('input[name="department"]');
+                console.log('利用可能な診療科:');
+                allDeptRadios.forEach(radio => {
+                    console.log(`  - "${radio.value}" (id: ${radio.id})`);
+                });
+                
                 const deptRadio = document.querySelector(`input[name="department"][value="${department}"]`);
                 if (deptRadio) {
                     deptRadio.checked = true;
-                    // selectedクラスの更新
-                    document.querySelectorAll('.department-checkbox-grid label').forEach(l => l.classList.remove('selected'));
-                    deptRadio.closest('label').classList.add('selected');
-                    console.log('Set department:', department);
+                    // selectedクラスの更新 - 正しいクラス名を使用
+                    const container = document.querySelector('.department-options') || document.querySelector('.department-checkbox-grid');
+                    if (container) {
+                        container.querySelectorAll('label').forEach(l => l.classList.remove('selected'));
+                        const label = deptRadio.closest('label');
+                        if (label) {
+                            label.classList.add('selected');
+                        }
+                    }
+                    console.log('診療科を設定しました:', department);
                 } else {
-                    console.error('Department radio not found for:', department);
+                    console.error(`診療科 "${department}" のラジオボタンが見つかりません`);
+                    console.log('完全一致で見つからないため、部分一致を試みます...');
+                    
+                    // 部分一致を試みる
+                    let foundRadio = null;
+                    allDeptRadios.forEach(radio => {
+                        if (radio.value.includes(department) || department.includes(radio.value)) {
+                            foundRadio = radio;
+                            console.log(`部分一致を発見: "${radio.value}"`);
+                        }
+                    });
+                    
+                    if (foundRadio) {
+                        foundRadio.checked = true;
+                        const container = document.querySelector('.department-options') || document.querySelector('.department-checkbox-grid');
+                        if (container) {
+                            container.querySelectorAll('label').forEach(l => l.classList.remove('selected'));
+                            const label = foundRadio.closest('label');
+                            if (label) {
+                                label.classList.add('selected');
+                            }
+                        }
+                        console.log('部分一致で診療科を設定しました:', foundRadio.value);
+                    } else {
+                        console.warn('適切な診療科が見つかりませんでした');
+                    }
                 }
             }
             
@@ -386,14 +561,39 @@ document.addEventListener('DOMContentLoaded', function() {
             const statusDiv = document.getElementById('csv-upload-status');
             if (statusDiv) {
                 statusDiv.style.display = 'block';
+                statusDiv.innerHTML = '<span style="color: #10b981;">✓ CSVファイルが正常に読み込まれました</span>';
                 setTimeout(() => {
                     statusDiv.style.display = 'none';
                 }, 3000);
             }
             
+            // 最終的なフォームの値を確認
+            console.log('\n=== 最終的なフォームの値 ===');
+            console.log('クリニック名:', document.getElementById('clinic-name')?.value || '(未設定)');
+            console.log('郵便番号:', document.getElementById('postal-code')?.value || '(未設定)');
+            console.log('住所:', document.getElementById('address')?.value || '(未設定)');
+            console.log('診療科:', document.querySelector('input[name="department"]:checked')?.value || '(未選択)');
+            console.log('クリニックの強み:', document.getElementById('clinic-features')?.value || '(未設定)');
+            console.log('ターゲット層:', document.getElementById('target-patients')?.value || '(未設定)');
+            
+            console.log('=== CSV読み込み処理完了 ===');
+            
         } catch (error) {
-            console.error('CSV parsing error:', error);
-            showModal('CSVファイルの読み込みに失敗しました。フォーマットを確認してください。');
+            console.error('=== CSV解析エラー ===');
+            console.error('エラーメッセージ:', error.message);
+            console.error('エラースタック:', error.stack);
+            
+            // エラーの詳細をユーザーに表示
+            let errorMessage = 'CSVファイルの読み込みに失敗しました。<br><br>';
+            errorMessage += '<strong>エラー詳細:</strong><br>';
+            errorMessage += error.message + '<br><br>';
+            errorMessage += '<strong>確認ポイント:</strong><br>';
+            errorMessage += '1. CSVファイルがUTF-8またはShift-JISで保存されているか<br>';
+            errorMessage += '2. 必要なヘッダーがすべて含まれているか<br>';
+            errorMessage += '3. ファイルが破損していないか<br><br>';
+            errorMessage += '<small>コンソールにより詳細なデバッグ情報が表示されています。</small>';
+            
+            showModal(errorMessage, 'error');
         }
     }
     
@@ -721,7 +921,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <button class="modal-close" aria-label="閉じる">&times;</button>
                     </div>
                     <div class="modal-body">
-                        <p>${sanitizeHtml(message)}</p>
+                        <div>${message}</div>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-primary modal-ok">OK</button>

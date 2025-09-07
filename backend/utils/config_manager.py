@@ -43,6 +43,22 @@ class ConfigManager:
         for backup in backups[keep_count:]:
             backup.unlink()
     
+    def get_settings(self):
+        """Get settings from app_settings.json"""
+        settings_file = self.config_dir.parent / "app_settings" / "settings.json"
+        if settings_file.exists():
+            with open(settings_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                # Convert to object-like access
+                class Settings:
+                    def __init__(self, data):
+                        self.models = type('obj', (object,), {
+                            'text_api_model': data.get('models', {}).get('text_api_model', 'gpt-4-turbo-preview')
+                        })()
+                        self.ai_model = data.get('ai_model', {})
+                return Settings(data)
+        return None
+    
     def add_department(self, department: Dict[str, Any]) -> bool:
         """Add a new department to the configuration"""
         try:
