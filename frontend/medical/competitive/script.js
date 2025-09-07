@@ -794,6 +794,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // 検索結果の中心座標があれば使用（これが自院の座標）
         if (result.center && result.center.lat && result.center.lng) {
             center = result.center;
+            console.log('Using clinic coordinates from API:', center);
+        } else {
+            console.warn('No center coordinates in response, using default');
         }
         
         // 地図を初期化
@@ -867,8 +870,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // 競合のマーカーを追加
+        console.log(`Adding ${competitors.length} competitor markers`);
         competitors.forEach((competitor, index) => {
-            if (!competitor.location || !competitor.location.lat || !competitor.location.lng) return;
+            if (!competitor.location || !competitor.location.lat || !competitor.location.lng) {
+                console.warn(`Competitor ${competitor.name} has no location data`);
+                return;
+            }
+            console.log(`Competitor ${index + 1}: ${competitor.name} at`, competitor.location);
             
             // 距離を計算（デバッグ用）
             const distance = google.maps.geometry.spherical.computeDistanceBetween(

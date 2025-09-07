@@ -122,7 +122,11 @@ class GoogleMapsService:
                 "center": coordinates,
                 "radius": radius,
                 "total_results": len(formatted_results),
-                "results": formatted_results
+                "competitors": formatted_results,  # CompetitiveAnalysisServiceが期待するキー名
+                "market_stats": {
+                    "average_rating": sum([r.get('rating', 0) for r in formatted_results if r.get('rating')]) / len([r for r in formatted_results if r.get('rating')]) if any(r.get('rating') for r in formatted_results) else 0,
+                    "total_reviews": sum([r.get('user_ratings_total', 0) for r in formatted_results])
+                }
             }
             
         except Exception as e:

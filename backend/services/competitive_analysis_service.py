@@ -128,7 +128,8 @@ class CompetitiveAnalysisService:
                 "competitor_details": competitor_details,
                 "market_stats": competitors_data.get("market_stats", {}),
                 "regional_data": regional_data,
-                "medical_stats": medical_stats
+                "medical_stats": medical_stats,
+                "search_radius": search_radius  # 検索半径を追加
             }
             
             # 4. SWOT分析と戦略的提案を生成
@@ -139,6 +140,7 @@ class CompetitiveAnalysisService:
                 "success": True,
                 "data": {
                     "clinic": clinic_info,
+                    "center": competitors_data.get("center"),  # 自院の座標を追加
                     "competitors": competitors_data.get("competitors", []),
                     "competitor_details": competitor_details,
                     "market_analysis": {
@@ -452,6 +454,17 @@ class CompetitiveAnalysisService:
 - 推定患者数: {self._format_number(demand.get('estimated_patients'))}人/月
 - 需要レベル: {demand.get('demand_level', 'N/A')}"""
         
+        # デバッグ用：プロンプトに含まれるデータを確認
+        logger.info(f"Building SWOT prompt with data:")
+        logger.info(f"- Clinic name: {clinic.get('name', 'Not provided')}")
+        logger.info(f"- Department: {department or 'Not specified'}")
+        logger.info(f"- Address: {clinic.get('address', 'Not provided')}")
+        logger.info(f"- Number of competitors: {len(competitors)}")
+        logger.info(f"- Regional data available: {bool(regional_data)}")
+        if regional_data.get("demographics"):
+            logger.info(f"  - Population: {regional_data['demographics'].get('total_population', 'N/A')}")
+            logger.info(f"  - Aging rate: {regional_data['demographics'].get('age_distribution', {}).get('65+', 'N/A')}%")
+        
         prompt = f"""
 以下の情報を基に、医療機関のSWOT分析と戦略的提案を行ってください。
 
@@ -459,18 +472,18 @@ class CompetitiveAnalysisService:
 - 名称: {clinic.get('name', '未入力')}
 - 診療科: {department}
 - 住所: {clinic.get('address', '未入力')}
-- 強み・特徴: {clinic.get('strengths', '未入力')}
+- 強み・特徴: {clinic.get('features', clinic.get('strengths', '未入力'))}
 - ターゲット層: {clinic.get('target_patients', '未入力')}
 
 【市場分析】
-- 競合数: {len(competitors)}件（半径{clinic.get('radius', 3000)}m内）
+- 競合数: {len(competitors)}件（半径{analysis_data.get('search_radius', clinic.get('radius', 3000))}m内）
 - 平均評価: {stats.get('average_rating', 'N/A')}
 - 総レビュー数: {stats.get('total_reviews', 0)}件
 
 【主要競合医院】
-{top_competitors_info}
+{top_competitors_info if top_competitors_info else "競合医院情報なし"}
 
-{regional_info}
+{regional_info if regional_info else "【地域特性データ】\n地域データ取得できませんでした"}
 
 以下の形式でSWOT分析と戦略的提案を作成してください：
 
