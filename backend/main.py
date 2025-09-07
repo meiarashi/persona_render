@@ -560,7 +560,7 @@ async def generate_text_response(prompt_text, model_name, api_key):
                     completion = client.chat.completions.create(
                         model=model_name,
                         messages=[{"role": "user", "content": prompt_text}],
-                        temperature=0.7,
+                        temperature=1.0,  # GPT-5はデフォルト値のみサポート
                         max_completion_tokens=2500  # GPT-5用
                     )
                 else:

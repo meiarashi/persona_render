@@ -349,7 +349,7 @@ class CompetitiveAnalysisService:
                             {"role": "system", "content": system_prompt},
                             {"role": "user", "content": prompt}
                         ],
-                        temperature=0.7,
+                        temperature=1.0,  # GPT-5はデフォルト値のみサポート
                         max_completion_tokens=2000
                     )
                 else:
