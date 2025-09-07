@@ -483,7 +483,7 @@ class CompetitiveAnalysisService:
 【主要競合医院】
 {top_competitors_info if top_competitors_info else "競合医院情報なし"}
 
-{regional_info if regional_info else "【地域特性データ】\n地域データ取得できませんでした"}
+{regional_info if regional_info else "【地域特性データ】" + chr(10) + "地域データ取得できませんでした"}
 
 以下の形式でSWOT分析と戦略的提案を作成してください：
 
