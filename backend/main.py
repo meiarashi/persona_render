@@ -2754,7 +2754,7 @@ async def analyze_competitors(request: Request, username: str = Depends(verify_a
 
 # Google Maps APIキー取得エンドポイント（認証必須）
 @app.get("/api/google-maps-key")
-async def get_google_maps_api_key(username: str = Depends(verify_credentials)):
+async def get_google_maps_api_key(username: str = Depends(verify_admin_credentials)):
     """Google Maps APIキーを取得（認証ユーザーのみ）"""
     api_key = os.getenv("GOOGLE_MAPS_API_KEY")
     if not api_key:
