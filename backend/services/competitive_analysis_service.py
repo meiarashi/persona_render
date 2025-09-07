@@ -306,7 +306,7 @@ class CompetitiveAnalysisService:
         """AIプロバイダーを呼び出してレスポンスを取得"""
         if provider == "openai" and openai_available:
             client = OpenAI(api_key=api_key, timeout=30.0)
-            # GPT-5 uses max_completion_tokens instead of max_tokens
+            # GPT-5 uses max_completion_tokens instead of max_tokens and only supports temperature=1.0
             if "gpt-5" in model:
                 response = client.chat.completions.create(
                     model=model,
@@ -314,7 +314,7 @@ class CompetitiveAnalysisService:
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": prompt}
                     ],
-                    temperature=0.7,
+                    temperature=1.0,  # GPT-5 only supports default temperature
                     max_completion_tokens=2000
                 )
             else:

@@ -142,18 +142,14 @@ class GoogleMapsService:
             # 住所の前処理（より正確なジオコーディングのため）
             import re
             
-            # 部屋番号などを一時的に保存
-            room_number_match = re.search(r'[-−\d]+号室?$|[-−]\d+$', address)
-            room_number = room_number_match.group() if room_number_match else ""
-            
-            # ジオコーディング用の住所を準備（部屋番号を除外）
-            geocoding_address = address
-            if room_number:
-                geocoding_address = address.replace(room_number, "").strip()
-            
             # 郵便番号が先頭にある場合は除去
-            geocoding_address = re.sub(r'^〒?\d{3}-?\d{4}\s*', '', geocoding_address)
+            geocoding_address = re.sub(r'^〒?\d{3}-?\d{4}\s*', '', address)
             geocoding_address = geocoding_address.strip()
+            
+            # 部屋番号（-202など）の除去は避け、丁目-番地-号はそのまま保持
+            # 例: 赤坂4-9-11-202 → 赤坂4-9-11 のみ除去
+            if re.search(r'-\d{3,}$', geocoding_address):  # 3桁以上の数字で終わる場合は部屋番号の可能性
+                geocoding_address = re.sub(r'-\d{3,}$', '', geocoding_address).strip()
             
             # 日本の住所として明確にする
             if not geocoding_address.startswith("日本"):
