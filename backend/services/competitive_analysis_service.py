@@ -76,7 +76,7 @@ class CompetitiveAnalysisService:
             
             # 2. 地域データと医療統計を取得
             regional_data = await self.regional_data.get_regional_data(address)
-            medical_stats = await self.medical_stats_service.get_medical_stats(address)
+            medical_stats = await self.medical_stats_service.get_comprehensive_medical_stats(address)
             
             # 3. 競合の詳細情報を取得（上位3件のみ）
             top_competitors = competitors_data.get("competitors", [])[:3]
