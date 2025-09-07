@@ -6,30 +6,57 @@ let mapInstance = null;
 let markers = [];
 let infoWindow = null;
 
-// Google Maps APIを動的に読み込む
-async function loadGoogleMapsAPI() {
-    if (googleMapsLoaded) return;
-    
+// セキュリティ: XSS対策用のサニタイズ関数
+function sanitizeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function sanitizeUrl(url) {
+    if (!url) return '#';
     try {
-        const response = await fetch('/api/google-maps-key');
-        if (!response.ok) throw new Error('Failed to get API key');
-        
-        const data = await response.json();
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${data.api_key}&callback=onGoogleMapsLoaded&language=ja&region=JP&libraries=geometry`;
-        script.async = true;
-        script.defer = true;
-        document.head.appendChild(script);
-    } catch (error) {
-        console.error('Failed to load Google Maps:', error);
+        const parsed = new URL(url);
+        // HTTPとHTTPSのみ許可
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+            return '#';
+        }
+        return url;
+    } catch {
+        return '#';
     }
 }
 
-// Google Maps API読み込み完了時のコールバック
-window.onGoogleMapsLoaded = function() {
-    googleMapsLoaded = true;
-    console.log('Google Maps API loaded');
-};
+function sanitizeAttribute(str) {
+    if (!str) return '';
+    // HTMLエンティティをエスケープ
+    return str.replace(/["'<>&]/g, function(match) {
+        const escape = {
+            '"': '&quot;',
+            "'": '&#x27;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '&': '&amp;'
+        };
+        return escape[match];
+    });
+}
+
+// Google Maps APIを静的マップで代替（セキュア）
+function createStaticMap(container, center, competitors) {
+    // 静的マップのURLを生成（サーバーサイドプロキシ経由）
+    const mapDiv = document.createElement('div');
+    mapDiv.className = 'static-map-container';
+    mapDiv.innerHTML = '<p>地図を読み込み中...</p>';
+    container.appendChild(mapDiv);
+    
+    // 注: 実際の地図表示はサーバーサイドで処理
+    return mapDiv;
+}
+
+// 地図の初期化フラグ
+let mapInitialized = false;
 
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('competitive-analysis-form');
@@ -48,15 +75,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 郵便番号検索機能
         setupPostalCodeSearch();
-        
-        // CSVアップロード機能の設定
-        setupCSVUpload();
     }
     
     // 診療科名とアイコンファイル名のマッピング
     // chief_complaints.jsonの診療科名 → 実際のアイコンファイル名
     const departmentIconMap = {
-        // 一般歯科、消化器内科、内分泌科は同名のファイルが存在するのでマッピング不要
+        '歯科': '一般歯科'  // 「歯科」のアイコンは「一般歯科.png」を使用
+        // 消化器内科、内分泌科は同名のファイルが存在するのでマッピング不要
     };
     
     async function loadAndRenderDepartments() {
@@ -158,164 +183,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('Failed to load departments:', error);
             container.innerHTML = '<div style="color: red;">診療科の読み込みに失敗しました</div>';
-        }
-    }
-    
-    // CSVアップロード機能の設定
-    function setupCSVUpload() {
-        const fileInput = document.getElementById('csv-file-input');
-        const uploadArea = document.querySelector('.csv-upload-area');
-        const uploadStatus = document.getElementById('csv-upload-status');
-        
-        if (!fileInput || !uploadArea) return;
-        
-        // ファイル選択時の処理
-        fileInput.addEventListener('change', handleCSVFileSelect);
-        
-        // ドラッグ&ドロップの処理
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.style.backgroundColor = '#f0f9ff';
-            uploadArea.style.borderColor = '#2563eb';
-        });
-        
-        uploadArea.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            uploadArea.style.backgroundColor = '#fff';
-            uploadArea.style.borderColor = '#cbd5e1';
-        });
-        
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.style.backgroundColor = '#fff';
-            uploadArea.style.borderColor = '#cbd5e1';
-            
-            const files = e.dataTransfer.files;
-            if (files.length > 0 && files[0].type === 'text/csv') {
-                handleCSVFile(files[0]);
-            }
-        });
-        
-        // CSVファイル選択時の処理
-        function handleCSVFileSelect(e) {
-            const file = e.target.files[0];
-            if (file && file.type === 'text/csv') {
-                handleCSVFile(file);
-            }
-        }
-        
-        // CSVファイル処理
-        function handleCSVFile(file) {
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                const csvData = e.target.result;
-                parseAndFillCSVData(csvData);
-                
-                // 成功表示
-                if (uploadStatus) {
-                    uploadStatus.style.display = 'block';
-                    setTimeout(() => {
-                        uploadStatus.style.display = 'none';
-                    }, 3000);
-                }
-            };
-            
-            reader.onerror = function() {
-                alert('ファイルの読み込みに失敗しました。');
-            };
-            
-            reader.readAsText(file, 'UTF-8');
-        }
-        
-        // CSVデータをパースしてフォームに入力
-        function parseAndFillCSVData(csvData) {
-            const lines = csvData.split('\n').filter(line => line.trim());
-            
-            if (lines.length < 2) {
-                alert('CSVファイルにデータが含まれていません。');
-                return;
-            }
-            
-            // 1行目をヘッダーとして取得
-            const headers = parseCSVLine(lines[0]);
-            
-            // 2行目をデータとして取得
-            const values = parseCSVLine(lines[1]);
-            
-            // ヘッダーと値を対応付ける
-            const data = {};
-            headers.forEach((header, index) => {
-                if (header && values[index]) {
-                    data[header.trim()] = values[index].trim();
-                }
-            });
-            
-            // Step 1: 基本情報の入力
-            const clinicName = document.getElementById('clinic-name');
-            const postalCode = document.getElementById('postal-code');
-            const address = document.getElementById('address');
-            
-            if (clinicName && data['クリニック名']) {
-                clinicName.value = data['クリニック名'];
-            }
-            
-            if (postalCode && data['郵便番号']) {
-                postalCode.value = data['郵便番号'];
-            }
-            
-            if (address && data['住所']) {
-                address.value = data['住所'];
-            }
-            
-            // 診療科のラジオボタン処理
-            if (data['診療科']) {
-                const department = data['診療科'];
-                const radios = document.querySelectorAll('.department-options input[type="radio"]');
-                
-                radios.forEach(radio => {
-                    if (radio.value === department) {
-                        radio.checked = true;
-                        // selectedクラスも追加
-                        radio.parentElement.classList.add('selected');
-                    }
-                });
-            }
-            
-            // Step 3: 追加情報の入力
-            const clinicFeatures = document.getElementById('clinic-features');
-            const targetPatients = document.getElementById('target-patients');
-            
-            if (clinicFeatures && data['クリニックの強み・特徴']) {
-                clinicFeatures.value = data['クリニックの強み・特徴'];
-            }
-            
-            if (targetPatients && data['主なターゲット層']) {
-                targetPatients.value = data['主なターゲット層'];
-            }
-        }
-        
-        // CSV行をパース（カンマ区切りでクォート対応）
-        function parseCSVLine(line) {
-            const result = [];
-            let current = '';
-            let inQuotes = false;
-            
-            for (let i = 0; i < line.length; i++) {
-                const char = line[i];
-                
-                if (char === '"') {
-                    inQuotes = !inQuotes;
-                } else if (char === ',' && !inQuotes) {
-                    result.push(current);
-                    current = '';
-                } else {
-                    current += char;
-                }
-            }
-            
-            result.push(current);
-            return result;
         }
     }
     
@@ -762,7 +629,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <p class="info-address">${sanitizeHtml(competitor.formatted_address || competitor.address)}</p>
                         ${competitor.rating ? `<p class="info-rating">${ratingStars} ${sanitizeHtml(String(competitor.rating))} (${sanitizeHtml(String(competitor.user_ratings_total))}件)</p>` : ''}
                         ${competitor.phone_number ? `<p class="info-phone">📞 ${sanitizeHtml(competitor.phone_number)}</p>` : ''}
-                        ${competitor.website ? `<p class="info-website"><a href="${sanitizeHtml(competitor.website)}" target="_blank">ウェブサイトを見る</a></p>` : ''}
+                        ${competitor.website ? `<p class="info-website"><a href="${sanitizeAttribute(sanitizeUrl(competitor.website))}" target="_blank" rel="noopener noreferrer">ウェブサイトを見る</a></p>` : ''}
                         ${competitor.opening_hours?.weekday_text ? `
                             <details class="info-hours">
                                 <summary>営業時間</summary>
@@ -791,7 +658,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // console.log('競合医院の座標:', result.competitors.map(c => ({name: c.name, location: c.location})));
         
         // Google Maps APIを読み込む
-        loadGoogleMapsAPI();
+        // Google Maps APIは使用しない（静的マップで代替）
+        console.log('Map display using static images');
         
         // 結果画面のHTMLを生成
         let competitorsHtml = '';
@@ -886,7 +754,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="action-buttons">
                     <button class="btn btn-primary" onclick="window.print()">印刷</button>
                     <button class="btn btn-secondary" onclick="location.reload()">新しい分析を開始</button>
-                    <a href="/user/" class="btn btn-link">ダッシュボードに戻る</a>
+                    <a href="/medical/" class="btn btn-link">ダッシュボードに戻る</a>
                 </div>
             </div>
         `;

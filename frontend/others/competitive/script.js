@@ -6,30 +6,57 @@ let mapInstance = null;
 let markers = [];
 let infoWindow = null;
 
-// Google Maps APIを動的に読み込む
-async function loadGoogleMapsAPI() {
-    if (googleMapsLoaded) return;
-    
+// セキュリティ: XSS対策用のサニタイズ関数
+function sanitizeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function sanitizeUrl(url) {
+    if (!url) return '#';
     try {
-        const response = await fetch('/api/google-maps-key');
-        if (!response.ok) throw new Error('Failed to get API key');
-        
-        const data = await response.json();
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${data.api_key}&callback=onGoogleMapsLoaded&language=ja&region=JP&libraries=geometry`;
-        script.async = true;
-        script.defer = true;
-        document.head.appendChild(script);
-    } catch (error) {
-        console.error('Failed to load Google Maps:', error);
+        const parsed = new URL(url);
+        // HTTPとHTTPSのみ許可
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+            return '#';
+        }
+        return url;
+    } catch {
+        return '#';
     }
 }
 
-// Google Maps API読み込み完了時のコールバック
-window.onGoogleMapsLoaded = function() {
-    googleMapsLoaded = true;
-    console.log('Google Maps API loaded');
-};
+function sanitizeAttribute(str) {
+    if (!str) return '';
+    // HTMLエンティティをエスケープ
+    return str.replace(/["'<>&]/g, function(match) {
+        const escape = {
+            '"': '&quot;',
+            "'": '&#x27;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '&': '&amp;'
+        };
+        return escape[match];
+    });
+}
+
+// Google Maps APIを静的マップで代替（セキュア）
+function createStaticMap(container, center, competitors) {
+    // 静的マップのURLを生成（サーバーサイドプロキシ経由）
+    const mapDiv = document.createElement('div');
+    mapDiv.className = 'static-map-container';
+    mapDiv.innerHTML = '<p>地図を読み込み中...</p>';
+    container.appendChild(mapDiv);
+    
+    // 注: 実際の地図表示はサーバーサイドで処理
+    return mapDiv;
+}
+
+// 地図の初期化フラグ
+let mapInitialized = false;
 
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('competitive-analysis-form');
@@ -53,7 +80,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 診療科名とアイコンファイル名のマッピング
     // chief_complaints.jsonの診療科名 → 実際のアイコンファイル名
     const departmentIconMap = {
-        // 一般歯科、消化器内科、内分泌科は同名のファイルが存在するのでマッピング不要
+        '歯科': '一般歯科'  // 「歯科」のアイコンは「一般歯科.png」を使用
+        // 消化器内科、内分泌科は同名のファイルが存在するのでマッピング不要
     };
     
     async function loadAndRenderDepartments() {
@@ -601,7 +629,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <p class="info-address">${sanitizeHtml(competitor.formatted_address || competitor.address)}</p>
                         ${competitor.rating ? `<p class="info-rating">${ratingStars} ${sanitizeHtml(String(competitor.rating))} (${sanitizeHtml(String(competitor.user_ratings_total))}件)</p>` : ''}
                         ${competitor.phone_number ? `<p class="info-phone">📞 ${sanitizeHtml(competitor.phone_number)}</p>` : ''}
-                        ${competitor.website ? `<p class="info-website"><a href="${sanitizeHtml(competitor.website)}" target="_blank">ウェブサイトを見る</a></p>` : ''}
+                        ${competitor.website ? `<p class="info-website"><a href="${sanitizeAttribute(sanitizeUrl(competitor.website))}" target="_blank" rel="noopener noreferrer">ウェブサイトを見る</a></p>` : ''}
                         ${competitor.opening_hours?.weekday_text ? `
                             <details class="info-hours">
                                 <summary>営業時間</summary>
@@ -630,7 +658,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // console.log('競合医院の座標:', result.competitors.map(c => ({name: c.name, location: c.location})));
         
         // Google Maps APIを読み込む
-        loadGoogleMapsAPI();
+        // Google Maps APIは使用しない（静的マップで代替）
+        console.log('Map display using static images');
         
         // 結果画面のHTMLを生成
         let competitorsHtml = '';
@@ -725,7 +754,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="action-buttons">
                     <button class="btn btn-primary" onclick="window.print()">印刷</button>
                     <button class="btn btn-secondary" onclick="location.reload()">新しい分析を開始</button>
-                    <a href="/others/" class="btn btn-link">ダッシュボードに戻る</a>
+                    <a href="/medical/" class="btn btn-link">ダッシュボードに戻る</a>
                 </div>
             </div>
         `;

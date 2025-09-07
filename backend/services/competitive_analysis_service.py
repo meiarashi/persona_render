@@ -52,15 +52,15 @@ class CompetitiveAnalysisService:
                 else:
                     self.selected_provider = "openai"
             else:
-                # 古いフィールド名にフォールバック
-                self.selected_model = getattr(self.settings.model_settings, 'selected_model', "gpt-5-2025-08-07") if hasattr(self.settings, 'model_settings') else "gpt-5-2025-08-07"
-                self.selected_provider = getattr(self.settings.model_settings, 'selected_provider', "openai") if hasattr(self.settings, 'model_settings') else "openai"
+                # 古いフィールド名にフォールバック（Geminiを優先）
+                self.selected_model = getattr(self.settings.model_settings, 'selected_model', "gemini-2.5-pro-preview-06-05") if hasattr(self.settings, 'model_settings') else "gemini-2.5-pro-preview-06-05"
+                self.selected_provider = getattr(self.settings.model_settings, 'selected_provider', "google") if hasattr(self.settings, 'model_settings') else "google"
             
             logger.info(f"[CompetitiveAnalysis] Using model: {self.selected_model} (provider: {self.selected_provider})")
         except Exception as e:
             logger.warning(f"Failed to read settings: {e}")
-            self.selected_model = "gpt-5-2025-08-07"
-            self.selected_provider = "openai"
+            self.selected_model = "gemini-2.5-pro-preview-06-05"
+            self.selected_provider = "google"
     
     async def analyze_competitors(
         self,
@@ -135,6 +135,17 @@ class CompetitiveAnalysisService:
         except Exception as e:
             logger.error(f"Failed to execute {task_name}: {e}")
             return default_value if default_value is not None else {}
+    
+    def _format_number(self, value, default='N/A'):
+        """数値を安全にフォーマット（カンマ区切り）"""
+        if value == 'N/A' or value is None:
+            return default
+        try:
+            if isinstance(value, (int, float)):
+                return f"{value:,}"
+            return str(value)
+        except:
+            return default
     
     async def _prepare_analysis_data(
         self,
@@ -238,8 +249,37 @@ class CompetitiveAnalysisService:
             print(f"[CompetitiveAnalysis] Provider: {self.selected_provider}")
             print("="*60)
             
-            # 選択されたプロバイダーに応じてAIを使用
-            if self.selected_provider == "openai" and self.openai_api_key and openai_available:
+            # 選択されたプロバイダーに応じてAIを使用（Geminiを優先）
+            if self.selected_provider == "google" and self.google_api_key and google_genai_available:
+                import asyncio
+                client = google_genai_sdk.Client(api_key=self.google_api_key)
+                # Google Gemini APIは同期的なので、asyncioで実行
+                loop = asyncio.get_event_loop()
+                response = await loop.run_in_executor(
+                    None,
+                    lambda: client.models.generate_content(
+                        model=self.selected_model,
+                        contents=f"{system_prompt}\n\n{prompt}",
+                        config=google_genai_types.GenerateContentConfig(
+                            temperature=0.7,
+                            max_output_tokens=2000  # 戦略提案3つに削減したため
+                        )
+                    )
+                )
+                content = response.text
+                
+            elif self.selected_provider == "anthropic" and self.anthropic_api_key and anthropic_available:
+                client = Anthropic(api_key=self.anthropic_api_key, timeout=30.0)  # 30秒のタイムアウトに最適化
+                response = client.messages.create(
+                    model=self.selected_model,
+                    max_tokens=1500,  # レスポンスを最適化して処理時間短縮
+                    temperature=0.7,
+                    system=system_prompt,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                content = response.content[0].text
+                
+            elif self.selected_provider == "openai" and self.openai_api_key and openai_available:
                 client = OpenAI(api_key=self.openai_api_key, timeout=30.0)  # 30秒のタイムアウトに最適化
                 # GPT-5 uses max_completion_tokens instead of max_tokens and temperature must be 1.0
                 if "gpt-5" in self.selected_model:
@@ -263,35 +303,6 @@ class CompetitiveAnalysisService:
                         max_tokens=1500  # レスポンスを最適化して処理時間短縮
                     )
                 content = response.choices[0].message.content
-                
-            elif self.selected_provider == "anthropic" and self.anthropic_api_key and anthropic_available:
-                client = Anthropic(api_key=self.anthropic_api_key, timeout=30.0)  # 30秒のタイムアウトに最適化
-                response = client.messages.create(
-                    model=self.selected_model,
-                    max_tokens=1500,  # レスポンスを最適化して処理時間短縮
-                    temperature=0.7,
-                    system=system_prompt,
-                    messages=[{"role": "user", "content": prompt}]
-                )
-                content = response.content[0].text
-                
-            elif self.selected_provider == "google" and self.google_api_key and google_genai_available:
-                import asyncio
-                client = google_genai_sdk.Client(api_key=self.google_api_key)
-                # Google Gemini APIは同期的なので、asyncioで実行
-                loop = asyncio.get_event_loop()
-                response = await loop.run_in_executor(
-                    None,
-                    lambda: client.models.generate_content(
-                        model=self.selected_model,
-                        contents=f"{system_prompt}\n\n{prompt}",
-                        config=google_genai_types.GenerateContentConfig(
-                            temperature=0.7,
-                            max_output_tokens=2000  # 戦略提案3つに削減したため
-                        )
-                    )
-                )
-                content = response.text
                 
             else:
                 logger.warning(f"Selected provider {self.selected_provider} not available, using basic SWOT")
@@ -345,15 +356,15 @@ class CompetitiveAnalysisService:
             demo = regional_data["demographics"]
             regional_info += f"""
 【地域特性データ】
-- 総人口: {demo.get('total_population', 'N/A'):,}人
+- 総人口: {self._format_number(demo.get('total_population'))}人
 - 高齢化率（65歳以上）: {demo.get('age_distribution', {}).get('65+', 'N/A')}%
-- 世帯数: {demo.get('household_count', 'N/A'):,}世帯
-- 人口密度: {demo.get('population_density', 'N/A'):,}人/km²"""
+- 世帯数: {self._format_number(demo.get('household_count'))}世帯
+- 人口密度: {self._format_number(demo.get('population_density'))}人/km²"""
         
         if regional_data.get("medical_demand"):
             demand = regional_data["medical_demand"]
             regional_info += f"""
-- 推定患者数/日: {demand.get('estimated_patients_per_day', 'N/A'):,}人
+- 推定患者数/日: {self._format_number(demand.get('estimated_patients_per_day'))}人
 - 医療アクセシビリティ: {demand.get('healthcare_accessibility', 'N/A')}"""
         
         if regional_data.get("competition_density"):
@@ -397,15 +408,15 @@ class CompetitiveAnalysisService:
             # 世帯医療費データ
             if household := medical_stats.get("household_medical", {}):
                 medical_stats_info += "\n\n【医療費支出統計】"
-                medical_stats_info += f"\n- 年間平均医療費: {household.get('avg_annual_medical_expense', 0):,}円"
-                medical_stats_info += f"\n- 月間平均医療費: {household.get('avg_monthly_medical_expense', 0):,}円"
+                medical_stats_info += f"\n- 年間平均医療費: {self._format_number(household.get('avg_annual_medical_expense', 0))}円"
+                medical_stats_info += f"\n- 月間平均医療費: {self._format_number(household.get('avg_monthly_medical_expense', 0))}円"
                 medical_stats_info += f"\n- 自己負担割合: {household.get('self_pay_ratio', 0)*100:.0f}%"
             
             # 介護施設データ
             if nursing := medical_stats.get("nursing_facilities", {}):
                 medical_stats_info += "\n\n【介護施設統計】"
                 medical_stats_info += f"\n- 総施設数: {nursing.get('total_facilities', 'N/A')}施設"
-                medical_stats_info += f"\n- 総定員: {nursing.get('total_capacity', 0):,}人"
+                medical_stats_info += f"\n- 総定員: {self._format_number(nursing.get('total_capacity', 0))}人"
                 medical_stats_info += f"\n- 稼働率: {nursing.get('occupancy_rate', 0)*100:.0f}%"
         
         # 診療科タイプの分布情報
