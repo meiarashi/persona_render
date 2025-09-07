@@ -118,10 +118,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // 郵便番号検索機能
         setupPostalCodeSearch();
         
-        // デバッグ用: サンプルCSVを自動入力するボタンを追加（開発時のみ）
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            addDebugButton();
-        }
+        // デバッグ用: サンプルCSVを自動入力するボタンを追加
+        // 一時的に本番環境でも有効化（デバッグのため）
+        addDebugButton();
     }
     
     // デバッグ用ボタンを追加
@@ -138,6 +137,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 parseAndFillCSVData(sampleCSV);
             };
             csvUploadSection.appendChild(debugBtn);
+            
+            // フォーム要素確認ボタン
+            const checkBtn = document.createElement('button');
+            checkBtn.type = 'button';
+            checkBtn.textContent = '[デバッグ] フォーム要素確認';
+            checkBtn.style.cssText = 'margin-left: 10px; margin-top: 10px; padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;';
+            checkBtn.onclick = function() {
+                const elements = {
+                    'clinic-name': document.getElementById('clinic-name'),
+                    'postal-code': document.getElementById('postal-code'),
+                    'address': document.getElementById('address'),
+                    'clinic-features': document.getElementById('clinic-features'),
+                    'target-patients': document.getElementById('target-patients')
+                };
+                
+                let report = 'フォーム要素の状態:\n\n';
+                for (const [id, element] of Object.entries(elements)) {
+                    if (element) {
+                        report += `${id}: 存在 (値: "${element.value || '(空)'}")\n`;
+                    } else {
+                        report += `${id}: 不在\n`;
+                    }
+                }
+                
+                const selectedDept = document.querySelector('input[name="department"]:checked');
+                report += `\n選択された診療科: ${selectedDept ? selectedDept.value : '未選択'}`;
+                
+                alert(report);
+            };
+            csvUploadSection.appendChild(checkBtn);
         }
     }
     
@@ -321,29 +350,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 showModal('CSVファイルの読み込みに失敗しました。');
             };
             
-            // 検出したエンコーディングで読み込み（Shift-JISの可能性も考慮）
+            // エンコーディングを判定して読み込み
             // ExcelからエクスポートされたCSVはShift-JISのことが多い
             if (!hasBOM && encoding === 'UTF-8') {
-                // BOMがない場合、Shift-JISの可能性を考慮
-                console.log('BOMがないため、まずShift-JISで読み込みを試みます');
-                textReader.readAsText(file, 'Shift-JIS');
+                // BOMがない場合、両方のエンコーディングを試す
+                console.log('BOMがないため、Shift-JISとUTF-8の両方を試します');
                 
-                // Shift-JISで失敗した場合のUTF-8フォールバック
-                const originalOnError = textReader.onerror;
-                textReader.onerror = function(error) {
-                    console.log('Shift-JISでの読み込み失敗、UTF-8で再試行');
+                // まずShift-JISで読み込み
+                const sjisReader = new FileReader();
+                sjisReader.onload = function(e) {
+                    const sjisContent = e.target.result;
+                    console.log('Shift-JISで読み込み成功');
+                    
+                    // 日本語が正しく読み込まれているかチェック
+                    if (sjisContent.includes('クリニック') || sjisContent.includes('郵便') || sjisContent.includes('住所')) {
+                        console.log('Shift-JISで正常に日本語を検出');
+                        textReader.onload(e);
+                    } else {
+                        console.log('Shift-JISで日本語が検出できないため、UTF-8を試します');
+                        const utf8Reader = new FileReader();
+                        utf8Reader.onload = textReader.onload;
+                        utf8Reader.onerror = textReader.onerror;
+                        utf8Reader.readAsText(file, 'UTF-8');
+                    }
+                };
+                sjisReader.onerror = function(error) {
+                    console.log('Shift-JIS読み込みエラー、UTF-8を試します');
                     const utf8Reader = new FileReader();
                     utf8Reader.onload = textReader.onload;
-                    utf8Reader.onerror = originalOnError;
+                    utf8Reader.onerror = textReader.onerror;
                     utf8Reader.readAsText(file, 'UTF-8');
                 };
+                sjisReader.readAsText(file, 'Shift-JIS');
             } else {
-                try {
-                    textReader.readAsText(file, encoding);
-                } catch(e) {
-                    console.log('指定エンコーディングでの読み込み失敗、UTF-8で再試行');
-                    textReader.readAsText(file, 'UTF-8');
-                }
+                textReader.readAsText(file, encoding);
             }
         };
         binaryReader.onerror = function(error) {
@@ -435,6 +475,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log(`  "${trimmedHeader}" => "${value}"`);
             });
             console.log('\n完成したデータマップ:', dataMap);
+            
+            // デバッグ用: パース結果をアラートで表示
+            if (window.confirm('CSVパース結果を表示しますか？')) {
+                let message = 'CSVパース結果:\n\n';
+                for (const [key, value] of Object.entries(dataMap)) {
+                    message += `${key}: "${value}"\n`;
+                }
+                alert(message);
+            }
             
             // フォームに値を設定
             console.log('\n=== フォームへの値設定開始 ===');
