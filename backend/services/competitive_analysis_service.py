@@ -267,11 +267,13 @@ class CompetitiveAnalysisService:
                     prompt
                 )
                 
-                if content:
+                # contentがNoneまたは空の場合の処理
+                if content and isinstance(content, str) and len(content.strip()) > 0:
                     logger.info(f"Successfully generated SWOT analysis using {self.selected_provider}/{self.selected_model}")
                     return self._parse_swot_response(content), content
                 else:
-                    logger.warning(f"No content generated from {self.selected_provider}")
+                    logger.warning(f"No content or empty content generated from {self.selected_provider}")
+                    logger.info("Falling back to basic SWOT analysis")
                     return self._generate_basic_swot(analysis_data), ""
                     
             except Exception as e:
@@ -309,7 +311,7 @@ class CompetitiveAnalysisService:
                         {"role": "user", "content": prompt}
                     ],
                     temperature=1.0,
-                    max_completion_tokens=1500
+                    max_completion_tokens=2000
                 )
             else:
                 response = client.chat.completions.create(
@@ -319,7 +321,7 @@ class CompetitiveAnalysisService:
                         {"role": "user", "content": prompt}
                     ],
                     temperature=0.7,
-                    max_tokens=1500
+                    max_tokens=2000
                 )
             return response.choices[0].message.content
             
@@ -327,39 +329,66 @@ class CompetitiveAnalysisService:
             client = Anthropic(api_key=api_key, timeout=30.0)
             response = client.messages.create(
                 model=model,
-                max_tokens=1500,
+                max_tokens=2000,
                 temperature=0.7,
                 system=system_prompt,
                 messages=[{"role": "user", "content": prompt}]
             )
             return response.content[0].text
             
-        elif provider == "google" and google_genai_available:
-            import asyncio
-            client = google_genai_sdk.Client(api_key=api_key)
-            loop = asyncio.get_event_loop()
-            response = await loop.run_in_executor(
-                None,
-                lambda: client.models.generate_content(
-                    model=model,
-                    contents=f"{system_prompt}\n\n{prompt}",
-                    config=google_genai_types.GenerateContentConfig(
-                        temperature=0.7,
-                        max_output_tokens=2000
+        elif provider == "google":
+            # 旧SDKも試すため、インポートを確認
+            try:
+                import google.generativeai as old_gemini_sdk
+                old_sdk_available = True
+            except ImportError:
+                old_sdk_available = False
+            
+            # 新SDKを優先的に試す（動作していた実装に戻す）
+            if google_genai_available:
+                try:
+                    client = google_genai_sdk.Client(api_key=api_key)
+                    
+                    logger.info(f"Using new Gemini SDK with model: {model}")
+                    # 動作していた実装：generate_content_asyncを使用
+                    response = await client.models.generate_content_async(
+                        model=model,
+                        contents=f"{system_prompt}\n\n{prompt}",
+                        config=google_genai_types.GenerateContentConfig(
+                            temperature=0.7,
+                            max_output_tokens=2000
+                        )
                     )
-                )
-            )
-            # Geminiのレスポンスを安全に取得
-            if hasattr(response, 'text') and response.text:
-                return response.text
-            elif hasattr(response, 'candidates') and response.candidates:
-                # 候補が複数ある場合は最初のものを使用
-                for candidate in response.candidates:
-                    if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
-                        for part in candidate.content.parts:
-                            if hasattr(part, 'text') and part.text:
-                                return part.text
-            logger.warning(f"Google AI returned empty response for model {model}")
+                    
+                    # シンプルなレスポンス処理（動作していた実装）
+                    if hasattr(response, 'text') and response.text:
+                        logger.info("Successfully got response from new Gemini SDK")
+                        return response.text
+                    
+                    logger.warning(f"New SDK returned empty response for model {model}")
+                    
+                except Exception as e:
+                    logger.warning(f"New SDK failed: {e}")
+                    # 旧SDKにフォールバック
+            
+            # 旧SDKを試す
+            if old_sdk_available:
+                try:
+                    logger.info(f"Trying old Gemini SDK with model: {model}")
+                    old_gemini_sdk.configure(api_key=api_key)
+                    old_model = old_gemini_sdk.GenerativeModel(model)
+                    response = old_model.generate_content(f"{system_prompt}\n\n{prompt}")
+                    
+                    if hasattr(response, 'text') and response.text:
+                        logger.info("Successfully got response from old Gemini SDK")
+                        return response.text
+                    
+                    logger.warning(f"Old SDK returned empty response for model {model}")
+                    
+                except Exception as e:
+                    logger.error(f"Old SDK also failed: {e}")
+            
+            logger.error(f"Both Gemini SDKs failed or returned empty for model {model}")
             return None
         else:
             raise Exception(f"Provider {provider} not available")
@@ -477,6 +506,11 @@ class CompetitiveAnalysisService:
                 "threats": [],
                 "strategies": []
             }
+            
+            # Noneチェックと型チェック
+            if not response or not isinstance(response, str):
+                logger.warning("Invalid response for SWOT parsing")
+                return swot
             
             # 各セクションを抽出
             sections = {
