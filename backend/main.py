@@ -531,22 +531,46 @@ async def generate_text_response(prompt_text, model_name, api_key):
         
         if model_name.startswith("gpt"):
             # OpenAI API call
-            # GPT-5 uses max_completion_tokens instead of max_tokens and temperature must be 1.0
-            if "gpt-5" in model_name:
-                completion = client.chat.completions.create(
-                    model=model_name,
-                    messages=[{"role": "user", "content": prompt_text}],
-                    temperature=1.0,  # GPT-5 only supports default temperature of 1.0
-                    max_completion_tokens=2500  # 502エラー対策で削減
-                )
+            # GPT-5 uses new responses API
+            if model_name == "gpt-5":
+                try:
+                    # GPT-5の新しいresponses APIを使用
+                    response = client.responses.create(
+                        model="gpt-5",
+                        input=prompt_text,
+                        reasoning={"effort": "high"},  # ペルソナ生成は詳細な推論が必要
+                        text={"verbosity": "medium"}
+                    )
+                    return response.output_text
+                except Exception as e:
+                    print(f"[ERROR] GPT-5 API error: {str(e)}")
+                    # フォールバックとしてGPT-4を使用
+                    print("[INFO] Falling back to GPT-4 API")
+                    completion = client.chat.completions.create(
+                        model="gpt-4-turbo-preview",
+                        messages=[{"role": "user", "content": prompt_text}],
+                        temperature=0.7,
+                        max_tokens=2500
+                    )
+                    return completion.choices[0].message.content
             else:
-                completion = client.chat.completions.create(
-                    model=model_name,
-                    messages=[{"role": "user", "content": prompt_text}],
-                    temperature=0.7,
-                    max_tokens=2500  # 502エラー対策で削減
-                )
-            return completion.choices[0].message.content
+                # GPT-4以前のモデル（またはGPT-5の通常のchat API）
+                # GPT-5はmax_completion_tokensを使用
+                if "gpt-5" in model_name:
+                    completion = client.chat.completions.create(
+                        model=model_name,
+                        messages=[{"role": "user", "content": prompt_text}],
+                        temperature=0.7,
+                        max_completion_tokens=2500  # GPT-5用
+                    )
+                else:
+                    completion = client.chat.completions.create(
+                        model=model_name,
+                        messages=[{"role": "user", "content": prompt_text}],
+                        temperature=0.7,
+                        max_tokens=2500  # GPT-4以前用
+                    )
+                return completion.choices[0].message.content
             
         elif model_name.startswith("claude"):
             # Anthropic API call with retry logic
@@ -971,7 +995,7 @@ async def generate_persona(request: Request, username: str = Depends(verify_admi
         # --- 設定をcrudから読み込む ---
         app_settings = crud.read_settings() # AdminSettings インスタンスが返る
         
-        selected_text_model = app_settings.models.text_api_model if app_settings.models else "gpt-5-2025-08-07" # デフォルト値をGPT-5に
+        selected_text_model = app_settings.models.text_api_model if app_settings.models else "gpt-5" # デフォルト値をGPT-5に
         selected_image_model = app_settings.models.image_api_model if app_settings.models else "dall-e-3" # デフォルト値
         
         # ===== モデル使用ログ =====

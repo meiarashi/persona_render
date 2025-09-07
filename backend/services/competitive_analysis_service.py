@@ -340,16 +340,28 @@ class CompetitiveAnalysisService:
                     logger.info(f"GPT-4 response length: {len(content) if content else 0} characters")
                     return content
             else:
-                # GPT-4以前のモデル
-                response = client.chat.completions.create(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0.7,
-                    max_tokens=2000
-                )
+                # GPT-4以前のモデル（またはGPT-5の通常のchat API）
+                # GPT-5はmax_completion_tokensを使用
+                if "gpt-5" in model:
+                    response = client.chat.completions.create(
+                        model=model,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.7,
+                        max_completion_tokens=2000
+                    )
+                else:
+                    response = client.chat.completions.create(
+                        model=model,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.7,
+                        max_tokens=2000
+                    )
                 content = response.choices[0].message.content
                 logger.info(f"OpenAI response length: {len(content) if content else 0} characters")
                 return content
