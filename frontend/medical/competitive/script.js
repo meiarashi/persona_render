@@ -658,7 +658,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // console.log('競合医院の座標:', result.competitors.map(c => ({name: c.name, location: c.location})));
         
         // Google Maps APIを読み込む
-        loadGoogleMapsAPI();
+        // Google Maps APIは使用しない（静的マップで代替）
+        console.log('Map display using static images');
         
         // 結果画面のHTMLを生成
         let competitorsHtml = '';
