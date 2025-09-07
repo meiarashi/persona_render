@@ -45,14 +45,41 @@ def ensure_rag_directories():
 
 def create_connection():
     """WALモードを有効にしたデータベース接続を作成"""
-    conn = sqlite3.connect(str(RAG_DB_PATH), timeout=30.0)
-    # WAL（Write-Ahead Logging）モードを有効化 - 読み書きの同時実行を可能にする
-    conn.execute("PRAGMA journal_mode=WAL")
-    # 同期モードをNORMALに設定（パフォーマンスと安全性のバランス）
-    conn.execute("PRAGMA synchronous=NORMAL")
-    # キャッシュサイズを増やす（パフォーマンス向上）
-    conn.execute("PRAGMA cache_size=-64000")  # 64MB
-    return conn
+    import time
+    max_retries = 5
+    retry_delay = 0.5
+    
+    for attempt in range(max_retries):
+        try:
+            conn = sqlite3.connect(str(RAG_DB_PATH), timeout=30.0, check_same_thread=False)
+            # WAL（Write-Ahead Logging）モードを有効化 - 読み書きの同時実行を可能にする
+            # 複数ワーカー対応のため、WALモードの設定を慎重に行う
+            try:
+                conn.execute("PRAGMA journal_mode=WAL")
+            except sqlite3.OperationalError as e:
+                if "database is locked" in str(e) and attempt < max_retries - 1:
+                    print(f"[RAG] Database locked, retrying... (attempt {attempt + 1}/{max_retries})")
+                    conn.close()
+                    time.sleep(retry_delay * (attempt + 1))
+                    continue
+                # WALモードが既に設定されている場合は無視
+                pass
+            
+            # 同期モードをNORMALに設定（パフォーマンスと安全性のバランス）
+            conn.execute("PRAGMA synchronous=NORMAL")
+            # キャッシュサイズを増やす（パフォーマンス向上）
+            conn.execute("PRAGMA cache_size=-64000")  # 64MB
+            # ビジータイムアウトを設定
+            conn.execute("PRAGMA busy_timeout=30000")  # 30秒
+            return conn
+        except sqlite3.OperationalError as e:
+            if "database is locked" in str(e) and attempt < max_retries - 1:
+                print(f"[RAG] Database locked, retrying... (attempt {attempt + 1}/{max_retries})")
+                time.sleep(retry_delay * (attempt + 1))
+                continue
+            raise
+    
+    raise sqlite3.OperationalError("Failed to connect to database after multiple retries")
 
 def init_rag_database():
     """RAGデータベースの初期化"""
@@ -63,6 +90,19 @@ def init_rag_database():
     print(f"[RAG] Database Path: {RAG_DB_PATH}")
     print(f"[RAG] Using {'LOCAL' if 'app_settings' in str(RAG_DB_PATH) else 'RENDER'} database")
     print("="*60)
+    
+    # 複数ワーカーの同時初期化を防ぐためのシンプルなアプローチ
+    import time
+    import random
+    
+    # ワーカーIDを取得（プロセスIDを使用）
+    import os
+    worker_id = os.getpid()
+    
+    # ランダムな待機時間でワーカーの衝突を回避
+    wait_time = random.uniform(0.1, 0.5) * (worker_id % 10)
+    print(f"[RAG] Worker {worker_id} waiting {wait_time:.2f}s before initializing database")
+    time.sleep(wait_time)
     
     try:
         conn = create_connection()

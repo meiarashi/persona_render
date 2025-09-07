@@ -438,21 +438,31 @@ async def startup_event():
     migrate_image_model_settings()
     
     # RAGデータベースの初期化（テーブル作成のみ、CSVは読み込まない）
-    print("[RAG] Initializing database with lazy loading mode...")
-    rag_processor.init_rag_database()
-    
-    # データベースファイルの存在確認
-    from pathlib import Path
-    import os
-    
-    # 実際のRAGプロセッサーと同じパスを使用
-    rag_db_path = Path("./app_settings/rag_data.db")
-    
-    if rag_db_path.exists():
-        print(f"[RAG] Database initialized at: {rag_db_path}")
-        print("[RAG] CSV data will be loaded on-demand for each department")
-    else:
-        print(f"[RAG] Warning: Database file not found at: {rag_db_path}")
+    # データベースロックエラーを回避するため、エラーハンドリングを追加
+    try:
+        print("[RAG] Initializing database with lazy loading mode...")
+        rag_processor.init_rag_database()
+        
+        # データベースファイルの存在確認
+        from pathlib import Path
+        import os
+        
+        # 実際のRAGプロセッサーと同じパスを使用
+        rag_db_path = Path("./app_settings/rag_data.db")
+        
+        if rag_db_path.exists():
+            print(f"[RAG] Database initialized at: {rag_db_path}")
+            print("[RAG] CSV data will be loaded on-demand for each department")
+        else:
+            print(f"[RAG] Warning: Database file not found at: {rag_db_path}")
+    except Exception as e:
+        print(f"Error initializing RAG database: {e}")
+        # データベースロックエラーの場合、アプリケーションを続行
+        if "database is locked" in str(e):
+            print("[RAG] Database is locked - likely another worker is initializing. Continuing...")
+        else:
+            # 他のエラーの場合はログに記録して続行
+            print(f"[RAG] Continuing without RAG database: {e}")
 
 # --- AI Client Initialization Helper --- 
 def get_ai_client(model_name, api_key):
