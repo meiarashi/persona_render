@@ -37,7 +37,14 @@ class EStatIntegratedServiceV3:
             
         self.base_url = "http://api.e-stat.go.jp/rest/3.0/app/json"
         self.cache_ttl = timedelta(hours=24)
-        self.timeout = aiohttp.ClientTimeout(total=60)
+        # タイムアウトを120秒に延長し、個別のタイムアウトも設定
+        self.timeout = aiohttp.ClientTimeout(
+            total=120,  # 全体のタイムアウトを120秒に延長
+            connect=10,  # 接続タイムアウト
+            sock_read=30  # 読み取りタイムアウト
+        )
+        self.max_retries = 3  # リトライ回数
+        self.retry_delay = 2  # リトライ間隔（秒）
         self.master_data = self._load_master_data()
         self.cache = self._load_cache()
         
@@ -320,11 +327,35 @@ class EStatIntegratedServiceV3:
             
             logger.info(f"人口データ検索: {search_word}")
             
-            async with session.get(search_url, params=search_params) as response:
-                if response.status != 200:
+            # 検索APIにリトライロジックを追加
+            data = None
+            for attempt in range(self.max_retries):
+                try:
+                    async with session.get(search_url, params=search_params) as response:
+                        if response.status != 200:
+                            if attempt < self.max_retries - 1:
+                                logger.info(f"人口データ検索失敗、リトライ ({attempt + 1}/{self.max_retries})")
+                                await asyncio.sleep(self.retry_delay)
+                                continue
+                            return self._get_default_population_data()
+                        
+                        data = await response.json()
+                        break
+                except asyncio.TimeoutError:
+                    logger.warning(f"e-Stat 検索タイムアウト (試行 {attempt + 1}/{self.max_retries})")
+                    if attempt < self.max_retries - 1:
+                        await asyncio.sleep(self.retry_delay * (attempt + 1))
+                        continue
                     return self._get_default_population_data()
-                
-                data = await response.json()
+                except Exception as e:
+                    logger.error(f"e-Stat 検索エラー (試行 {attempt + 1}/{self.max_retries}): {e}")
+                    if attempt < self.max_retries - 1:
+                        await asyncio.sleep(self.retry_delay)
+                        continue
+                    return self._get_default_population_data()
+            
+            if not data:
+                return self._get_default_population_data()
                 
                 # レスポンス検証
                 if not self._validate_api_response(data, "GET_STATS_LIST"):
@@ -393,11 +424,35 @@ class EStatIntegratedServiceV3:
                 "statsDataId": stats_data_id
             }
             
-            async with session.get(meta_url, params=meta_params) as response:
-                if response.status != 200:
+            # メタデータ取得にリトライロジックを追加
+            meta_data = None
+            for attempt in range(self.max_retries):
+                try:
+                    async with session.get(meta_url, params=meta_params) as response:
+                        if response.status != 200:
+                            if attempt < self.max_retries - 1:
+                                logger.info(f"メタデータ取得失敗、リトライ ({attempt + 1}/{self.max_retries})")
+                                await asyncio.sleep(self.retry_delay)
+                                continue
+                            return 0
+                        
+                        meta_data = await response.json()
+                        break
+                except asyncio.TimeoutError:
+                    logger.warning(f"e-Stat メタデータ取得タイムアウト (試行 {attempt + 1}/{self.max_retries})")
+                    if attempt < self.max_retries - 1:
+                        await asyncio.sleep(self.retry_delay * (attempt + 1))  # エクスポネンシャルバックオフ
+                        continue
                     return 0
-                
-                meta_data = await response.json()
+                except Exception as e:
+                    logger.error(f"e-Stat メタデータ取得エラー (試行 {attempt + 1}/{self.max_retries}): {e}")
+                    if attempt < self.max_retries - 1:
+                        await asyncio.sleep(self.retry_delay)
+                        continue
+                    return 0
+            
+            if not meta_data:
+                return 0
                 
                 # レスポンス検証
                 if not self._validate_api_response(meta_data, "GET_META_INFO"):
@@ -444,11 +499,35 @@ class EStatIntegratedServiceV3:
                 if area_class_id and target_area_code:
                     data_params[f"cd{area_class_id}"] = target_area_code
                 
-                async with session.get(data_url, params=data_params) as response:
-                    if response.status != 200:
+                # データ取得にリトライロジックを追加
+                data = None
+                for attempt in range(self.max_retries):
+                    try:
+                        async with session.get(data_url, params=data_params) as response:
+                            if response.status != 200:
+                                if attempt < self.max_retries - 1:
+                                    logger.info(f"統計データ取得失敗、リトライ ({attempt + 1}/{self.max_retries})")
+                                    await asyncio.sleep(self.retry_delay)
+                                    continue
+                                return 0
+                            
+                            data = await response.json()
+                            break
+                    except asyncio.TimeoutError:
+                        logger.warning(f"e-Stat 統計データ取得タイムアウト (試行 {attempt + 1}/{self.max_retries})")
+                        if attempt < self.max_retries - 1:
+                            await asyncio.sleep(self.retry_delay * (attempt + 1))  # エクスポネンシャルバックオフ
+                            continue
                         return 0
-                    
-                    data = await response.json()
+                    except Exception as e:
+                        logger.error(f"e-Stat 統計データ取得エラー (試行 {attempt + 1}/{self.max_retries}): {e}")
+                        if attempt < self.max_retries - 1:
+                            await asyncio.sleep(self.retry_delay)
+                            continue
+                        return 0
+                
+                if not data:
+                    return 0
                     
                     # レスポンス検証
                     if not self._validate_api_response(data, "GET_STATS_DATA"):
@@ -538,11 +617,28 @@ class EStatIntegratedServiceV3:
                 "limit": 3
             }
             
-            async with session.get(search_url, params=search_params) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    # 簡略化のため、デフォルト値を返す
-                    return {"facilities_count": 100, "from_api": True}
+            # 医療施設APIにリトライロジックを追加
+            for attempt in range(self.max_retries):
+                try:
+                    async with session.get(search_url, params=search_params) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            # 簡略化のため、デフォルト値を返す
+                            return {"facilities_count": 100, "from_api": True}
+                        elif attempt < self.max_retries - 1:
+                            logger.info(f"医療施設データ取得失敗、リトライ ({attempt + 1}/{self.max_retries})")
+                            await asyncio.sleep(self.retry_delay)
+                            continue
+                except asyncio.TimeoutError:
+                    logger.warning(f"e-Stat 医療施設データタイムアウト (試行 {attempt + 1}/{self.max_retries})")
+                    if attempt < self.max_retries - 1:
+                        await asyncio.sleep(self.retry_delay * (attempt + 1))
+                        continue
+                except Exception as e:
+                    logger.error(f"e-Stat 医療施設データエラー (試行 {attempt + 1}/{self.max_retries}): {e}")
+                    if attempt < self.max_retries - 1:
+                        await asyncio.sleep(self.retry_delay)
+                        continue
         
         except Exception as e:
             logger.error(f"医療施設データ取得エラー: {e}")

@@ -55,15 +55,26 @@ class WebResearchService:
         try:
             from backend.utils.config_manager import config_manager
             self.settings = config_manager.get_settings()
-            if hasattr(self.settings, 'ai_model'):
-                self.selected_model = self.settings.ai_model.get('model', 'gemini-2.5-pro-preview-06-05')
-                self.selected_provider = self.settings.ai_model.get('provider', 'google')
+            # 新しいフィールド名を使用（models.text_api_model）
+            if hasattr(self.settings, 'models') and self.settings.models:
+                self.selected_model = self.settings.models.text_api_model or "gpt-4-turbo-preview"
+                # プロバイダーを自動判定
+                if "gpt" in self.selected_model.lower():
+                    self.selected_provider = "openai"
+                elif "claude" in self.selected_model.lower():
+                    self.selected_provider = "anthropic"
+                elif "gemini" in self.selected_model.lower():
+                    self.selected_provider = "google"
+                else:
+                    self.selected_provider = "openai"
             else:
-                self.selected_model = 'gemini-2.5-pro-preview-06-05'
-                self.selected_provider = 'google'
-        except:
-            self.selected_model = 'gemini-2.5-pro-preview-06-05'
-            self.selected_provider = 'google'
+                # フォールバック設定
+                self.selected_model = 'gpt-4-turbo-preview'
+                self.selected_provider = 'openai'
+        except Exception as e:
+            logger.warning(f"Failed to load settings: {e}")
+            self.selected_model = 'gpt-4-turbo-preview'
+            self.selected_provider = 'openai'
         
     def _validate_input(self, clinic_name: str, address: str) -> Tuple[bool, str]:
         """入力値のバリデーション"""
@@ -285,100 +296,189 @@ class WebResearchService:
         return text.strip()
     
     async def _analyze_website(self, url: str) -> Dict:
-        """公式サイトから情報を抽出（OpenAI使用）"""
-        if not self.openai_api_key:
-            logger.info("OpenAI API key not configured, skipping website analysis")
-            return {"error": "OpenAI API key not configured"}
+        """公式サイトから情報を抽出（SerpAPI結果を管理画面設定のAIで解析）"""
+        logger.info(f"Analyzing website: {url} using {self.selected_provider}/{self.selected_model}")
             
         try:
-            # Webページの内容を取得
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=10) as response:
-                    if response.status == 200:
-                        html_content = await response.text()
-                        
-                        # HTMLから重要な情報を抽出（改善版）
-                        # HTMLタグを除去し、テキストのみ抽出
-                        text_content = self._extract_text_from_html(html_content)[:8000]
-                        
-                        # AIで情報抽出（管理画面の設定に従う）
-                        prompt = f"""
-                        以下のウェブサイトの内容から医療機関の情報を抽出してください：
-                        
-                        {text_content[:3000]}
-                        
-                        以下の項目を抽出：
-                        1. 診療時間
-                        2. 医師・スタッフ情報
-                        3. 診療科目・専門分野
-                        4. 設備・機器
-                        5. 特徴的なサービス
-                        6. アクセス情報
-                        
-                        JSON形式で返してください。
-                        """
-                        
-                        extracted_info = None
-                        
-                        # Geminiを使用
-                        if self.selected_provider == "google" and self.google_api_key:
-                            try:
-                                import google.generativeai as genai
-                                genai.configure(api_key=self.google_api_key)
-                                model = genai.GenerativeModel(self.selected_model or 'gemini-2.5-pro-preview-06-05')
-                                response = model.generate_content(prompt)
-                                # レスポンスからJSON部分を抽出
-                                text = response.text
-                                json_match = re.search(r'\{.*\}', text, re.DOTALL)
-                                if json_match:
-                                    extracted_info = json.loads(json_match.group())
-                            except Exception as e:
-                                logger.warning(f"Gemini extraction error: {e}")
-                        
-                        # Claude を使用
-                        elif self.selected_provider == "anthropic" and self.anthropic_api_key:
-                            try:
-                                from anthropic import AsyncAnthropic
-                                client = AsyncAnthropic(api_key=self.anthropic_api_key)
-                                response = await client.messages.create(
-                                    model=self.selected_model or "claude-3-5-sonnet-20241022",
-                                    max_tokens=1000,
-                                    messages=[{"role": "user", "content": prompt}]
-                                )
-                                text = response.content[0].text
-                                json_match = re.search(r'\{.*\}', text, re.DOTALL)
-                                if json_match:
-                                    extracted_info = json.loads(json_match.group())
-                            except Exception as e:
-                                logger.warning(f"Claude extraction error: {e}")
-                        
-                        # OpenAI を使用（クォータに注意）
-                        elif self.selected_provider == "openai" and self.openai_api_key:
-                            try:
-                                from openai import AsyncOpenAI
-                                client = AsyncOpenAI(api_key=self.openai_api_key)
-                                response = await client.chat.completions.create(
-                                    model=self.selected_model or "gpt-4o",
-                                    messages=[{"role": "user", "content": prompt}],
-                                    response_format={"type": "json_object"},
-                                    timeout=10.0
-                                )
-                                extracted_info = json.loads(response.choices[0].message.content)
-                            except Exception as e:
-                                logger.warning(f"OpenAI extraction error: {e}")
-                        
-                        # AI抽出が失敗した場合は基本的な情報を返す
-                        if not extracted_info:
-                            extracted_info = {
-                                "extracted_text": text_content[:1000],
-                                "特徴的なサービス": "詳細はウェブサイトをご確認ください"
-                            }
-                        
-                        return extracted_info
+            # SerpAPIでサイト固有の検索を実行
+            from urllib.parse import urlparse
+            domain = urlparse(url).netloc
+            if not domain:
+                logger.warning(f"Could not extract domain from URL: {url}")
+                return {"error": "URLからドメインを抽出できませんでした"}
+            
+            # SerpAPIで検索して結果を取得
+            if not self.serpapi_key:
+                logger.info("SerpAPI key not configured")
+                return {"note": "SerpAPIキーが設定されていません"}
+            
+            search_results = await self._search_site_with_serpapi(domain)
+            if not search_results or "error" in search_results:
+                return search_results
+            
+            # 検索結果からテキストを抽出
+            text_content = self._extract_text_from_search_results(search_results)
+            
+            # AIで情報抽出（管理画面の設定に従う）
+            prompt = f"""
+            以下のウェブサイトの検索結果から医療機関の情報を抽出してください：
+            
+            {text_content[:3000]}
+            
+            以下の項目を抽出：
+            1. 診療時間
+            2. 医師・スタッフ情報
+            3. 診療科目・専門分野
+            4. 設備・機器
+            5. 特徴的なサービス
+            6. アクセス情報
+            
+            JSON形式で返してください。
+            """
+            
+            extracted_info = None
+            
+            # 管理画面で設定されたプロバイダーとモデルを使用
+            if self.selected_provider == "openai" and self.openai_api_key:
+                try:
+                    from openai import AsyncOpenAI
+                    client = AsyncOpenAI(api_key=self.openai_api_key)
+                    response = await client.chat.completions.create(
+                        model=self.selected_model,
+                        messages=[{"role": "user", "content": prompt}],
+                        response_format={"type": "json_object"},
+                        timeout=10.0
+                    )
+                    extracted_info = json.loads(response.choices[0].message.content)
+                    logger.info(f"Successfully extracted info using OpenAI/{self.selected_model}")
+                except Exception as e:
+                    logger.warning(f"OpenAI extraction error: {e}")
+                    # Anthropicにフォールバック
+                    if self.anthropic_api_key:
+                        self.selected_provider = "anthropic"
+                        self.selected_model = "claude-3-5-sonnet-20241022"
+            
+            if self.selected_provider == "anthropic" and self.anthropic_api_key and not extracted_info:
+                try:
+                    from anthropic import AsyncAnthropic
+                    client = AsyncAnthropic(api_key=self.anthropic_api_key)
+                    response = await client.messages.create(
+                        model=self.selected_model,
+                        max_tokens=1000,
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+                    text = response.content[0].text
+                    json_match = re.search(r'\{.*\}', text, re.DOTALL)
+                    if json_match:
+                        extracted_info = json.loads(json_match.group())
+                    logger.info(f"Successfully extracted info using Anthropic/{self.selected_model}")
+                except Exception as e:
+                    logger.warning(f"Claude extraction error: {e}")
+                    # Googleにフォールバック
+                    if self.google_api_key:
+                        self.selected_provider = "google"
+                        self.selected_model = "gemini-2.5-pro-preview-06-05"
+            
+            if self.selected_provider == "google" and self.google_api_key and not extracted_info:
+                try:
+                    import google.generativeai as genai
+                    genai.configure(api_key=self.google_api_key)
+                    model = genai.GenerativeModel(self.selected_model)
+                    response = model.generate_content(prompt)
+                    text = response.text
+                    json_match = re.search(r'\{.*\}', text, re.DOTALL)
+                    if json_match:
+                        extracted_info = json.loads(json_match.group())
+                    logger.info(f"Successfully extracted info using Google/{self.selected_model}")
+                except Exception as e:
+                    logger.warning(f"Gemini extraction error: {e}")
+            
+            # AI抽出が失敗した場合は基本的な情報を返す
+            if not extracted_info:
+                extracted_info = {
+                    "source": "SerpAPI",
+                    "extracted_text": text_content[:1000] if text_content else "情報を取得できませんでした",
+                    "特徴的なサービス": "詳細はウェブサイトをご確認ください"
+                }
+                logger.warning("All AI providers failed, returning basic info")
+            
+            return extracted_info
                             
         except Exception as e:
             logger.error(f"Website analysis error: {e}")
             return {}
+    
+    async def _search_site_with_serpapi(self, domain: str) -> Dict:
+        """SerpAPIを使用してサイト固有の情報を検索"""
+        try:
+            await self.serpapi_limiter.acquire()
+            
+            async with aiohttp.ClientSession(timeout=self.default_timeout) as session:
+                params = {
+                    "q": f"site:{domain} 診療時間 診療科目 医師 設備 アクセス",
+                    "api_key": self.serpapi_key,
+                    "engine": "google",
+                    "location": "Japan",
+                    "hl": "ja",
+                    "gl": "jp",
+                    "num": 10
+                }
+                
+                url = "https://serpapi.com/search"
+                async with session.get(url, params=params) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        logger.info(f"Successfully retrieved site info for {domain}")
+                        return data
+                    else:
+                        logger.warning(f"SerpAPI returned status {response.status}")
+                        return {"error": f"検索エラー (status: {response.status})"}
+                        
+        except Exception as e:
+            logger.error(f"Site search error: {str(e)}")
+            return {"error": f"サイト検索エラー: {str(e)}"}
+    
+    def _extract_text_from_search_results(self, search_results: Dict) -> str:
+        """SerpAPIの検索結果からテキストを抽出"""
+        extracted_text = []
+        
+        # オーガニック検索結果から情報を抽出
+        if "organic_results" in search_results:
+            for result in search_results.get("organic_results", [])[:5]:
+                title = result.get("title", "")
+                snippet = result.get("snippet", "")
+                link = result.get("link", "")
+                
+                if title:
+                    extracted_text.append(f"タイトル: {title}")
+                if snippet:
+                    extracted_text.append(f"内容: {snippet}")
+                if link:
+                    extracted_text.append(f"URL: {link}")
+                extracted_text.append("")  # 空行で区切る
+        
+        # ナレッジパネルがあれば追加
+        if "knowledge_graph" in search_results:
+            kg = search_results["knowledge_graph"]
+            if "title" in kg:
+                extracted_text.append(f"施設名: {kg['title']}")
+            if "description" in kg:
+                extracted_text.append(f"説明: {kg['description']}")
+            if "address" in kg:
+                extracted_text.append(f"住所: {kg['address']}")
+            if "phone" in kg:
+                extracted_text.append(f"電話: {kg['phone']}")
+            if "hours" in kg:
+                extracted_text.append(f"営業時間: {kg['hours']}")
+        
+        # リッチスニペットがあれば追加
+        if "rich_snippet" in search_results:
+            rs = search_results["rich_snippet"]
+            for key, value in rs.items():
+                if value:
+                    extracted_text.append(f"{key}: {value}")
+        
+        return "\n".join(extracted_text) if extracted_text else "検索結果から情報を抽出できませんでした"
     
     async def _check_social_presence(self, clinic_name: str) -> Dict:
         """SNSプレゼンスをチェック（完全実装）"""

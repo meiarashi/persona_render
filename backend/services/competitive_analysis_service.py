@@ -242,12 +242,44 @@ class CompetitiveAnalysisService:
             prompt = self._build_swot_prompt(analysis_data)
             system_prompt = "あなたは医療機関の経営コンサルタントです。提供された情報を基に、具体的で実行可能なSWOT分析と戦略的提案を行ってください。"
             
-            # モデル使用ログ
-            print("="*60)
-            print("[CompetitiveAnalysis] ===== GENERATING SWOT ANALYSIS & RECOMMENDATIONS =====")
-            print(f"[CompetitiveAnalysis] Model: {self.selected_model}")
-            print(f"[CompetitiveAnalysis] Provider: {self.selected_provider}")
-            print("="*60)
+            # フォールバック用のプロバイダーリストを作成
+            providers = []
+            if self.selected_provider == "openai" and self.openai_api_key:
+                providers.append(("openai", self.selected_model, self.openai_api_key))
+            # フォールバック用の代替プロバイダーを追加
+            if self.anthropic_api_key and self.selected_provider != "anthropic":
+                providers.append(("anthropic", "claude-3-5-sonnet-20241022", self.anthropic_api_key))
+            elif self.selected_provider == "anthropic" and self.anthropic_api_key:
+                providers.insert(0, ("anthropic", self.selected_model, self.anthropic_api_key))
+            if self.google_api_key and self.selected_provider != "google":
+                providers.append(("google", "gemini-2.5-pro-preview-06-05", self.google_api_key))
+            elif self.selected_provider == "google" and self.google_api_key:
+                providers.insert(0, ("google", self.selected_model, self.google_api_key))
+            
+            # 各プロバイダーを順番に試す
+            for provider, model, api_key in providers:
+                try:
+                    print("="*60)
+                    print("[CompetitiveAnalysis] ===== GENERATING SWOT ANALYSIS & RECOMMENDATIONS =====")
+                    print(f"[CompetitiveAnalysis] Trying Provider: {provider}")
+                    print(f"[CompetitiveAnalysis] Model: {model}")
+                    print("="*60)
+                    
+                    content = await self._call_ai_provider(provider, model, api_key, system_prompt, prompt)
+                    if content:
+                        logger.info(f"Successfully generated SWOT analysis using {provider}/{model}")
+                        return self._parse_swot_response(content), content
+                except Exception as e:
+                    logger.warning(f"Provider {provider} failed: {str(e)}")
+                    if "insufficient_quota" in str(e) or "429" in str(e):
+                        logger.info(f"Quota exceeded for {provider}, trying next provider")
+                        continue
+                    elif "timeout" in str(e).lower():
+                        logger.info(f"Timeout for {provider}, trying next provider")
+                        continue
+                    elif "api_key" in str(e).lower():
+                        logger.info(f"API key issue for {provider}, trying next provider")
+                        continue
             
             # 選択されたプロバイダーに応じてAIを使用
             if self.selected_provider == "openai" and self.openai_api_key and openai_available:
