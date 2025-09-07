@@ -106,6 +106,8 @@ document.addEventListener('DOMContentLoaded', function() {
     init();
     
     async function init() {
+        console.log('=== INIT START ===');
+        
         // Google Maps APIを読み込む
         loadGoogleMapsAPI();
         
@@ -121,6 +123,19 @@ document.addEventListener('DOMContentLoaded', function() {
         // デバッグ用: サンプルCSVを自動入力するボタンを追加
         // 一時的に本番環境でも有効化（デバッグのため）
         addDebugButton();
+        
+        // CSVアップロード要素の存在確認
+        setTimeout(() => {
+            const csvInput = document.getElementById('csv-file-input');
+            console.log('CSV input 要素再確認:', csvInput);
+            if (!csvInput) {
+                console.error('CSV input 要素がまだ存在しません！');
+                // もう一度設定を試みる
+                setupEventListeners();
+            }
+        }, 1000);
+        
+        console.log('=== INIT END ===');
     }
     
     // デバッグ用ボタンを追加
@@ -281,10 +296,22 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // CSVファイルアップロードハンドラ
     function handleCSVUpload(e) {
+        console.log('===> handleCSVUpload 呼び出されました');
+        alert('CSVアップロードイベント発生！');
+        
         const file = e.target.files[0];
+        console.log('File:', file);
+        
+        if (!file) {
+            console.log('No file selected');
+            return;
+        }
+        
         if (file && file.name.endsWith('.csv')) {
+            console.log('CSVファイルを処理します');
             handleCSVFile(file);
         } else {
+            console.log('CSVファイルではありません:', file.name);
             showModal('CSVファイルのみアップロード可能です。');
         }
     }
@@ -292,105 +319,29 @@ document.addEventListener('DOMContentLoaded', function() {
     // CSVファイル処理
     function handleCSVFile(file) {
         console.log('=== CSVファイル処理開始 ===');
+        alert('CSVファイル処理開始: ' + file.name);
         console.log('ファイル名:', file.name);
         console.log('ファイルサイズ:', file.size, 'bytes');
         console.log('ファイルタイプ:', file.type || 'タイプ不明');
         console.log('最終更新日時:', new Date(file.lastModified).toLocaleString());
         
-        // エンコーディング検出のため、まずバイナリで読み込む
-        const binaryReader = new FileReader();
-        binaryReader.onload = function(e) {
-            const arrayBuffer = e.target.result;
-            const bytes = new Uint8Array(arrayBuffer);
-            
-            // BOM検出
-            let encoding = 'UTF-8';
-            let hasBOM = false;
-            if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
-                console.log('UTF-8 BOMを検出');
-                hasBOM = true;
-            } else if (bytes[0] === 0xFF && bytes[1] === 0xFE) {
-                console.log('UTF-16 LE BOMを検出');
-                encoding = 'UTF-16LE';
-                hasBOM = true;
-            } else if (bytes[0] === 0xFE && bytes[1] === 0xFF) {
-                console.log('UTF-16 BE BOMを検出');
-                encoding = 'UTF-16BE';
-                hasBOM = true;
-            }
-            
-            console.log('検出されたエンコーディング:', encoding);
-            console.log('BOMあり:', hasBOM);
-            
-            // テキストとして読み込み
-            const textReader = new FileReader();
-            textReader.onload = function(e) {
-                console.log('FileReader onloadイベント発生');
-                let csvContent = e.target.result;
-                console.log('CSVコンテンツの長さ:', csvContent.length);
-                
-                // 最初の数文字のコードポイントを表示
-                console.log('最初の10文字のコードポイント:');
-                for (let i = 0; i < Math.min(10, csvContent.length); i++) {
-                    console.log(`  [${i}]: '${csvContent[i]}' (${csvContent.charCodeAt(i).toString(16)})`);
-                }
-                
-                console.log('CSVコンテンツの最初の200文字:', csvContent.substring(0, 200));
-                
-                // 改行コードの種類を確認
-                const hasWindowsNewline = csvContent.includes('\r\n');
-                const hasUnixNewline = csvContent.includes('\n');
-                const hasMacNewline = csvContent.includes('\r') && !hasWindowsNewline;
-                console.log('改行コード: Windows(\\r\\n):', hasWindowsNewline, ', Unix(\\n):', hasUnixNewline, ', Mac(\\r):', hasMacNewline);
-                
-                parseAndFillCSVData(csvContent);
-            };
-            textReader.onerror = function(error) {
-                console.error('FileReaderエラー:', error);
-                showModal('CSVファイルの読み込みに失敗しました。');
-            };
-            
-            // エンコーディングを判定して読み込み
-            // ExcelからエクスポートされたCSVはShift-JISのことが多い
-            if (!hasBOM && encoding === 'UTF-8') {
-                // BOMがない場合、両方のエンコーディングを試す
-                console.log('BOMがないため、Shift-JISとUTF-8の両方を試します');
-                
-                // まずShift-JISで読み込み
-                const sjisReader = new FileReader();
-                sjisReader.onload = function(e) {
-                    const sjisContent = e.target.result;
-                    console.log('Shift-JISで読み込み成功');
-                    
-                    // 日本語が正しく読み込まれているかチェック
-                    if (sjisContent.includes('クリニック') || sjisContent.includes('郵便') || sjisContent.includes('住所')) {
-                        console.log('Shift-JISで正常に日本語を検出');
-                        textReader.onload(e);
-                    } else {
-                        console.log('Shift-JISで日本語が検出できないため、UTF-8を試します');
-                        const utf8Reader = new FileReader();
-                        utf8Reader.onload = textReader.onload;
-                        utf8Reader.onerror = textReader.onerror;
-                        utf8Reader.readAsText(file, 'UTF-8');
-                    }
-                };
-                sjisReader.onerror = function(error) {
-                    console.log('Shift-JIS読み込みエラー、UTF-8を試します');
-                    const utf8Reader = new FileReader();
-                    utf8Reader.onload = textReader.onload;
-                    utf8Reader.onerror = textReader.onerror;
-                    utf8Reader.readAsText(file, 'UTF-8');
-                };
-                sjisReader.readAsText(file, 'Shift-JIS');
-            } else {
-                textReader.readAsText(file, encoding);
-            }
+        // シンプルに直接読み込みを試みる
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            console.log('FileReader.onload発生');
+            const content = e.target.result;
+            console.log('CSV内容読み込み完了, 長さ:', content.length);
+            alert('CSV読み込み完了: ' + content.substring(0, 100));
+            parseAndFillCSVData(content);
         };
-        binaryReader.onerror = function(error) {
-            console.error('バイナリ読み込みエラー:', error);
-            showModal('CSVファイルの読み込みに失敗しました。');
+        reader.onerror = function(error) {
+            console.error('FileReaderエラー:', error);
+            alert('CSV読み込みエラー');
         };
-        binaryReader.readAsArrayBuffer(file);
+        
+        // まずUTF-8で読み込み
+        console.log('UTF-8で読み込み開始');
+        reader.readAsText(file, 'UTF-8');
     }
     
     // CSVを正しくパースする関数
@@ -662,8 +613,18 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // CSVファイルアップロード
         const csvFileInput = document.getElementById('csv-file-input');
+        console.log('CSV File Input element:', csvFileInput);
         if (csvFileInput) {
+            console.log('イベントリスナーを設定します');
+            // 既存のリスナーを削除してから追加
+            csvFileInput.removeEventListener('change', handleCSVUpload);
             csvFileInput.addEventListener('change', handleCSVUpload);
+            
+            // 確認用にイベントを即座にテスト
+            console.log('CSV input イベントリスナー設定完了');
+        } else {
+            console.error('CSV File Input element not found!');
+            alert('CSVアップロード要素が見つかりません');
         }
         
         // CSVドラッグ&ドロップ
