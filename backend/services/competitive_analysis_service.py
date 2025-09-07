@@ -69,9 +69,9 @@ class CompetitiveAnalysisService:
             
             # 1. 競合医院を検索
             competitors_data = await self.google_maps.search_nearby_clinics(
-                address=address,
-                department=clinic_info.get("department", ""),
-                radius=clinic_info.get("radius", 3000)
+                location=address,  # パラメータ名を location に修正
+                radius=clinic_info.get("radius", 3000),
+                department_types=[clinic_info.get("department", "")] if clinic_info.get("department") else None
             )
             
             # 2. 地域データと医療統計を取得
