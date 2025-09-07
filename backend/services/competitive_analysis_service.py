@@ -362,7 +362,15 @@ class CompetitiveAnalysisService:
                         temperature=0.7,
                         max_tokens=2000
                     )
-                content = response.choices[0].message.content
+                # デバッグ: レスポンスの詳細を確認
+                logger.info(f"OpenAI API response object: {response}")
+                logger.info(f"Response choices: {response.choices}")
+                if response.choices:
+                    logger.info(f"First choice: {response.choices[0]}")
+                    logger.info(f"Message object: {response.choices[0].message}")
+                    
+                content = response.choices[0].message.content if response.choices else None
+                logger.info(f"OpenAI response content: {content}")
                 logger.info(f"OpenAI response length: {len(content) if content else 0} characters")
                 return content
             
