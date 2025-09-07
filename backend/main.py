@@ -2739,12 +2739,12 @@ async def analyze_competitors(request: Request, username: str = Depends(verify_a
         # 競合分析サービスのインスタンスを作成
         competitive_service = CompetitiveAnalysisService()
         
-        # 分析を実行
-        result = await competitive_service.analyze_competitors(
-            clinic_info=clinic_info,
-            search_radius=search_radius,
-            additional_info=additional_info
-        )
+        # 分析を実行（正しいメソッド名を使用: analyze_competition）
+        result = await competitive_service.analyze_competition({
+            "clinic_info": clinic_info,
+            "search_radius": search_radius,
+            "additional_info": additional_info
+        })
         
         if result.get("error"):
             return JSONResponse(
