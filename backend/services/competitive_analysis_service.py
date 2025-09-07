@@ -76,13 +76,17 @@ class CompetitiveAnalysisService:
         """競合分析を実行"""
         try:
             # 基本情報を取得
-            clinic_info = request_data.get("clinic", {})
+            clinic_info = request_data.get("clinic_info", request_data.get("clinic", {}))
             address = clinic_info.get("address", "")
+            
+            # 検索半径を取得（search_radiusまたはradiusフィールドから）
+            search_radius = request_data.get("search_radius", clinic_info.get("radius", 3000))
+            logger.info(f"Using search radius: {search_radius}m for address: {address}")
             
             # 1. 競合医院を検索
             competitors_data = await self.google_maps.search_nearby_clinics(
                 location=address,  # パラメータ名を location に修正
-                radius=clinic_info.get("radius", 3000),
+                radius=search_radius,
                 department_types=[clinic_info.get("department", "")] if clinic_info.get("department") else None
             )
             
@@ -139,7 +143,7 @@ class CompetitiveAnalysisService:
                     "competitor_details": competitor_details,
                     "market_analysis": {
                         "total_competitors": competitors_data.get("total_results", 0),
-                        "search_radius": clinic_info.get("radius", 3000),
+                        "search_radius": search_radius,
                         "market_stats": competitors_data.get("market_stats", {}),
                         "regional_data": regional_data,
                         "medical_stats": medical_stats
@@ -310,7 +314,7 @@ class CompetitiveAnalysisService:
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": prompt}
                     ],
-                    temperature=1.0,
+                    temperature=0.7,
                     max_completion_tokens=2000
                 )
             else:
@@ -323,7 +327,9 @@ class CompetitiveAnalysisService:
                     temperature=0.7,
                     max_tokens=2000
                 )
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            logger.info(f"OpenAI response length: {len(content) if content else 0} characters")
+            return content
             
         elif provider == "anthropic" and anthropic_available:
             client = Anthropic(api_key=api_key, timeout=30.0)

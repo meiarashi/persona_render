@@ -2741,10 +2741,8 @@ async def analyze_competitors(request: Request, username: str = Depends(verify_a
         
         # 分析を実行（正しいメソッド名を使用: analyze_competition）
         result = await competitive_service.analyze_competition({
-            "clinic": {
-                **clinic_info,
-                "radius": search_radius
-            },
+            "clinic_info": clinic_info,
+            "search_radius": search_radius,
             "additional_info": additional_info
         })
         
