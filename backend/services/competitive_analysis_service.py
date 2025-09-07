@@ -317,7 +317,7 @@ class CompetitiveAnalysisService:
                     response = client.responses.create(
                         model="gpt-5",
                         input=full_prompt,
-                        reasoning={"effort": "high"}  # SWOT分析は詳細な推論が必要
+                        reasoning={"effort": "medium"}  # 処理時間短縮のため中程度に変更
                     )
                     content = response.output_text
                     logger.info(f"GPT-5 responses API - response length: {len(content) if content else 0} characters")
