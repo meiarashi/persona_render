@@ -106,8 +106,6 @@ document.addEventListener('DOMContentLoaded', function() {
     init();
     
     async function init() {
-        console.log('=== INIT START ===');
-        
         // Google Maps APIを読み込む
         loadGoogleMapsAPI();
         
@@ -119,71 +117,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 郵便番号検索機能
         setupPostalCodeSearch();
-        
-        // デバッグ用: サンプルCSVを自動入力するボタンを追加
-        // 一時的に本番環境でも有効化（デバッグのため）
-        addDebugButton();
-        
-        // CSVアップロード要素の存在確認
-        setTimeout(() => {
-            const csvInput = document.getElementById('csv-file-input');
-            console.log('CSV input 要素再確認:', csvInput);
-            if (!csvInput) {
-                console.error('CSV input 要素がまだ存在しません！');
-                // もう一度設定を試みる
-                setupEventListeners();
-            }
-        }, 1000);
-        
-        console.log('=== INIT END ===');
     }
     
-    // デバッグ用ボタンを追加
-    function addDebugButton() {
-        const csvUploadSection = document.querySelector('.csv-upload-section');
-        if (csvUploadSection) {
-            const debugBtn = document.createElement('button');
-            debugBtn.type = 'button';
-            debugBtn.textContent = '[デバッグ] サンプルCSVをテスト';
-            debugBtn.style.cssText = 'margin-top: 10px; padding: 8px 16px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;';
-            debugBtn.onclick = function() {
-                console.log('=== デバッグ: サンプルCSVテスト ===');
-                const sampleCSV = 'クリニック名,郵便番号,住所,診療科,クリニックの強み・特徴,主なターゲット層\n田中内科クリニック,107-0052,東京都港区赤坂 4-9-11,内科,土日診療対応・最新機器導入・専門医3名在籍,働く世代・ファミリー層';
-                parseAndFillCSVData(sampleCSV);
-            };
-            csvUploadSection.appendChild(debugBtn);
-            
-            // フォーム要素確認ボタン
-            const checkBtn = document.createElement('button');
-            checkBtn.type = 'button';
-            checkBtn.textContent = '[デバッグ] フォーム要素確認';
-            checkBtn.style.cssText = 'margin-left: 10px; margin-top: 10px; padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;';
-            checkBtn.onclick = function() {
-                const elements = {
-                    'clinic-name': document.getElementById('clinic-name'),
-                    'postal-code': document.getElementById('postal-code'),
-                    'address': document.getElementById('address'),
-                    'clinic-features': document.getElementById('clinic-features'),
-                    'target-patients': document.getElementById('target-patients')
-                };
-                
-                let report = 'フォーム要素の状態:\n\n';
-                for (const [id, element] of Object.entries(elements)) {
-                    if (element) {
-                        report += `${id}: 存在 (値: "${element.value || '(空)'}")\n`;
-                    } else {
-                        report += `${id}: 不在\n`;
-                    }
-                }
-                
-                const selectedDept = document.querySelector('input[name="department"]:checked');
-                report += `\n選択された診療科: ${selectedDept ? selectedDept.value : '未選択'}`;
-                
-                alert(report);
-            };
-            csvUploadSection.appendChild(checkBtn);
-        }
-    }
     
     // 診療科名とアイコンファイル名のマッピング
     // chief_complaints.jsonの診療科名 → 実際のアイコンファイル名
@@ -296,51 +231,26 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // CSVファイルアップロードハンドラ
     function handleCSVUpload(e) {
-        console.log('===> handleCSVUpload 呼び出されました');
-        alert('CSVアップロードイベント発生！');
-        
         const file = e.target.files[0];
-        console.log('File:', file);
-        
-        if (!file) {
-            console.log('No file selected');
-            return;
-        }
+        if (!file) return;
         
         if (file && file.name.endsWith('.csv')) {
-            console.log('CSVファイルを処理します');
             handleCSVFile(file);
         } else {
-            console.log('CSVファイルではありません:', file.name);
             showModal('CSVファイルのみアップロード可能です。');
         }
     }
     
     // CSVファイル処理
     function handleCSVFile(file) {
-        console.log('=== CSVファイル処理開始 ===');
-        alert('CSVファイル処理開始: ' + file.name);
-        console.log('ファイル名:', file.name);
-        console.log('ファイルサイズ:', file.size, 'bytes');
-        console.log('ファイルタイプ:', file.type || 'タイプ不明');
-        console.log('最終更新日時:', new Date(file.lastModified).toLocaleString());
-        
-        // シンプルに直接読み込みを試みる
         const reader = new FileReader();
         reader.onload = function(e) {
-            console.log('FileReader.onload発生');
             const content = e.target.result;
-            console.log('CSV内容読み込み完了, 長さ:', content.length);
-            alert('CSV読み込み完了: ' + content.substring(0, 100));
             parseAndFillCSVData(content);
         };
         reader.onerror = function(error) {
-            console.error('FileReaderエラー:', error);
-            alert('CSV読み込みエラー');
+            showModal('CSVファイルの読み込みに失敗しました。');
         };
-        
-        // まずUTF-8で読み込み
-        console.log('UTF-8で読み込み開始');
         reader.readAsText(file, 'UTF-8');
     }
     
@@ -383,10 +293,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // CSV解析とフォーム自動入力
     function parseAndFillCSVData(csvContent) {
         try {
-            console.log('=== CSV解析開始 ===');
-            console.log('CSV content received (最初の200文字):', csvContent.substring(0, 200));
-            console.log('CSV全体の文字数:', csvContent.length);
-            
             // 空のコンテンツチェック
             if (!csvContent || csvContent.trim().length === 0) {
                 throw new Error('CSVファイルが空です');
@@ -394,67 +300,30 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // BOMを削除（UTF-8 BOMがある場合）
             if (csvContent.charCodeAt(0) === 0xFEFF) {
-                console.log('BOMを検出しました。削除します。');
                 csvContent = csvContent.slice(1);
             }
             
             const lines = csvContent.split(/\r?\n/).filter(line => line.trim());
-            console.log('行数:', lines.length);
-            console.log('各行の内容:');
-            lines.forEach((line, index) => {
-                console.log(`  行${index + 1}: "${line.substring(0, 100)}${line.length > 100 ? '...' : ''}"`);
-            });
             
-            // ヘッダー行とデータ行を分離（改良版パーサーを使用）
-            console.log('\n--- ヘッダー行パース ---');
+            // ヘッダー行とデータ行を分離
             const headers = parseCSVLine(lines[0]);
-            console.log('ヘッダー数:', headers.length);
-            console.log('ヘッダー内容:', headers);
-            
-            console.log('\n--- データ行パース ---');
             const data = lines[1] ? parseCSVLine(lines[1]) : [];
-            console.log('データ数:', data.length);
-            console.log('データ内容:', data);
             
             // データマッピング
-            console.log('\n--- データマッピング ---');
             const dataMap = {};
             headers.forEach((header, index) => {
                 const trimmedHeader = header.trim();
                 const value = data[index] || '';
                 dataMap[trimmedHeader] = value;
-                console.log(`  "${trimmedHeader}" => "${value}"`);
             });
-            console.log('\n完成したデータマップ:', dataMap);
-            
-            // デバッグ用: パース結果をアラートで表示
-            if (window.confirm('CSVパース結果を表示しますか？')) {
-                let message = 'CSVパース結果:\n\n';
-                for (const [key, value] of Object.entries(dataMap)) {
-                    message += `${key}: "${value}"\n`;
-                }
-                alert(message);
-            }
             
             // フォームに値を設定
-            console.log('\n=== フォームへの値設定開始 ===');
-            
-            // 現在のフォーム要素を確認
-            console.log('\n--- フォーム要素の存在確認 ---');
-            console.log('clinic-name:', document.getElementById('clinic-name') ? '存在' : '不在');
-            console.log('postal-code:', document.getElementById('postal-code') ? '存在' : '不在');
-            console.log('address:', document.getElementById('address') ? '存在' : '不在');
-            console.log('clinic-features:', document.getElementById('clinic-features') ? '存在' : '不在');
-            console.log('target-patients:', document.getElementById('target-patients') ? '存在' : '不在');
             
             // クリニック名
             if (dataMap['クリニック名']) {
                 const clinicNameField = document.getElementById('clinic-name');
                 if (clinicNameField) {
                     clinicNameField.value = dataMap['クリニック名'];
-                    console.log('Set clinic name:', dataMap['クリニック名']);
-                } else {
-                    console.error('clinic-name field not found');
                 }
             }
             
@@ -463,9 +332,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const postalCodeField = document.getElementById('postal-code');
                 if (postalCodeField) {
                     postalCodeField.value = dataMap['郵便番号'];
-                    console.log('Set postal code:', dataMap['郵便番号']);
-                } else {
-                    console.error('postal-code field not found');
                 }
             }
             
@@ -474,28 +340,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 const addressField = document.getElementById('address');
                 if (addressField) {
                     addressField.value = dataMap['住所'];
-                    console.log('Set address:', dataMap['住所']);
-                } else {
-                    console.error('address field not found');
                 }
             }
             
             // 診療科の選択
             if (dataMap['診療科']) {
                 const department = dataMap['診療科'];
-                console.log(`診療科を設定しようとしています: "${department}"`);
-                
-                // 利用可能な診療科をすべて表示
                 const allDeptRadios = document.querySelectorAll('input[name="department"]');
-                console.log('利用可能な診療科:');
-                allDeptRadios.forEach(radio => {
-                    console.log(`  - "${radio.value}" (id: ${radio.id})`);
-                });
-                
                 const deptRadio = document.querySelector(`input[name="department"][value="${department}"]`);
+                
                 if (deptRadio) {
                     deptRadio.checked = true;
-                    // selectedクラスの更新 - 正しいクラス名を使用
                     const container = document.querySelector('.department-options') || document.querySelector('.department-checkbox-grid');
                     if (container) {
                         container.querySelectorAll('label').forEach(l => l.classList.remove('selected'));
@@ -504,17 +359,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             label.classList.add('selected');
                         }
                     }
-                    console.log('診療科を設定しました:', department);
                 } else {
-                    console.error(`診療科 "${department}" のラジオボタンが見つかりません`);
-                    console.log('完全一致で見つからないため、部分一致を試みます...');
-                    
                     // 部分一致を試みる
                     let foundRadio = null;
                     allDeptRadios.forEach(radio => {
                         if (radio.value.includes(department) || department.includes(radio.value)) {
                             foundRadio = radio;
-                            console.log(`部分一致を発見: "${radio.value}"`);
                         }
                     });
                     
@@ -528,9 +378,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 label.classList.add('selected');
                             }
                         }
-                        console.log('部分一致で診療科を設定しました:', foundRadio.value);
-                    } else {
-                        console.warn('適切な診療科が見つかりませんでした');
                     }
                 }
             }
@@ -540,9 +387,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const strengthsField = document.getElementById('clinic-features'); // 正しいID
                 if (strengthsField) {
                     strengthsField.value = dataMap['クリニックの強み・特徴'];
-                    console.log('Set clinic features:', dataMap['クリニックの強み・特徴']);
-                } else {
-                    console.error('clinic-features field not found');
                 }
             }
             
@@ -551,9 +395,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const targetField = document.getElementById('target-patients'); // 正しいIDを確認
                 if (targetField) {
                     targetField.value = dataMap['主なターゲット層'];
-                    console.log('Set target patients:', dataMap['主なターゲット層']);
-                } else {
-                    console.error('target-patients field not found');
                 }
             }
             
@@ -567,33 +408,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 3000);
             }
             
-            // 最終的なフォームの値を確認
-            console.log('\n=== 最終的なフォームの値 ===');
-            console.log('クリニック名:', document.getElementById('clinic-name')?.value || '(未設定)');
-            console.log('郵便番号:', document.getElementById('postal-code')?.value || '(未設定)');
-            console.log('住所:', document.getElementById('address')?.value || '(未設定)');
-            console.log('診療科:', document.querySelector('input[name="department"]:checked')?.value || '(未選択)');
-            console.log('クリニックの強み:', document.getElementById('clinic-features')?.value || '(未設定)');
-            console.log('ターゲット層:', document.getElementById('target-patients')?.value || '(未設定)');
-            
-            console.log('=== CSV読み込み処理完了 ===');
             
         } catch (error) {
-            console.error('=== CSV解析エラー ===');
-            console.error('エラーメッセージ:', error.message);
-            console.error('エラースタック:', error.stack);
-            
-            // エラーの詳細をユーザーに表示
-            let errorMessage = 'CSVファイルの読み込みに失敗しました。<br><br>';
-            errorMessage += '<strong>エラー詳細:</strong><br>';
-            errorMessage += error.message + '<br><br>';
-            errorMessage += '<strong>確認ポイント:</strong><br>';
-            errorMessage += '1. CSVファイルがUTF-8またはShift-JISで保存されているか<br>';
-            errorMessage += '2. 必要なヘッダーがすべて含まれているか<br>';
-            errorMessage += '3. ファイルが破損していないか<br><br>';
-            errorMessage += '<small>コンソールにより詳細なデバッグ情報が表示されています。</small>';
-            
-            showModal(errorMessage, 'error');
+            showModal('CSVファイルの読み込みに失敗しました。フォーマットを確認してください。', 'error');
         }
     }
     
@@ -613,18 +430,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // CSVファイルアップロード
         const csvFileInput = document.getElementById('csv-file-input');
-        console.log('CSV File Input element:', csvFileInput);
         if (csvFileInput) {
-            console.log('イベントリスナーを設定します');
-            // 既存のリスナーを削除してから追加
-            csvFileInput.removeEventListener('change', handleCSVUpload);
             csvFileInput.addEventListener('change', handleCSVUpload);
-            
-            // 確認用にイベントを即座にテスト
-            console.log('CSV input イベントリスナー設定完了');
-        } else {
-            console.error('CSV File Input element not found!');
-            alert('CSVアップロード要素が見つかりません');
         }
         
         // CSVドラッグ&ドロップ
