@@ -256,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Attempting fallback: loading models from local config...");
             const fallbackModels = {
                 text_models: [
-                    { id: "gpt-5-2025-08-07", name: "GPT-5" },
+                    { id: "gpt-5", name: "GPT-5" },
                     { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4" },
                     { id: "-gemini-2.5-pro-preview-06-05", name: "Gemini 2.5 Pro" }
                 ],

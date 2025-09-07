@@ -1,7 +1,7 @@
 {
   "text_models": [
     {
-      "id": "gpt-5-2025-08-07",
+      "id": "gpt-5",
       "provider": "openai",
       "name": "GPT-5",
       "max_tokens": 128000,

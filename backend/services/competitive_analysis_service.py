@@ -308,18 +308,39 @@ class CompetitiveAnalysisService:
         """AIプロバイダーを呼び出してレスポンスを取得"""
         if provider == "openai" and openai_available:
             client = OpenAI(api_key=api_key, timeout=30.0)
-            # GPT-5 uses max_completion_tokens instead of max_tokens and only supports temperature=1.0
-            if "gpt-5" in model:
-                response = client.chat.completions.create(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=1.0,  # GPT-5 only supports default temperature
-                    max_completion_tokens=2000
-                )
+            
+            # GPT-5は新しいAPI形式を使用
+            if model == "gpt-5":
+                try:
+                    # 新しいresponses APIを使用
+                    full_prompt = f"{system_prompt}\n\n{prompt}"
+                    response = client.responses.create(
+                        model="gpt-5",
+                        input=full_prompt,
+                        reasoning={"effort": "high"},  # SWOT分析は詳細な推論が必要
+                        text={"verbosity": "medium"}
+                    )
+                    content = response.output_text
+                    logger.info(f"GPT-5 response length: {len(content) if content else 0} characters")
+                    return content
+                except Exception as e:
+                    logger.error(f"GPT-5 API error: {str(e)}")
+                    # フォールバックとしてGPT-4を使用
+                    logger.info("Falling back to GPT-4 API")
+                    response = client.chat.completions.create(
+                        model="gpt-4-turbo-preview",
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.7,
+                        max_tokens=2000
+                    )
+                    content = response.choices[0].message.content
+                    logger.info(f"GPT-4 response length: {len(content) if content else 0} characters")
+                    return content
             else:
+                # GPT-4以前のモデル
                 response = client.chat.completions.create(
                     model=model,
                     messages=[
@@ -329,9 +350,9 @@ class CompetitiveAnalysisService:
                     temperature=0.7,
                     max_tokens=2000
                 )
-            content = response.choices[0].message.content
-            logger.info(f"OpenAI response length: {len(content) if content else 0} characters")
-            return content
+                content = response.choices[0].message.content
+                logger.info(f"OpenAI response length: {len(content) if content else 0} characters")
+                return content
             
         elif provider == "anthropic" and anthropic_available:
             client = Anthropic(api_key=api_key, timeout=30.0)
