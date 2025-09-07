@@ -22,7 +22,7 @@ except ImportError:
 from .google_maps_service import GoogleMapsService
 from .web_research_service import WebResearchService, RegionalDataService
 from .estat_medical_stats import EStatMedicalStatsService
-from backend.utils.config_manager import config_manager
+from backend.services import crud
 
 logger = logging.getLogger(__name__)
 
@@ -38,27 +38,39 @@ class CompetitiveAnalysisService:
         
         # 管理画面の設定を読み込み
         try:
-            self.settings = config_manager.get_settings()
+            self.settings = crud.read_settings()
             # 新しいフィールド名を使用（models.text_api_model）
             if self.settings and hasattr(self.settings, 'models') and self.settings.models:
                 self.selected_model = self.settings.models.text_api_model or "gpt-4-turbo-preview"
-                # プロバイダーを自動判定
-                if "gpt" in self.selected_model.lower():
+                # プロバイダーを自動判定（より確実な判定）
+                model_lower = self.selected_model.lower()
+                
+                # OpenAI models: gpt-*, o1-*, dall-e-*
+                if any(prefix in model_lower for prefix in ["gpt-", "o1-", "dall-e"]):
                     self.selected_provider = "openai"
-                elif "claude" in self.selected_model.lower():
+                # Anthropic models: claude-*
+                elif "claude" in model_lower:
                     self.selected_provider = "anthropic"
-                elif "gemini" in self.selected_model.lower():
+                # Google models: gemini-*, flash
+                elif "gemini" in model_lower or "flash" in model_lower:
                     self.selected_provider = "google"
+                # Default fallback
                 else:
+                    # デフォルトはOpenAIとするが、警告を出す
+                    logger.warning(f"Unknown model format: {self.selected_model}, defaulting to OpenAI provider")
                     self.selected_provider = "openai"
+                
+                logger.info(f"CompetitiveAnalysisService initialized with model: {self.selected_model}, provider: {self.selected_provider}")
             else:
                 # デフォルト設定
                 self.selected_model = "gpt-4-turbo-preview"
                 self.selected_provider = "openai"
+                logger.info(f"No settings found, using defaults - model: {self.selected_model}, provider: {self.selected_provider}")
         except Exception as e:
             logger.warning(f"Failed to read settings: {e}")
             self.selected_model = "gpt-4-turbo-preview"
             self.selected_provider = "openai"
+            logger.info(f"Error reading settings, using defaults - model: {self.selected_model}, provider: {self.selected_provider}")
     
     async def analyze_competition(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
         """競合分析を実行"""

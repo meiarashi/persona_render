@@ -29,7 +29,7 @@ async function loadGoogleMapsAPI() {
         
         // Google Maps APIスクリプトを動的に追加
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry&callback=initMapCallback`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry&loading=async&callback=initMapCallback`;
         script.async = true;
         script.defer = true;
         document.head.appendChild(script);
