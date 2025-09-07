@@ -839,7 +839,7 @@ document.addEventListener('DOMContentLoaded', function() {
             map: mapInstance,
             title: clinicInfo.name || '',
             icon: {
-                url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
             }
         });
         
@@ -885,7 +885,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 map: mapInstance,
                 title: competitor.name,
                 icon: {
-                    url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                    url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
                 }
             });
             
@@ -1016,8 +1016,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <h3>競合マップ</h3>
                     <div id="competitors-map" style="height: 500px; width: 100%; margin-bottom: 2rem;"></div>
                     <div class="map-legend">
-                        <p><img src="http://maps.google.com/mapfiles/ms/icons/blue-dot.png" alt="自院" style="width: 20px; vertical-align: middle;"> 自院</p>
-                        <p><img src="http://maps.google.com/mapfiles/ms/icons/red-dot.png" alt="競合" style="width: 20px; vertical-align: middle;"> 競合医療機関</p>
+                        <p><img src="https://maps.google.com/mapfiles/ms/icons/blue-dot.png" alt="自院" style="width: 20px; vertical-align: middle;"> 自院</p>
+                        <p><img src="https://maps.google.com/mapfiles/ms/icons/red-dot.png" alt="競合" style="width: 20px; vertical-align: middle;"> 競合医療機関</p>
                     </div>
                 </div>
                 

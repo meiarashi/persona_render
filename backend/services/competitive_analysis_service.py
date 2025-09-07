@@ -90,24 +90,32 @@ class CompetitiveAnalysisService:
             regional_data = await self.regional_data.get_regional_data(address)
             medical_stats = await self.medical_stats_service.get_comprehensive_medical_stats(address)
             
-            # 3. 競合の詳細情報を取得（上位3件のみ）
-            top_competitors = competitors_data.get("competitors", [])[:3]
+            # 3. 競合の詳細情報を整理（上位5件のみ、Google Maps APIデータを活用）
+            top_competitors = competitors_data.get("competitors", [])[:5]
             competitor_details = []
             
             for comp in top_competitors:
                 clinic_name = comp.get("name", "")
-                clinic_address = comp.get("formatted_address", comp.get("address", ""))
                 
-                if clinic_name and clinic_address:
-                    # Web検索で詳細情報を取得
-                    web_info = await self.web_research.research_competitor(
-                        clinic_name, clinic_address
-                    )
-                    competitor_details.append({
-                        "clinic_name": clinic_name,
-                        "basic_info": comp,
-                        "web_research": web_info
-                    })
+                # Google Maps APIから取得済みのデータを整理
+                competitor_details.append({
+                    "clinic_name": clinic_name,
+                    "basic_info": comp,
+                    "google_maps_data": {
+                        "rating": comp.get("rating"),
+                        "reviews_count": comp.get("user_ratings_total", 0),
+                        "phone": comp.get("phone_number"),
+                        "website": comp.get("website"),
+                        "opening_hours": comp.get("opening_hours"),
+                        "reviews": comp.get("reviews", [])
+                    }
+                })
+            
+            # TODO: 将来的にWeb検索機能を追加
+            # if self.web_research and self.serpapi_key:
+            #     web_info = await self.web_research.research_competitor(...)
+            
+            logger.info(f"Analyzed {len(competitor_details)} competitors using Google Maps data")
             
             # 分析データを構築
             analysis_data = {
@@ -183,24 +191,29 @@ class CompetitiveAnalysisService:
             dept = comp.get("department", "不明")
             department_distribution[dept] = department_distribution.get(dept, 0) + 1
         
-        # Web研究から追加情報を統合
+        # Google Maps APIから取得したレビュー情報を統合
         additional_info = []
-        for detail in competitor_details:
-            if detail.get("web_research"):
-                research = detail["web_research"]
-                if research.get("extracted_info"):
-                    additional_info.append(research["extracted_info"])
-        
-        # レビューインサイトを統合
         review_insights = []
+        
         for detail in competitor_details:
-            if detail.get("web_research", {}).get("patient_reviews_summary"):
-                reviews = detail["web_research"]["patient_reviews_summary"]
-                for review in reviews[:3]:  # 上位3件のみ
+            maps_data = detail.get("google_maps_data", {})
+            
+            # 追加情報を収集（ウェブサイトの有無、営業時間など）
+            if maps_data.get("website") or maps_data.get("opening_hours"):
+                info = {
+                    "clinic": detail["clinic_name"],
+                    "has_website": bool(maps_data.get("website")),
+                    "has_hours": bool(maps_data.get("opening_hours"))
+                }
+                additional_info.append(info)
+            
+            # Google Mapsのレビューを統合
+            if maps_data.get("reviews"):
+                for review in maps_data["reviews"][:3]:  # 上位3件のみ
                     review_insights.append({
                         "clinic": detail["clinic_name"],
                         "rating": review.get("rating"),
-                        "text": review.get("text", "")[:200]
+                        "text": review.get("text", "")[:200] if review.get("text") else ""
                     })
         
         return {
@@ -336,7 +349,18 @@ class CompetitiveAnalysisService:
                     )
                 )
             )
-            return response.text
+            # Geminiのレスポンスを安全に取得
+            if hasattr(response, 'text') and response.text:
+                return response.text
+            elif hasattr(response, 'candidates') and response.candidates:
+                # 候補が複数ある場合は最初のものを使用
+                for candidate in response.candidates:
+                    if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
+                        for part in candidate.content.parts:
+                            if hasattr(part, 'text') and part.text:
+                                return part.text
+            logger.warning(f"Google AI returned empty response for model {model}")
+            return None
         else:
             raise Exception(f"Provider {provider} not available")
     
@@ -360,19 +384,20 @@ class CompetitiveAnalysisService:
    - 住所: {comp.get('formatted_address', comp.get('address', '不明'))}
    - 距離: {comp.get('distance', '不明')}m"""
             
-            # Web検索で取得した詳細情報があれば追加
+            # Google Maps APIから取得した詳細情報を追加
             for detail in competitor_details:
                 if detail.get("clinic_name") == comp.get('name'):
-                    if detail.get("extracted_info"):
-                        top_competitors_info += "\n   - 特徴: " + str(detail["extracted_info"].get("特徴的なサービス", "詳細情報なし"))[:100]
-                    if detail.get("online_presence"):
-                        online = detail["online_presence"]
-                        sns_presence = []
-                        if online.get("has_twitter"): sns_presence.append("Twitter")
-                        if online.get("has_instagram"): sns_presence.append("Instagram")
-                        if online.get("has_facebook"): sns_presence.append("Facebook")
-                        if sns_presence:
-                            top_competitors_info += f"\n   - SNS展開: {', '.join(sns_presence)}"
+                    maps_data = detail.get("google_maps_data", {})
+                    if maps_data.get("website"):
+                        top_competitors_info += f"\n   - ウェブサイト: あり"
+                    if maps_data.get("phone"):
+                        top_competitors_info += f"\n   - 電話番号: {maps_data['phone']}"
+                    if maps_data.get("opening_hours"):
+                        top_competitors_info += f"\n   - 営業時間情報: あり"
+                    if maps_data.get("reviews"):
+                        review_count = len(maps_data.get("reviews", []))
+                        if review_count > 0:
+                            top_competitors_info += f"\n   - 最近のレビュー: {review_count}件"
             top_competitors_info += "\n"
         
         # 地域特性情報の整形
