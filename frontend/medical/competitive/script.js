@@ -6,6 +6,45 @@ let mapInstance = null;
 let markers = [];
 let infoWindow = null;
 
+// Google Maps APIを動的に読み込む
+async function loadGoogleMapsAPI() {
+    try {
+        // APIキーを取得
+        const response = await fetch('/api/google-maps-key', {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            console.error('Failed to fetch Google Maps API key');
+            return;
+        }
+        
+        const data = await response.json();
+        const apiKey = data.api_key;
+        
+        if (!apiKey) {
+            console.error('No API key received');
+            return;
+        }
+        
+        // Google Maps APIスクリプトを動的に追加
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry&callback=initMapCallback`;
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+        
+    } catch (error) {
+        console.error('Error loading Google Maps API:', error);
+    }
+}
+
+// Google Maps API読み込み完了時のコールバック
+window.initMapCallback = function() {
+    googleMapsLoaded = true;
+    console.log('Google Maps API loaded successfully');
+}
+
 // セキュリティ: XSS対策用のサニタイズ関数
 function sanitizeHtml(str) {
     if (!str) return '';
@@ -67,6 +106,9 @@ document.addEventListener('DOMContentLoaded', function() {
     init();
     
     async function init() {
+        // Google Maps APIを読み込む
+        loadGoogleMapsAPI();
+        
         // 診療科チェックボックスを生成（APIから取得）
         await loadAndRenderDepartments();
         

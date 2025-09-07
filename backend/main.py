@@ -2752,6 +2752,18 @@ async def analyze_competitors(request: Request, username: str = Depends(verify_a
             content={"error": f"競合分析中にエラーが発生しました: {str(e)}"}
         )
 
+# Google Maps APIキー取得エンドポイント（認証必須）
+@app.get("/api/google-maps-key")
+async def get_google_maps_api_key(username: str = Depends(verify_credentials)):
+    """Google Maps APIキーを取得（認証ユーザーのみ）"""
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    if not api_key:
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Google Maps API key not configured"}
+        )
+    return {"api_key": api_key}
+
 @app.post("/api/competitive-analysis/search-clinics")
 async def search_nearby_clinics(request: Request, username: str = Depends(verify_admin_credentials)):
     """近隣の医療機関を検索"""
