@@ -248,35 +248,101 @@ document.addEventListener('DOMContentLoaded', function() {
         reader.readAsText(file, 'UTF-8');
     }
     
+    // CSVを正しくパースする関数
+    function parseCSVLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            const nextChar = line[i + 1];
+            
+            if (char === '"') {
+                if (inQuotes && nextChar === '"') {
+                    // エスケープされた引用符
+                    current += '"';
+                    i++; // 次の引用符をスキップ
+                } else {
+                    // 引用符の開始/終了
+                    inQuotes = !inQuotes;
+                }
+            } else if (char === ',' && !inQuotes) {
+                // フィールドの区切り
+                result.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        
+        // 最後のフィールドを追加
+        if (current || line.endsWith(',')) {
+            result.push(current.trim());
+        }
+        
+        return result;
+    }
+    
     // CSV解析とフォーム自動入力
     function parseAndFillCSVData(csvContent) {
         try {
-            const lines = csvContent.split('\n').filter(line => line.trim());
+            console.log('CSV content received:', csvContent);
             
-            // ヘッダー行とデータ行を分離
-            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-            const data = lines[1] ? lines[1].split(',').map(d => d.trim().replace(/^"|"$/g, '')) : [];
+            // BOMを削除（UTF-8 BOMがある場合）
+            if (csvContent.charCodeAt(0) === 0xFEFF) {
+                csvContent = csvContent.slice(1);
+            }
+            
+            const lines = csvContent.split(/\r?\n/).filter(line => line.trim());
+            console.log('Lines:', lines);
+            
+            // ヘッダー行とデータ行を分離（改良版パーサーを使用）
+            const headers = parseCSVLine(lines[0]);
+            const data = lines[1] ? parseCSVLine(lines[1]) : [];
+            
+            console.log('Headers:', headers);
+            console.log('Data:', data);
             
             // データマッピング
             const dataMap = {};
             headers.forEach((header, index) => {
                 dataMap[header] = data[index] || '';
             });
+            console.log('Data map:', dataMap);
             
             // フォームに値を設定
             // クリニック名
             if (dataMap['クリニック名']) {
-                document.getElementById('clinic-name').value = dataMap['クリニック名'];
+                const clinicNameField = document.getElementById('clinic-name');
+                if (clinicNameField) {
+                    clinicNameField.value = dataMap['クリニック名'];
+                    console.log('Set clinic name:', dataMap['クリニック名']);
+                } else {
+                    console.error('clinic-name field not found');
+                }
             }
             
             // 郵便番号
             if (dataMap['郵便番号']) {
-                document.getElementById('postal-code').value = dataMap['郵便番号'];
+                const postalCodeField = document.getElementById('postal-code');
+                if (postalCodeField) {
+                    postalCodeField.value = dataMap['郵便番号'];
+                    console.log('Set postal code:', dataMap['郵便番号']);
+                } else {
+                    console.error('postal-code field not found');
+                }
             }
             
             // 住所
             if (dataMap['住所']) {
-                document.getElementById('address').value = dataMap['住所'];
+                const addressField = document.getElementById('address');
+                if (addressField) {
+                    addressField.value = dataMap['住所'];
+                    console.log('Set address:', dataMap['住所']);
+                } else {
+                    console.error('address field not found');
+                }
             }
             
             // 診療科の選択
@@ -288,22 +354,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     // selectedクラスの更新
                     document.querySelectorAll('.department-checkbox-grid label').forEach(l => l.classList.remove('selected'));
                     deptRadio.closest('label').classList.add('selected');
+                    console.log('Set department:', department);
+                } else {
+                    console.error('Department radio not found for:', department);
                 }
             }
             
-            // クリニックの強み・特徴
+            // クリニックの強み・特徴（正しいIDに修正）
             if (dataMap['クリニックの強み・特徴']) {
-                const strengthsField = document.getElementById('strengths');
+                const strengthsField = document.getElementById('clinic-features'); // 正しいID
                 if (strengthsField) {
                     strengthsField.value = dataMap['クリニックの強み・特徴'];
+                    console.log('Set clinic features:', dataMap['クリニックの強み・特徴']);
+                } else {
+                    console.error('clinic-features field not found');
                 }
             }
             
-            // 主なターゲット層（追加情報フィールドに設定）
+            // 主なターゲット層
             if (dataMap['主なターゲット層']) {
-                const additionalInfoField = document.getElementById('additional-info');
-                if (additionalInfoField) {
-                    additionalInfoField.value = dataMap['主なターゲット層'];
+                const targetField = document.getElementById('target-patients'); // 正しいIDを確認
+                if (targetField) {
+                    targetField.value = dataMap['主なターゲット層'];
+                    console.log('Set target patients:', dataMap['主なターゲット層']);
+                } else {
+                    console.error('target-patients field not found');
                 }
             }
             
