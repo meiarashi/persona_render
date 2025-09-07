@@ -1,0 +1,174 @@
+{
+  "facilities_東京都_千代田区": {
+    "data": {
+      "total_clinics": 100,
+      "by_specialty": {
+        "内科": 30,
+        "外科": 10,
+        "整形外科": 15
+      },
+      "from_api": true
+    },
+    "timestamp": "2025-09-07T14:03:50.613372"
+  },
+  "patients_東京都_千代田区": {
+    "data": {
+      "top_diseases": [
+        {
+          "name": "高血圧性疾患",
+          "percentage": 15.2
+        },
+        {
+          "name": "糖尿病",
+          "percentage": 12.8
+        },
+        {
+          "name": "脂質異常症",
+          "percentage": 10.5
+        },
+        {
+          "name": "心疾患",
+          "percentage": 8.3
+        },
+        {
+          "name": "悪性新生物",
+          "percentage": 6.7
+        }
+      ],
+      "outpatient_rate": 5500,
+      "hospitalization_rate": 1200,
+      "avg_consultation_per_year": 12.5,
+      "from_api": true
+    },
+    "timestamp": "2025-09-07T14:03:50.749228"
+  },
+  "facilities_大阪府_大阪市": {
+    "data": {
+      "total_clinics": 100,
+      "by_specialty": {
+        "内科": 30,
+        "外科": 10,
+        "整形外科": 15
+      },
+      "from_api": true
+    },
+    "timestamp": "2025-09-07T14:03:50.866350"
+  },
+  "patients_大阪府_大阪市": {
+    "data": {
+      "top_diseases": [
+        {
+          "name": "高血圧性疾患",
+          "percentage": 15.2
+        },
+        {
+          "name": "糖尿病",
+          "percentage": 12.8
+        },
+        {
+          "name": "脂質異常症",
+          "percentage": 10.5
+        },
+        {
+          "name": "心疾患",
+          "percentage": 8.3
+        },
+        {
+          "name": "悪性新生物",
+          "percentage": 6.7
+        }
+      ],
+      "outpatient_rate": 5500,
+      "hospitalization_rate": 1200,
+      "avg_consultation_per_year": 12.5,
+      "from_api": true
+    },
+    "timestamp": "2025-09-07T14:03:51.078903"
+  },
+  "facilities_島根県_松江市": {
+    "data": {
+      "total_clinics": 100,
+      "by_specialty": {
+        "内科": 30,
+        "外科": 10,
+        "整形外科": 15
+      },
+      "from_api": true
+    },
+    "timestamp": "2025-09-07T14:03:51.306584"
+  },
+  "patients_島根県_松江市": {
+    "data": {
+      "top_diseases": [
+        {
+          "name": "高血圧性疾患",
+          "percentage": 15.2
+        },
+        {
+          "name": "糖尿病",
+          "percentage": 12.8
+        },
+        {
+          "name": "脂質異常症",
+          "percentage": 10.5
+        },
+        {
+          "name": "心疾患",
+          "percentage": 8.3
+        },
+        {
+          "name": "悪性新生物",
+          "percentage": 6.7
+        }
+      ],
+      "outpatient_rate": 5500,
+      "hospitalization_rate": 1200,
+      "avg_consultation_per_year": 12.5,
+      "from_api": true
+    },
+    "timestamp": "2025-09-07T14:03:51.389683"
+  },
+  "facilities_埼玉県_さいたま市": {
+    "data": {
+      "total_clinics": 100,
+      "by_specialty": {
+        "内科": 30,
+        "外科": 10,
+        "整形外科": 15
+      },
+      "from_api": true
+    },
+    "timestamp": "2025-09-07T14:04:10.577302"
+  },
+  "patients_埼玉県_さいたま市": {
+    "data": {
+      "top_diseases": [
+        {
+          "name": "高血圧性疾患",
+          "percentage": 15.2
+        },
+        {
+          "name": "糖尿病",
+          "percentage": 12.8
+        },
+        {
+          "name": "脂質異常症",
+          "percentage": 10.5
+        },
+        {
+          "name": "心疾患",
+          "percentage": 8.3
+        },
+        {
+          "name": "悪性新生物",
+          "percentage": 6.7
+        }
+      ],
+      "outpatient_rate": 5500,
+      "hospitalization_rate": 1200,
+      "avg_consultation_per_year": 12.5,
+      "from_api": true
+    },
+    "timestamp": "2025-09-07T14:04:10.643768"
+  }
+}

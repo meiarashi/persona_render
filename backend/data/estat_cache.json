@@ -1,0 +1,134 @@
+{
+  "a6a0c46d284f325ea0dbb3ddada516b1": {
+    "data": {
+      "total_patients_per_day": 0,
+      "disease_distribution": {},
+      "source": "e-Stat API（リアルタイム）"
+    },
+    "timestamp": "2025-09-07T13:23:25.757794"
+  },
+  "fd5cb30b1f298e5c0baef0dfd2b07764": {
+    "data": {
+      "total": 0,
+      "hospitals": 0,
+      "clinics": 0,
+      "per_10000": 0,
+      "source": "e-Stat API（リアルタイム）"
+    },
+    "timestamp": "2025-09-07T13:23:25.782257"
+  },
+  "2a6a6b52111b9dc7009222f3a82a3bd5": {
+    "data": {},
+    "timestamp": "2025-09-07T13:23:25.949998"
+  },
+  "dae102fad06437972f7d9f11e4ae4bb6": {
+    "data": {
+      "total": 0,
+      "hospitals": 0,
+      "clinics": 0,
+      "per_10000": 0,
+      "source": "e-Stat API（リアルタイム）"
+    },
+    "timestamp": "2025-09-07T13:23:26.006906"
+  },
+  "08e3d86206154bbcbdbd2d012d988330": {
+    "data": {
+      "total_patients_per_day": 0,
+      "disease_distribution": {},
+      "source": "e-Stat API（リアルタイム）"
+    },
+    "timestamp": "2025-09-07T13:23:26.010938"
+  },
+  "af6c8e4bca86f58386f02dbf306be53a": {
+    "data": {},
+    "timestamp": "2025-09-07T13:23:26.059135"
+  },
+  "ef8478449a747704758ff848d6a147a3": {
+    "data": {
+      "total_patients_per_day": 0,
+      "disease_distribution": {},
+      "source": "e-Stat API（リアルタイム）"
+    },
+    "timestamp": "2025-09-07T13:23:26.112531"
+  },
+  "ff59e0783b30c7bf73cd183c095e24a6": {
+    "data": {
+      "total": 0,
+      "hospitals": 0,
+      "clinics": 0,
+      "per_10000": 0,
+      "source": "e-Stat API（リアルタイム）"
+    },
+    "timestamp": "2025-09-07T13:23:26.113561"
+  },
+  "0d578134829cc6837c36b1783dc0aed4": {
+    "data": {},
+    "timestamp": "2025-09-07T13:23:26.278378"
+  },
+  "3e361ab9386cb18515b64082bcb24a9d": {
+    "data": {
+      "total": 0,
+      "hospitals": 0,
+      "clinics": 0,
+      "per_10000": 0,
+      "source": "e-Stat API（リアルタイム）"
+    },
+    "timestamp": "2025-09-07T13:23:26.334103"
+  },
+  "817f3d6dcd40c8b783634696acd53b9a": {
+    "data": {
+      "total_patients_per_day": 0,
+      "disease_distribution": {},
+      "source": "e-Stat API（リアルタイム）"
+    },
+    "timestamp": "2025-09-07T13:23:26.337132"
+  },
+  "611d3b646a314242565c21f945c61c39": {
+    "data": {},
+    "timestamp": "2025-09-07T13:23:26.392889"
+  },
+  "f406efa605d57be62a4fc779efcc2552": {
+    "data": {
+      "total_patients_per_day": 0,
+      "disease_distribution": {},
+      "source": "e-Stat API（リアルタイム）"
+    },
+    "timestamp": "2025-09-07T13:23:26.450100"
+  },
+  "222bfb9effb1ff017d0fadce59af1b1c": {
+    "data": {
+      "total": 0,
+      "hospitals": 0,
+      "clinics": 0,
+      "per_10000": 0,
+      "source": "e-Stat API（リアルタイム）"
+    },
+    "timestamp": "2025-09-07T13:23:26.473421"
+  },
+  "e1d0faf12842275620b515df0b8b9a3e": {
+    "data": {},
+    "timestamp": "2025-09-07T13:23:26.548146"
+  },
+  "3d61c600dbf90b3e75f0e274c992427f": {
+    "data": {
+      "total": 0,
+      "hospitals": 0,
+      "clinics": 0,
+      "per_10000": 0,
+      "source": "e-Stat API（リアルタイム）"
+    },
+    "timestamp": "2025-09-07T13:23:26.628128"
+  },
+  "c0c1c6d59115954decb3acd90abe9036": {
+    "data": {
+      "total_patients_per_day": 0,
+      "disease_distribution": {},
+      "source": "e-Stat API（リアルタイム）"
+    },
+    "timestamp": "2025-09-07T13:23:26.637143"
+  },
+  "0d01ed9e7e0baf23865e2cdf66ab0457": {
+    "data": {},
+    "timestamp": "2025-09-07T13:23:26.689053"
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "pop_13113": {
+    "data": {
+      "total": 1217,
+      "age_distribution": {
+        "0-14": 12.5,
+        "15-64": 62.5,
+        "65+": 25.0
+      },
+      "households": 40000,
+      "from_api": true
+    },
+    "timestamp": "2025-09-07T13:30:46.472777"
+  },
+  "pop_13101": {
+    "data": {
+      "total": 117060396,
+      "age_distribution": {
+        "0-14": 12.5,
+        "15-64": 62.5,
+        "65+": 25.0
+      },
+      "households": 40000,
+      "from_api": true
+    },
+    "timestamp": "2025-09-07T13:35:48.366324"
+  },
+  "pop_27100": {
+    "data": {
+      "total": 117060396,
+      "age_distribution": {
+        "0-14": 12.5,
+        "15-64": 62.5,
+        "65+": 25.0
+      },
+      "households": 40000,
+      "from_api": true
+    },
+    "timestamp": "2025-09-07T13:35:48.821934"
+  },
+  "pop_01100": {
+    "data": {
+      "total": 117060396,
+      "age_distribution": {
+        "0-14": 12.5,
+        "15-64": 62.5,
+        "65+": 25.0
+      },
+      "households": 40000,
+      "from_api": true
+    },
+    "timestamp": "2025-09-07T13:35:49.343312"
+  }
+}

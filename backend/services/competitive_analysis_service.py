@@ -20,6 +20,8 @@ try:
 except ImportError:
     google_genai_available = False
 from .google_maps_service import GoogleMapsService
+from .web_research_service import WebResearchService, RegionalDataService
+from .estat_medical_stats import EStatMedicalStatsService
 from .crud import read_settings
 
 logger = logging.getLogger(__name__)
@@ -27,6 +29,9 @@ logger = logging.getLogger(__name__)
 class CompetitiveAnalysisService:
     def __init__(self):
         self.google_maps = GoogleMapsService()
+        self.web_research = WebResearchService()
+        self.regional_data = RegionalDataService()
+        self.medical_stats_service = EStatMedicalStatsService()
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
         self.google_api_key = os.getenv("GOOGLE_API_KEY")
@@ -123,13 +128,21 @@ class CompetitiveAnalysisService:
             logger.error(f"Error in competitive analysis: {str(e)}")
             return {"error": f"競合分析中にエラーが発生しました: {str(e)}"}
     
+    async def _safe_execute_task(self, task, default_value=None, task_name="task"):
+        """タスクを安全に実行し、エラー時はデフォルト値を返す"""
+        try:
+            return await task
+        except Exception as e:
+            logger.error(f"Failed to execute {task_name}: {e}")
+            return default_value if default_value is not None else {}
+    
     async def _prepare_analysis_data(
         self,
         clinic_info: Dict[str, Any],
         competitors: List[Dict[str, Any]],
         additional_info: Optional[str]
     ) -> Dict[str, Any]:
-        """分析用データの準備"""
+        """分析用データの準備（Web検索と地域データを含む）"""
         
         # 競合の統計情報を計算
         ratings = [c.get("rating", 0) for c in competitors if c.get("rating")]
@@ -145,9 +158,58 @@ class CompetitiveAnalysisService:
         # 口コミデータの整理（上位5件の競合のみ）
         review_insights = self._analyze_reviews(competitors[:5])
         
+        # 並列タスクを準備
+        import asyncio
+        tasks = []
+        
+        # 地域特性データ取得タスク
+        regional_task = self.regional_data.get_regional_data(
+            clinic_info.get("address", "")
+        )
+        tasks.append(('regional_data', regional_task))
+        
+        # 医療統計データ取得タスク
+        medical_task = self.medical_stats_service.get_comprehensive_medical_stats(
+            clinic_info.get("address", "")
+        )
+        tasks.append(('medical_stats', medical_task))
+        
+        # タスクを並列実行（エラーハンドリング付き）
+        results = {}
+        for name, task in tasks:
+            results[name] = await self._safe_execute_task(task, {}, name)
+        
+        regional_data = results.get('regional_data', {})
+        medical_stats = results.get('medical_stats', {})
+        
+        logger.info(f"Regional data keys: {list(regional_data.keys())}")
+        logger.info(f"Medical stats keys: {list(medical_stats.keys())}")
+        
+        # 上位競合のWeb詳細情報を取得（並列処理）
+        competitor_details = []
+        if self.web_research.serpapi_key:  # SerpAPIキーがある場合のみ実行
+            research_tasks = []
+            for comp in competitors[:3]:  # 上位3件のみ詳細調査
+                task = self.web_research.research_competitor(
+                    comp.get("name", ""),
+                    comp.get("formatted_address", comp.get("address", ""))
+                )
+                research_tasks.append(task)
+            
+            try:
+                competitor_details = await asyncio.gather(*research_tasks, return_exceptions=True)
+                # エラーを除外
+                competitor_details = [d for d in competitor_details if not isinstance(d, Exception)]
+                logger.info(f"Retrieved detailed info for {len(competitor_details)} competitors")
+            except Exception as e:
+                logger.warning(f"Failed to get competitor details: {e}")
+        
         return {
             "clinic": clinic_info,
             "competitors": competitors,
+            "competitor_details": competitor_details,  # 詳細な競合情報
+            "regional_data": regional_data,  # 地域特性データ
+            "medical_stats": medical_stats,  # 医療統計データ（新規追加）
             "market_stats": {
                 "total_competitors": len(competitors),
                 "average_rating": round(avg_rating, 2),
@@ -178,7 +240,7 @@ class CompetitiveAnalysisService:
             
             # 選択されたプロバイダーに応じてAIを使用
             if self.selected_provider == "openai" and self.openai_api_key and openai_available:
-                client = OpenAI(api_key=self.openai_api_key, timeout=60.0)  # 60秒のタイムアウトを設定
+                client = OpenAI(api_key=self.openai_api_key, timeout=30.0)  # 30秒のタイムアウトに最適化
                 # GPT-5 uses max_completion_tokens instead of max_tokens and temperature must be 1.0
                 if "gpt-5" in self.selected_model:
                     response = client.chat.completions.create(
@@ -188,7 +250,7 @@ class CompetitiveAnalysisService:
                             {"role": "user", "content": prompt}
                         ],
                         temperature=1.0,  # GPT-5 only supports default temperature of 1.0
-                        max_completion_tokens=2000  # 戦略提案3つに削減したため
+                        max_completion_tokens=1500  # レスポンスを最適化して処理時間短縮
                     )
                 else:
                     response = client.chat.completions.create(
@@ -198,15 +260,15 @@ class CompetitiveAnalysisService:
                             {"role": "user", "content": prompt}
                         ],
                         temperature=0.7,
-                        max_tokens=2000  # 戦略提案3つに削減したため
+                        max_tokens=1500  # レスポンスを最適化して処理時間短縮
                     )
                 content = response.choices[0].message.content
                 
             elif self.selected_provider == "anthropic" and self.anthropic_api_key and anthropic_available:
-                client = Anthropic(api_key=self.anthropic_api_key, timeout=60.0)  # 60秒のタイムアウトを設定
+                client = Anthropic(api_key=self.anthropic_api_key, timeout=30.0)  # 30秒のタイムアウトに最適化
                 response = client.messages.create(
                     model=self.selected_model,
-                    max_tokens=2000,  # 戦略提案3つに削減したため
+                    max_tokens=1500,  # レスポンスを最適化して処理時間短縮
                     temperature=0.7,
                     system=system_prompt,
                     messages=[{"role": "user", "content": prompt}]
@@ -243,23 +305,108 @@ class CompetitiveAnalysisService:
             return self._generate_basic_swot(analysis_data), ""
     
     def _build_swot_prompt(self, analysis_data: Dict[str, Any]) -> str:
-        """SWOT分析用のプロンプトを構築"""
+        """SWOT分析用のプロンプトを構築（詳細データ統合版）"""
         clinic = analysis_data["clinic"]
         stats = analysis_data["market_stats"]
         competitors = analysis_data["competitors"]
+        competitor_details = analysis_data.get("competitor_details", [])
+        regional_data = analysis_data.get("regional_data", {})
         
         # 診療科の取得（新しいdepartmentフィールドまたは古いdepartmentsフィールドに対応）
         department = clinic.get('department') or ', '.join(clinic.get('departments', []))
         
-        # トップ5件の競合情報を詳細に記載
+        # トップ5件の競合情報を詳細に記載（Web検索情報も含む）
         top_competitors_info = ""
         for i, comp in enumerate(competitors[:5], 1):
             top_competitors_info += f"""
 {i}. {comp.get('name', '不明')}
    - 評価: {comp.get('rating', 'N/A')} ({comp.get('user_ratings_total', 0)}件のレビュー)
    - 住所: {comp.get('formatted_address', comp.get('address', '不明'))}
-   - 距離: {comp.get('distance', '不明')}m
-"""
+   - 距離: {comp.get('distance', '不明')}m"""
+            
+            # Web検索で取得した詳細情報があれば追加
+            for detail in competitor_details:
+                if detail.get("clinic_name") == comp.get('name'):
+                    if detail.get("extracted_info"):
+                        top_competitors_info += "\n   - 特徴: " + str(detail["extracted_info"].get("特徴的なサービス", "詳細情報なし"))[:100]
+                    if detail.get("online_presence"):
+                        online = detail["online_presence"]
+                        sns_presence = []
+                        if online.get("has_twitter"): sns_presence.append("Twitter")
+                        if online.get("has_instagram"): sns_presence.append("Instagram")
+                        if online.get("has_facebook"): sns_presence.append("Facebook")
+                        if sns_presence:
+                            top_competitors_info += f"\n   - SNS展開: {', '.join(sns_presence)}"
+            top_competitors_info += "\n"
+        
+        # 地域特性情報の整形
+        regional_info = ""
+        if regional_data.get("demographics"):
+            demo = regional_data["demographics"]
+            regional_info += f"""
+【地域特性データ】
+- 総人口: {demo.get('total_population', 'N/A'):,}人
+- 高齢化率（65歳以上）: {demo.get('age_distribution', {}).get('65+', 'N/A')}%
+- 世帯数: {demo.get('household_count', 'N/A'):,}世帯
+- 人口密度: {demo.get('population_density', 'N/A'):,}人/km²"""
+        
+        if regional_data.get("medical_demand"):
+            demand = regional_data["medical_demand"]
+            regional_info += f"""
+- 推定患者数/日: {demand.get('estimated_patients_per_day', 'N/A'):,}人
+- 医療アクセシビリティ: {demand.get('healthcare_accessibility', 'N/A')}"""
+        
+        if regional_data.get("competition_density"):
+            density = regional_data["competition_density"]
+            regional_info += f"""
+- 医療機関密度: {density.get('clinics_per_10000', 'N/A')}施設/万人"""
+        
+        # 医療統計データの整形（e-Stat API）
+        medical_stats_info = ""
+        medical_stats = analysis_data.get("medical_stats", {})
+        
+        if medical_stats:
+            # 医療施設データ
+            if facilities := medical_stats.get("medical_facilities", {}):
+                medical_stats_info += "\n【医療施設統計】"
+                medical_stats_info += f"\n- 地域内総診療所数: {facilities.get('total_clinics', 'N/A')}施設"
+                if by_specialty := facilities.get("by_specialty", {}):
+                    medical_stats_info += "\n- 診療科別施設数:"
+                    for spec, count in list(by_specialty.items())[:5]:
+                        medical_stats_info += f"\n  • {spec}: {count}施設"
+                medical_stats_info += f"\n- 夜間救急対応: {facilities.get('night_emergency', 'N/A')}施設"
+            
+            # 患者統計データ
+            if patient_stats := medical_stats.get("patient_stats", {}):
+                medical_stats_info += "\n\n【患者需要統計】"
+                medical_stats_info += f"\n- 外来受療率: {patient_stats.get('outpatient_rate', 'N/A')}/10万人"
+                medical_stats_info += f"\n- 入院受療率: {patient_stats.get('hospitalization_rate', 'N/A')}/10万人"
+                medical_stats_info += f"\n- 年間平均受診回数: {patient_stats.get('avg_consultation_per_year', 'N/A')}回"
+                if top_diseases := patient_stats.get("top_diseases", []):
+                    medical_stats_info += "\n- 主要疾患（受診理由）:"
+                    for disease in top_diseases[:5]:
+                        medical_stats_info += f"\n  • {disease['name']}: {disease['percentage']}%"
+            
+            # 医療従事者データ
+            if medical_staff := medical_stats.get("medical_staff", {}):
+                medical_stats_info += "\n\n【医療従事者統計】"
+                medical_stats_info += f"\n- 医師密度: {medical_staff.get('doctors_per_100k', 'N/A')}/10万人"
+                medical_stats_info += f"\n- 看護師密度: {medical_staff.get('nurses_per_100k', 'N/A')}/10万人"
+                medical_stats_info += f"\n- 人材不足レベル: {medical_staff.get('shortage_level', 'N/A')}"
+            
+            # 世帯医療費データ
+            if household := medical_stats.get("household_medical", {}):
+                medical_stats_info += "\n\n【医療費支出統計】"
+                medical_stats_info += f"\n- 年間平均医療費: {household.get('avg_annual_medical_expense', 0):,}円"
+                medical_stats_info += f"\n- 月間平均医療費: {household.get('avg_monthly_medical_expense', 0):,}円"
+                medical_stats_info += f"\n- 自己負担割合: {household.get('self_pay_ratio', 0)*100:.0f}%"
+            
+            # 介護施設データ
+            if nursing := medical_stats.get("nursing_facilities", {}):
+                medical_stats_info += "\n\n【介護施設統計】"
+                medical_stats_info += f"\n- 総施設数: {nursing.get('total_facilities', 'N/A')}施設"
+                medical_stats_info += f"\n- 総定員: {nursing.get('total_capacity', 0):,}人"
+                medical_stats_info += f"\n- 稼働率: {nursing.get('occupancy_rate', 0)*100:.0f}%"
         
         # 診療科タイプの分布情報
         dept_distribution_info = ""
@@ -293,7 +440,7 @@ class CompetitiveAnalysisService:
                     review_analysis_info += f"  {point}\n"
         
         prompt = f"""
-医療経営コンサルタントとして、以下の情報から戦略的なSWOT分析と競争戦略を立案してください。
+医療経営コンサルタントとして、以下の包括的なデータから戦略的なSWOT分析と競争戦略を立案してください。
 
 【自院プロファイル】
 - 医療機関名: {clinic.get('name', '')}
@@ -301,32 +448,37 @@ class CompetitiveAnalysisService:
 - 標榜診療科: {department}
 - 差別化要素: {clinic.get('features', '')}
 - 主要ターゲット: {analysis_data.get('additional_context', '')}
+{regional_info}
 
 【医療圏分析データ】
-- 診療圏域: 半径{analysis_data['clinic'].get('search_radius', 3000)/1000}km
+- 診療圏域: 半径{analysis_data['clinic'].get('search_radius', 3000) / 1000}km
 - 競合医療機関数: {stats['total_competitors']}院（同一診療圏内）
 - 市場競争強度: {'高' if stats['total_competitors'] > 10 else '中' if stats['total_competitors'] > 5 else '低'}
 - 平均患者満足度: {stats['average_rating']}/5.0
 - 市場成熟度指標:
-  - 高評価施設（4.0+）: {stats['rating_distribution']['above_4']}院（{stats['rating_distribution']['above_4']/max(stats['total_competitors'],1)*100:.1f}%）
+  - 高評価施設（4.0+）: {stats['rating_distribution']['above_4']}院（{stats['rating_distribution']['above_4'] / max(stats['total_competitors'], 1) * 100:.1f}%）
   - 中評価施設（3.0-4.0）: {stats['rating_distribution']['3_to_4']}院
   - 改善余地施設（<3.0）: {stats['rating_distribution']['below_3']}院
 
-【競合ベンチマーク（上位5施設）】
+【競合ベンチマーク（上位施設・詳細分析付き）】
 {top_competitors_info}
 
 【診療科別競争環境】
 {dept_distribution_info if dept_distribution_info else '- データ取得中'}
+{medical_stats_info}
 
-【患者ニーズ分析（口コミインサイト）】{review_analysis_info if review_analysis_info else '\n- 詳細データ取得中'}
+【患者ニーズ分析（口コミインサイト）】{review_analysis_info if review_analysis_info else chr(10) + '- 詳細データ取得中'}
 
 【分析フレームワーク】
-以下の医療経営指標を考慮して分析してください：
+以下の医療経営指標と統計データを総合的に考慮して分析してください：
 1. 患者アクセシビリティ（立地、診療時間、予約システム）
 2. 医療サービスの質（専門性、設備、スタッフ対応）
 3. 患者体験価値（待ち時間、院内環境、コミュニケーション）
 4. 地域医療連携（病診連携、介護連携、在宅医療）
 5. 経営効率性（集患力、リピート率、単価向上）
+6. 市場需給バランス（受療率、医師密度、施設数から見た需給）
+7. 疾患別需要（主要疾患の割合から見た専門性の機会）
+8. 医療費市場規模（世帯医療費支出から見た市場ポテンシャル）
 
 以下の形式でSWOT分析を提供してください：
 
@@ -383,6 +535,12 @@ SWOT分析に基づき、以下の競争戦略を提案してください：
 - WO戦略（弱み×機会）：弱みを克服して機会を掴む
 - ST戦略（強み×脅威）：強みを活かして脅威を回避
 - WT戦略（弱み×脅威）：弱みを最小化し脅威を回避
+
+特に以下の統計データから導かれる戦略を重視してください：
+- 主要疾患データ → 専門性強化の方向性
+- 医師不足レベル → 人材確保・差別化戦略
+- 介護施設稼働率 → 連携強化の可能性
+- 世帯医療費 → 価格戦略・サービス設計
 """
         return prompt
     

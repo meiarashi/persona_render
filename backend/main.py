@@ -103,19 +103,32 @@ app = FastAPI(
 async def startup_event():
     logger.info("Starting application...")
     
-    # Check required API keys
-    api_keys = {
-        "OPENAI_API_KEY": bool(os.getenv("OPENAI_API_KEY")),
-        "GOOGLE_MAPS_API_KEY": bool(os.getenv("GOOGLE_MAPS_API_KEY")),
-        "ANTHROPIC_API_KEY": bool(os.getenv("ANTHROPIC_API_KEY")),
-        "GOOGLE_API_KEY": bool(os.getenv("GOOGLE_API_KEY"))
-    }
-    
-    for key_name, is_set in api_keys.items():
-        if is_set:
-            logger.info(f"✓ {key_name} is set")
-        else:
-            logger.warning(f"✗ {key_name} is NOT set")
+    # 環境変数の包括的チェック
+    try:
+        from services.env_validator import EnvironmentValidator
+        is_valid, report = EnvironmentValidator.check_and_report()
+        
+        if not is_valid:
+            logger.error("必須環境変数が不足しています。設定を確認してください。")
+            # 必須変数が不足していても起動は続行（エラーメッセージは表示）
+    except Exception as e:
+        logger.error(f"環境変数チェック中にエラーが発生: {e}")
+        
+        # フォールバック: 従来の簡易チェック
+        api_keys = {
+            "OPENAI_API_KEY": bool(os.getenv("OPENAI_API_KEY")),
+            "GOOGLE_MAPS_API_KEY": bool(os.getenv("GOOGLE_MAPS_API_KEY")),
+            "SERPAPI_KEY": bool(os.getenv("SERPAPI_KEY")),
+            "ESTAT_API_KEY": bool(os.getenv("ESTAT_API_KEY")),
+            "ANTHROPIC_API_KEY": bool(os.getenv("ANTHROPIC_API_KEY")),
+            "GOOGLE_API_KEY": bool(os.getenv("GOOGLE_API_KEY"))
+        }
+        
+        for key_name, is_set in api_keys.items():
+            if is_set:
+                logger.info(f"✓ {key_name} is set")
+            else:
+                logger.warning(f"✗ {key_name} is NOT set")
     
     logger.info("Application startup complete")
 
@@ -2586,14 +2599,39 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
     pptx_buffer.seek(0)
     return pptx_buffer
 
-# Google Maps APIキーを取得するエンドポイント
-@app.get("/api/google-maps-key")
-async def get_google_maps_key(username: str = Depends(verify_admin_credentials)):
-    """Google Maps APIキーを取得（フロントエンドのJavaScript API用）"""
+# Google Maps Static API用のプロキシエンドポイント（セキュア）
+@app.get("/api/google-maps-static")
+async def get_google_maps_static(
+    center: str,
+    zoom: int = 14,
+    size: str = "600x400",
+    markers: str = None,
+    username: str = Depends(verify_admin_credentials)
+):
+    """Google Maps Static APIのプロキシ（APIキーを隠蔽）"""
     api_key = os.getenv("GOOGLE_MAPS_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="Google Maps API key not configured")
-    return {"api_key": api_key}
+    
+    # Google Maps Static API URL
+    base_url = "https://maps.googleapis.com/maps/api/staticmap"
+    params = {
+        "center": center,
+        "zoom": zoom,
+        "size": size,
+        "key": api_key
+    }
+    
+    if markers:
+        params["markers"] = markers
+    
+    async with aiohttp.ClientSession() as session:
+        async with session.get(base_url, params=params) as response:
+            if response.status == 200:
+                content = await response.read()
+                return Response(content=content, media_type="image/png")
+            else:
+                raise HTTPException(status_code=response.status, detail="Failed to fetch map")
 
 # 診療科リストを取得するエンドポイント
 @app.get("/api/departments/{category}")
@@ -2649,6 +2687,10 @@ async def test_geocoding(request: Request, username: str = Depends(verify_admin_
 @app.post("/api/competitive-analysis")
 async def analyze_competitors(request: Request, username: str = Depends(verify_admin_credentials)):
     """競合分析を実行"""
+    # レート制限チェック
+    from backend.utils.rate_limiter import competitive_analysis_limiter, check_rate_limit
+    check_rate_limit(competitive_analysis_limiter, request, username)
+    
     try:
         data = await request.json()
         

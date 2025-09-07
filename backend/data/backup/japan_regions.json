@@ -1,0 +1,1126 @@
+{
+  "prefectures": {
+    "01": {
+      "name": "北海道",
+      "code": "01000",
+      "population": 5224614,
+      "age_distribution": {"0-14": 10.2, "15-64": 58.1, "65+": 31.7},
+      "medical_facilities": 3556,
+      "facilities_per_10000": 6.8,
+      "major_cities": {
+        "01100": {
+          "name": "札幌市",
+          "population": 1973395,
+          "age_distribution": {"0-14": 10.2, "15-64": 63.1, "65+": 26.7},
+          "medical_facilities": 1823,
+          "facilities_per_10000": 9.2,
+          "wards": {
+            "01101": {"name": "中央区", "population": 248680},
+            "01102": {"name": "北区", "population": 287835},
+            "01103": {"name": "東区", "population": 264118},
+            "01104": {"name": "白石区", "population": 212984},
+            "01105": {"name": "豊平区", "population": 224347},
+            "01106": {"name": "南区", "population": 136234},
+            "01107": {"name": "西区", "population": 218852},
+            "01108": {"name": "厚別区", "population": 126755},
+            "01109": {"name": "手稲区", "population": 142164},
+            "01110": {"name": "清田区", "population": 114428}
+          }
+        },
+        "01202": {"name": "函館市", "population": 251084},
+        "01203": {"name": "小樽市", "population": 111299},
+        "01204": {"name": "旭川市", "population": 329306},
+        "01217": {"name": "釧路市", "population": 165076}
+      }
+    },
+    "02": {
+      "name": "青森県",
+      "code": "02000",
+      "population": 1237984,
+      "age_distribution": {"0-14": 10.3, "15-64": 56.8, "65+": 32.9},
+      "medical_facilities": 766,
+      "facilities_per_10000": 6.2,
+      "major_cities": {
+        "02201": {"name": "青森市", "population": 275192},
+        "02202": {"name": "弘前市", "population": 168537},
+        "02203": {"name": "八戸市", "population": 221459}
+      }
+    },
+    "03": {
+      "name": "岩手県",
+      "code": "03000",
+      "population": 1210534,
+      "age_distribution": {"0-14": 10.7, "15-64": 56.2, "65+": 33.1},
+      "medical_facilities": 786,
+      "facilities_per_10000": 6.5,
+      "major_cities": {
+        "03201": {"name": "盛岡市", "population": 289115}
+      }
+    },
+    "04": {
+      "name": "宮城県",
+      "code": "04000",
+      "population": 2301996,
+      "age_distribution": {"0-14": 11.3, "15-64": 60.9, "65+": 27.8},
+      "medical_facilities": 1368,
+      "facilities_per_10000": 5.9,
+      "major_cities": {
+        "04100": {
+          "name": "仙台市",
+          "population": 1096704,
+          "age_distribution": {"0-14": 11.5, "15-64": 64.8, "65+": 23.7},
+          "medical_facilities": 923,
+          "facilities_per_10000": 8.4,
+          "wards": {
+            "04101": {"name": "青葉区", "population": 311351},
+            "04102": {"name": "宮城野区", "population": 196636},
+            "04103": {"name": "若林区", "population": 138573},
+            "04104": {"name": "太白区", "population": 231436},
+            "04105": {"name": "泉区", "population": 215182}
+          }
+        }
+      }
+    },
+    "05": {
+      "name": "秋田県",
+      "code": "05000",
+      "population": 959502,
+      "age_distribution": {"0-14": 9.5, "15-64": 53.5, "65+": 37.0},
+      "medical_facilities": 634,
+      "facilities_per_10000": 6.6,
+      "major_cities": {
+        "05201": {"name": "秋田市", "population": 305625}
+      }
+    },
+    "06": {
+      "name": "山形県",
+      "code": "06000",
+      "population": 1068027,
+      "age_distribution": {"0-14": 10.9, "15-64": 56.3, "65+": 32.8},
+      "medical_facilities": 690,
+      "facilities_per_10000": 6.5,
+      "major_cities": {
+        "06201": {"name": "山形市", "population": 248741}
+      }
+    },
+    "07": {
+      "name": "福島県",
+      "code": "07000",
+      "population": 1833152,
+      "age_distribution": {"0-14": 11.0, "15-64": 57.4, "65+": 31.6},
+      "medical_facilities": 1211,
+      "facilities_per_10000": 6.6,
+      "major_cities": {
+        "07201": {"name": "福島市", "population": 282693},
+        "07202": {"name": "会津若松市", "population": 118114},
+        "07203": {"name": "郡山市", "population": 322996},
+        "07204": {"name": "いわき市", "population": 337765}
+      }
+    },
+    "08": {
+      "name": "茨城県",
+      "code": "08000",
+      "population": 2867009,
+      "age_distribution": {"0-14": 11.6, "15-64": 59.6, "65+": 28.8},
+      "medical_facilities": 1589,
+      "facilities_per_10000": 5.5,
+      "major_cities": {
+        "08201": {"name": "水戸市", "population": 269330},
+        "08202": {"name": "日立市", "population": 174530},
+        "08220": {"name": "つくば市", "population": 244528}
+      }
+    },
+    "09": {
+      "name": "栃木県",
+      "code": "09000",
+      "population": 1933146,
+      "age_distribution": {"0-14": 11.8, "15-64": 60.0, "65+": 28.2},
+      "medical_facilities": 1210,
+      "facilities_per_10000": 6.3,
+      "major_cities": {
+        "09201": {"name": "宇都宮市", "population": 518594}
+      }
+    },
+    "10": {
+      "name": "群馬県",
+      "code": "10000",
+      "population": 1939110,
+      "age_distribution": {"0-14": 11.5, "15-64": 58.9, "65+": 29.6},
+      "medical_facilities": 1419,
+      "facilities_per_10000": 7.3,
+      "major_cities": {
+        "10201": {"name": "前橋市", "population": 333354},
+        "10202": {"name": "高崎市", "population": 370884}
+      }
+    },
+    "11": {
+      "name": "埼玉県",
+      "code": "11000",
+      "population": 7344765,
+      "age_distribution": {"0-14": 11.8, "15-64": 62.3, "65+": 25.9},
+      "medical_facilities": 3639,
+      "facilities_per_10000": 5.0,
+      "major_cities": {
+        "11100": {
+          "name": "さいたま市",
+          "population": 1324025,
+          "age_distribution": {"0-14": 12.4, "15-64": 64.1, "65+": 23.5},
+          "medical_facilities": 687,
+          "facilities_per_10000": 5.2,
+          "wards": {
+            "11101": {"name": "西区", "population": 91958},
+            "11102": {"name": "北区", "population": 149251},
+            "11103": {"name": "大宮区", "population": 119788},
+            "11104": {"name": "見沼区", "population": 165784},
+            "11105": {"name": "中央区", "population": 102217},
+            "11106": {"name": "桜区", "population": 96428},
+            "11107": {"name": "浦和区", "population": 167693},
+            "11108": {"name": "南区", "population": 192177},
+            "11109": {"name": "緑区", "population": 129602},
+            "11110": {"name": "岩槻区", "population": 112125}
+          }
+        },
+        "11201": {"name": "川越市", "population": 353214},
+        "11203": {"name": "熊谷市", "population": 194415},
+        "11222": {"name": "川口市", "population": 607373}
+      }
+    },
+    "12": {
+      "name": "千葉県",
+      "code": "12000",
+      "population": 6284480,
+      "age_distribution": {"0-14": 11.5, "15-64": 61.3, "65+": 27.2},
+      "medical_facilities": 3447,
+      "facilities_per_10000": 5.5,
+      "major_cities": {
+        "12100": {
+          "name": "千葉市",
+          "population": 977247,
+          "age_distribution": {"0-14": 11.8, "15-64": 62.7, "65+": 25.5},
+          "medical_facilities": 634,
+          "facilities_per_10000": 6.5,
+          "wards": {
+            "12101": {"name": "中央区", "population": 210416},
+            "12102": {"name": "花見川区", "population": 177392},
+            "12103": {"name": "稲毛区", "population": 160977},
+            "12104": {"name": "若葉区", "population": 147903},
+            "12105": {"name": "緑区", "population": 129536},
+            "12106": {"name": "美浜区", "population": 149027}
+          }
+        },
+        "12204": {"name": "船橋市", "population": 642907},
+        "12217": {"name": "松戸市", "population": 498994},
+        "12219": {"name": "市川市", "population": 491716}
+      }
+    },
+    "13": {
+      "name": "東京都",
+      "code": "13000",
+      "population": 14047594,
+      "age_distribution": {"0-14": 11.0, "15-64": 65.0, "65+": 24.0},
+      "medical_facilities": 13059,
+      "facilities_per_10000": 9.3,
+      "special_wards": {
+        "13101": {
+          "name": "千代田区",
+          "population": 66680,
+          "age_distribution": {"0-14": 11.5, "15-64": 68.8, "65+": 19.7},
+          "medical_facilities": 150,
+          "facilities_per_10000": 22.5
+        },
+        "13102": {
+          "name": "中央区",
+          "population": 169179,
+          "age_distribution": {"0-14": 13.2, "15-64": 69.7, "65+": 17.1},
+          "medical_facilities": 248,
+          "facilities_per_10000": 14.7
+        },
+        "13103": {
+          "name": "港区",
+          "population": 260379,
+          "age_distribution": {"0-14": 12.1, "15-64": 69.2, "65+": 18.7},
+          "medical_facilities": 380,
+          "facilities_per_10000": 14.6
+        },
+        "13104": {
+          "name": "新宿区",
+          "population": 348452,
+          "age_distribution": {"0-14": 9.9, "15-64": 67.3, "65+": 22.8},
+          "medical_facilities": 520,
+          "facilities_per_10000": 14.9
+        },
+        "13105": {
+          "name": "文京区",
+          "population": 240069,
+          "age_distribution": {"0-14": 11.0, "15-64": 67.5, "65+": 21.5},
+          "medical_facilities": 312,
+          "facilities_per_10000": 13.0
+        },
+        "13106": {
+          "name": "台東区",
+          "population": 211444,
+          "age_distribution": {"0-14": 9.5, "15-64": 66.2, "65+": 24.3},
+          "medical_facilities": 287,
+          "facilities_per_10000": 13.6
+        },
+        "13107": {
+          "name": "墨田区",
+          "population": 272085,
+          "age_distribution": {"0-14": 10.3, "15-64": 65.9, "65+": 23.8},
+          "medical_facilities": 245,
+          "facilities_per_10000": 9.0
+        },
+        "13108": {
+          "name": "江東区",
+          "population": 524310,
+          "age_distribution": {"0-14": 11.8, "15-64": 66.8, "65+": 21.4},
+          "medical_facilities": 387,
+          "facilities_per_10000": 7.4
+        },
+        "13109": {
+          "name": "品川区",
+          "population": 422488,
+          "age_distribution": {"0-14": 10.6, "15-64": 68.6, "65+": 20.8},
+          "medical_facilities": 365,
+          "facilities_per_10000": 8.6
+        },
+        "13110": {
+          "name": "目黒区",
+          "population": 287622,
+          "age_distribution": {"0-14": 10.3, "15-64": 68.0, "65+": 21.7},
+          "medical_facilities": 298,
+          "facilities_per_10000": 10.4
+        },
+        "13111": {
+          "name": "大田区",
+          "population": 748081,
+          "age_distribution": {"0-14": 10.5, "15-64": 65.7, "65+": 23.8},
+          "medical_facilities": 589,
+          "facilities_per_10000": 7.9
+        },
+        "13112": {
+          "name": "世田谷区",
+          "population": 943664,
+          "age_distribution": {"0-14": 11.2, "15-64": 66.5, "65+": 22.3},
+          "medical_facilities": 680,
+          "facilities_per_10000": 7.2
+        },
+        "13113": {
+          "name": "渋谷区",
+          "population": 243883,
+          "age_distribution": {"0-14": 10.8, "15-64": 67.9, "65+": 21.3},
+          "medical_facilities": 450,
+          "facilities_per_10000": 18.5
+        },
+        "13114": {
+          "name": "中野区",
+          "population": 344352,
+          "age_distribution": {"0-14": 8.8, "15-64": 69.4, "65+": 21.8},
+          "medical_facilities": 267,
+          "facilities_per_10000": 7.8
+        },
+        "13115": {
+          "name": "杉並区",
+          "population": 591108,
+          "age_distribution": {"0-14": 9.9, "15-64": 66.9, "65+": 23.2},
+          "medical_facilities": 456,
+          "facilities_per_10000": 7.7
+        },
+        "13116": {
+          "name": "豊島区",
+          "population": 301599,
+          "age_distribution": {"0-14": 8.5, "15-64": 70.2, "65+": 21.3},
+          "medical_facilities": 289,
+          "facilities_per_10000": 9.6
+        },
+        "13117": {
+          "name": "北区",
+          "population": 353885,
+          "age_distribution": {"0-14": 9.8, "15-64": 64.5, "65+": 25.7},
+          "medical_facilities": 278,
+          "facilities_per_10000": 7.9
+        },
+        "13118": {
+          "name": "荒川区",
+          "population": 217146,
+          "age_distribution": {"0-14": 10.2, "15-64": 65.2, "65+": 24.6},
+          "medical_facilities": 167,
+          "facilities_per_10000": 7.7
+        },
+        "13119": {
+          "name": "板橋区",
+          "population": 584483,
+          "age_distribution": {"0-14": 10.3, "15-64": 65.8, "65+": 23.9},
+          "medical_facilities": 423,
+          "facilities_per_10000": 7.2
+        },
+        "13120": {
+          "name": "練馬区",
+          "population": 752608,
+          "age_distribution": {"0-14": 11.7, "15-64": 65.0, "65+": 23.3},
+          "medical_facilities": 489,
+          "facilities_per_10000": 6.5
+        },
+        "13121": {
+          "name": "足立区",
+          "population": 695043,
+          "age_distribution": {"0-14": 10.7, "15-64": 63.8, "65+": 25.5},
+          "medical_facilities": 478,
+          "facilities_per_10000": 6.9
+        },
+        "13122": {
+          "name": "葛飾区",
+          "population": 464550,
+          "age_distribution": {"0-14": 10.7, "15-64": 63.9, "65+": 25.4},
+          "medical_facilities": 334,
+          "facilities_per_10000": 7.2
+        },
+        "13123": {
+          "name": "江戸川区",
+          "population": 698031,
+          "age_distribution": {"0-14": 12.2, "15-64": 65.1, "65+": 22.7},
+          "medical_facilities": 423,
+          "facilities_per_10000": 6.1
+        }
+      },
+      "major_cities": {
+        "13201": {"name": "八王子市", "population": 577513},
+        "13202": {"name": "立川市", "population": 184183},
+        "13203": {"name": "武蔵野市", "population": 150660},
+        "13204": {"name": "三鷹市", "population": 195391},
+        "13229": {"name": "町田市", "population": 433937}
+      }
+    },
+    "14": {
+      "name": "神奈川県",
+      "code": "14000",
+      "population": 9237337,
+      "age_distribution": {"0-14": 11.8, "15-64": 62.9, "65+": 25.3},
+      "medical_facilities": 5789,
+      "facilities_per_10000": 6.3,
+      "major_cities": {
+        "14100": {
+          "name": "横浜市",
+          "population": 3777491,
+          "age_distribution": {"0-14": 11.8, "15-64": 63.4, "65+": 24.8},
+          "medical_facilities": 2687,
+          "facilities_per_10000": 7.1,
+          "wards": {
+            "14101": {"name": "鶴見区", "population": 295236},
+            "14102": {"name": "神奈川区", "population": 246866},
+            "14103": {"name": "西区", "population": 106732},
+            "14104": {"name": "中区", "population": 153639},
+            "14105": {"name": "南区", "population": 198939},
+            "14106": {"name": "保土ケ谷区", "population": 206721},
+            "14107": {"name": "磯子区", "population": 167410},
+            "14108": {"name": "金沢区", "population": 197309},
+            "14109": {"name": "港北区", "population": 357910},
+            "14110": {"name": "戸塚区", "population": 283248},
+            "14111": {"name": "港南区", "population": 214865},
+            "14112": {"name": "旭区", "population": 246441},
+            "14113": {"name": "緑区", "population": 183266},
+            "14114": {"name": "瀬谷区", "population": 122253},
+            "14115": {"name": "栄区", "population": 119610},
+            "14116": {"name": "泉区", "population": 151623},
+            "14117": {"name": "青葉区", "population": 311442},
+            "14118": {"name": "都筑区", "population": 214698}
+          }
+        },
+        "14130": {
+          "name": "川崎市",
+          "population": 1539522,
+          "age_distribution": {"0-14": 12.1, "15-64": 66.4, "65+": 21.5},
+          "medical_facilities": 912,
+          "facilities_per_10000": 5.9,
+          "wards": {
+            "14131": {"name": "川崎区", "population": 231215},
+            "14132": {"name": "幸区", "population": 171282},
+            "14133": {"name": "中原区", "population": 264204},
+            "14134": {"name": "高津区", "population": 235108},
+            "14135": {"name": "多摩区", "population": 223798},
+            "14136": {"name": "宮前区", "population": 234195},
+            "14137": {"name": "麻生区", "population": 180520}
+          }
+        },
+        "14150": {
+          "name": "相模原市",
+          "population": 725493,
+          "age_distribution": {"0-14": 11.9, "15-64": 62.8, "65+": 25.3},
+          "medical_facilities": 423,
+          "facilities_per_10000": 5.8,
+          "wards": {
+            "14151": {"name": "緑区", "population": 177097},
+            "14152": {"name": "中央区", "population": 273106},
+            "14153": {"name": "南区", "population": 275290}
+          }
+        },
+        "14201": {"name": "横須賀市", "population": 384174},
+        "14203": {"name": "平塚市", "population": 257877},
+        "14204": {"name": "鎌倉市", "population": 172320},
+        "14205": {"name": "藤沢市", "population": 436905}
+      }
+    },
+    "15": {
+      "name": "新潟県",
+      "code": "15000",
+      "population": 2201272,
+      "age_distribution": {"0-14": 10.8, "15-64": 57.0, "65+": 32.2},
+      "medical_facilities": 1545,
+      "facilities_per_10000": 7.0,
+      "major_cities": {
+        "15100": {
+          "name": "新潟市",
+          "population": 789275,
+          "age_distribution": {"0-14": 11.3, "15-64": 59.6, "65+": 29.1},
+          "medical_facilities": 689,
+          "facilities_per_10000": 8.7,
+          "wards": {
+            "15101": {"name": "北区", "population": 73703},
+            "15102": {"name": "東区", "population": 134684},
+            "15103": {"name": "中央区", "population": 182970},
+            "15104": {"name": "江南区", "population": 68467},
+            "15105": {"name": "秋葉区", "population": 75328},
+            "15106": {"name": "南区", "population": 43762},
+            "15107": {"name": "西区", "population": 161874},
+            "15108": {"name": "西蒲区", "population": 55397}
+          }
+        },
+        "15202": {"name": "長岡市", "population": 266936}
+      }
+    },
+    "16": {
+      "name": "富山県",
+      "code": "16000",
+      "population": 1034814,
+      "age_distribution": {"0-14": 11.4, "15-64": 57.0, "65+": 31.6},
+      "medical_facilities": 682,
+      "facilities_per_10000": 6.6,
+      "major_cities": {
+        "16201": {"name": "富山市", "population": 413938}
+      }
+    },
+    "17": {
+      "name": "石川県",
+      "code": "17000",
+      "population": 1132526,
+      "age_distribution": {"0-14": 12.0, "15-64": 59.0, "65+": 29.0},
+      "medical_facilities": 789,
+      "facilities_per_10000": 7.0,
+      "major_cities": {
+        "17201": {"name": "金沢市", "population": 463254}
+      }
+    },
+    "18": {
+      "name": "福井県",
+      "code": "18000",
+      "population": 766863,
+      "age_distribution": {"0-14": 12.2, "15-64": 57.8, "65+": 30.0},
+      "medical_facilities": 467,
+      "facilities_per_10000": 6.1,
+      "major_cities": {
+        "18201": {"name": "福井市", "population": 260564}
+      }
+    },
+    "19": {
+      "name": "山梨県",
+      "code": "19000",
+      "population": 809974,
+      "age_distribution": {"0-14": 11.4, "15-64": 58.0, "65+": 30.6},
+      "medical_facilities": 612,
+      "facilities_per_10000": 7.6,
+      "major_cities": {
+        "19201": {"name": "甲府市", "population": 186512}
+      }
+    },
+    "20": {
+      "name": "長野県",
+      "code": "20000",
+      "population": 2048011,
+      "age_distribution": {"0-14": 11.9, "15-64": 56.8, "65+": 31.3},
+      "medical_facilities": 1523,
+      "facilities_per_10000": 7.4,
+      "major_cities": {
+        "20201": {"name": "長野市", "population": 370632},
+        "20202": {"name": "松本市", "population": 237062}
+      }
+    },
+    "21": {
+      "name": "岐阜県",
+      "code": "21000",
+      "population": 1978742,
+      "age_distribution": {"0-14": 12.1, "15-64": 58.0, "65+": 29.9},
+      "medical_facilities": 1567,
+      "facilities_per_10000": 7.9,
+      "major_cities": {
+        "21201": {"name": "岐阜市", "population": 402557}
+      }
+    },
+    "22": {
+      "name": "静岡県",
+      "code": "22000",
+      "population": 3633202,
+      "age_distribution": {"0-14": 11.9, "15-64": 58.4, "65+": 29.7},
+      "medical_facilities": 2456,
+      "facilities_per_10000": 6.8,
+      "major_cities": {
+        "22100": {
+          "name": "静岡市",
+          "population": 693389,
+          "age_distribution": {"0-14": 11.2, "15-64": 58.9, "65+": 29.9},
+          "medical_facilities": 523,
+          "facilities_per_10000": 7.5,
+          "wards": {
+            "22101": {"name": "葵区", "population": 251755},
+            "22102": {"name": "駿河区", "population": 211653},
+            "22103": {"name": "清水区", "population": 236945}
+          }
+        },
+        "22130": {
+          "name": "浜松市",
+          "population": 790718,
+          "age_distribution": {"0-14": 12.5, "15-64": 59.4, "65+": 28.1},
+          "medical_facilities": 589,
+          "facilities_per_10000": 7.4,
+          "wards": {
+            "22131": {"name": "中区", "population": 238477},
+            "22132": {"name": "東区", "population": 137491},
+            "22133": {"name": "西区", "population": 109740},
+            "22134": {"name": "南区", "population": 100876},
+            "22135": {"name": "北区", "population": 93108},
+            "22136": {"name": "浜北区", "population": 101271},
+            "22137": {"name": "天竜区", "population": 27457}
+          }
+        }
+      }
+    },
+    "23": {
+      "name": "愛知県",
+      "code": "23000",
+      "population": 7542415,
+      "age_distribution": {"0-14": 12.5, "15-64": 62.8, "65+": 24.7},
+      "medical_facilities": 5134,
+      "facilities_per_10000": 6.8,
+      "major_cities": {
+        "23100": {
+          "name": "名古屋市",
+          "population": 2332176,
+          "age_distribution": {"0-14": 12.1, "15-64": 63.6, "65+": 24.3},
+          "medical_facilities": 1987,
+          "facilities_per_10000": 8.5,
+          "wards": {
+            "23101": {"name": "千種区", "population": 166131},
+            "23102": {"name": "東区", "population": 86665},
+            "23103": {"name": "北区", "population": 162478},
+            "23104": {"name": "西区", "population": 150117},
+            "23105": {"name": "中村区", "population": 133773},
+            "23106": {"name": "中区", "population": 91576},
+            "23107": {"name": "昭和区", "population": 110436},
+            "23108": {"name": "瑞穂区", "population": 107690},
+            "23109": {"name": "熱田区", "population": 66713},
+            "23110": {"name": "中川区", "population": 220401},
+            "23111": {"name": "港区", "population": 143309},
+            "23112": {"name": "南区", "population": 136123},
+            "23113": {"name": "守山区", "population": 177019},
+            "23114": {"name": "緑区", "population": 248389},
+            "23115": {"name": "名東区", "population": 165189},
+            "23116": {"name": "天白区", "population": 163641}
+          }
+        },
+        "23201": {"name": "豊橋市", "population": 374765},
+        "23202": {"name": "岡崎市", "population": 385478},
+        "23211": {"name": "豊田市", "population": 422267}
+      }
+    },
+    "24": {
+      "name": "三重県",
+      "code": "24000",
+      "population": 1770254,
+      "age_distribution": {"0-14": 11.9, "15-64": 59.0, "65+": 29.1},
+      "medical_facilities": 1234,
+      "facilities_per_10000": 7.0,
+      "major_cities": {
+        "24201": {"name": "津市", "population": 274537},
+        "24202": {"name": "四日市市", "population": 309068}
+      }
+    },
+    "25": {
+      "name": "滋賀県",
+      "code": "25000",
+      "population": 1413610,
+      "age_distribution": {"0-14": 13.4, "15-64": 61.4, "65+": 25.2},
+      "medical_facilities": 654,
+      "facilities_per_10000": 4.6,
+      "major_cities": {
+        "25201": {"name": "大津市", "population": 343991}
+      }
+    },
+    "26": {
+      "name": "京都府",
+      "code": "26000",
+      "population": 2578087,
+      "age_distribution": {"0-14": 11.1, "15-64": 60.8, "65+": 28.1},
+      "medical_facilities": 2311,
+      "facilities_per_10000": 9.0,
+      "major_cities": {
+        "26100": {
+          "name": "京都市",
+          "population": 1463723,
+          "age_distribution": {"0-14": 10.8, "15-64": 62.3, "65+": 26.9},
+          "medical_facilities": 1678,
+          "facilities_per_10000": 11.5,
+          "wards": {
+            "26101": {"name": "北区", "population": 116458},
+            "26102": {"name": "上京区", "population": 83823},
+            "26103": {"name": "左京区", "population": 165924},
+            "26104": {"name": "中京区", "population": 112138},
+            "26105": {"name": "東山区", "population": 36778},
+            "26106": {"name": "下京区", "population": 84271},
+            "26107": {"name": "南区", "population": 101670},
+            "26108": {"name": "右京区", "population": 201334},
+            "26109": {"name": "伏見区", "population": 275917},
+            "26110": {"name": "山科区", "population": 134416},
+            "26111": {"name": "西京区", "population": 148364}
+          }
+        }
+      }
+    },
+    "27": {
+      "name": "大阪府",
+      "code": "27000",
+      "population": 8837685,
+      "age_distribution": {"0-14": 11.2, "15-64": 62.8, "65+": 26.0},
+      "medical_facilities": 8234,
+      "facilities_per_10000": 9.3,
+      "major_cities": {
+        "27100": {
+          "name": "大阪市",
+          "population": 2753862,
+          "age_distribution": {"0-14": 10.7, "15-64": 63.9, "65+": 25.4},
+          "medical_facilities": 3456,
+          "facilities_per_10000": 12.6,
+          "wards": {
+            "27102": {"name": "都島区", "population": 107669},
+            "27103": {"name": "福島区", "population": 78409},
+            "27104": {"name": "此花区", "population": 66128},
+            "27106": {"name": "西区", "population": 103701},
+            "27107": {"name": "港区", "population": 81484},
+            "27108": {"name": "大正区", "population": 63175},
+            "27109": {"name": "天王寺区", "population": 83497},
+            "27111": {"name": "浪速区", "population": 75183},
+            "27113": {"name": "西淀川区", "population": 95309},
+            "27114": {"name": "東淀川区", "population": 175893},
+            "27115": {"name": "東成区", "population": 83571},
+            "27116": {"name": "生野区", "population": 127234},
+            "27117": {"name": "旭区", "population": 90091},
+            "27118": {"name": "城東区", "population": 167153},
+            "27119": {"name": "阿倍野区", "population": 110165},
+            "27120": {"name": "住吉区", "population": 153023},
+            "27121": {"name": "東住吉区", "population": 126423},
+            "27122": {"name": "西成区", "population": 105683},
+            "27123": {"name": "淀川区", "population": 184069},
+            "27124": {"name": "鶴見区", "population": 112123},
+            "27125": {"name": "住之江区", "population": 119515},
+            "27126": {"name": "平野区", "population": 190571},
+            "27127": {"name": "北区", "population": 138731},
+            "27128": {"name": "中央区", "population": 107761}
+          }
+        },
+        "27140": {
+          "name": "堺市",
+          "population": 826161,
+          "age_distribution": {"0-14": 12.0, "15-64": 59.9, "65+": 28.1},
+          "medical_facilities": 645,
+          "facilities_per_10000": 7.8,
+          "wards": {
+            "27141": {"name": "堺区", "population": 147626},
+            "27142": {"name": "中区", "population": 123066},
+            "27143": {"name": "東区", "population": 84089},
+            "27144": {"name": "西区", "population": 134753},
+            "27145": {"name": "南区", "population": 137876},
+            "27146": {"name": "北区", "population": 157274},
+            "27147": {"name": "美原区", "population": 36821}
+          }
+        },
+        "27203": {"name": "岸和田市", "population": 191992},
+        "27204": {"name": "豊中市", "population": 405798},
+        "27209": {"name": "吹田市", "population": 385587},
+        "27224": {"name": "枚方市", "population": 397289},
+        "27227": {"name": "東大阪市", "population": 493940}
+      }
+    },
+    "28": {
+      "name": "兵庫県",
+      "code": "28000",
+      "population": 5465002,
+      "age_distribution": {"0-14": 11.8, "15-64": 59.9, "65+": 28.3},
+      "medical_facilities": 4412,
+      "facilities_per_10000": 8.1,
+      "major_cities": {
+        "28100": {
+          "name": "神戸市",
+          "population": 1525152,
+          "age_distribution": {"0-14": 11.2, "15-64": 60.9, "65+": 27.9},
+          "medical_facilities": 1567,
+          "facilities_per_10000": 10.3,
+          "wards": {
+            "28101": {"name": "東灘区", "population": 213275},
+            "28102": {"name": "灘区", "population": 135478},
+            "28105": {"name": "兵庫区", "population": 106497},
+            "28106": {"name": "長田区", "population": 94579},
+            "28107": {"name": "須磨区", "population": 158246},
+            "28108": {"name": "垂水区", "population": 216328},
+            "28109": {"name": "北区", "population": 210751},
+            "28110": {"name": "中央区", "population": 147603},
+            "28111": {"name": "西区", "population": 242395}
+          }
+        },
+        "28201": {"name": "姫路市", "population": 530495},
+        "28202": {"name": "尼崎市", "population": 460517},
+        "28203": {"name": "明石市", "population": 304202},
+        "28204": {"name": "西宮市", "population": 484853}
+      }
+    },
+    "29": {
+      "name": "奈良県",
+      "code": "29000",
+      "population": 1324473,
+      "age_distribution": {"0-14": 11.1, "15-64": 57.2, "65+": 31.7},
+      "medical_facilities": 823,
+      "facilities_per_10000": 6.2,
+      "major_cities": {
+        "29201": {"name": "奈良市", "population": 353349}
+      }
+    },
+    "30": {
+      "name": "和歌山県",
+      "code": "30000",
+      "population": 922584,
+      "age_distribution": {"0-14": 10.9, "15-64": 56.0, "65+": 33.1},
+      "medical_facilities": 812,
+      "facilities_per_10000": 8.8,
+      "major_cities": {
+        "30201": {"name": "和歌山市", "population": 356738}
+      }
+    },
+    "31": {
+      "name": "鳥取県",
+      "code": "31000",
+      "population": 553407,
+      "age_distribution": {"0-14": 12.2, "15-64": 56.4, "65+": 31.4},
+      "medical_facilities": 356,
+      "facilities_per_10000": 6.4,
+      "major_cities": {
+        "31201": {"name": "鳥取市", "population": 187594}
+      }
+    },
+    "32": {
+      "name": "島根県",
+      "code": "32000",
+      "population": 671126,
+      "age_distribution": {"0-14": 11.8, "15-64": 54.5, "65+": 33.7},
+      "medical_facilities": 456,
+      "facilities_per_10000": 6.8,
+      "major_cities": {
+        "32201": {"name": "松江市", "population": 202008}
+      }
+    },
+    "33": {
+      "name": "岡山県",
+      "code": "33000",
+      "population": 1888432,
+      "age_distribution": {"0-14": 12.4, "15-64": 58.2, "65+": 29.4},
+      "medical_facilities": 1567,
+      "facilities_per_10000": 8.3,
+      "major_cities": {
+        "33100": {
+          "name": "岡山市",
+          "population": 724691,
+          "age_distribution": {"0-14": 12.9, "15-64": 60.6, "65+": 26.5},
+          "medical_facilities": 678,
+          "facilities_per_10000": 9.4,
+          "wards": {
+            "33101": {"name": "北区", "population": 310126},
+            "33102": {"name": "中区", "population": 147927},
+            "33103": {"name": "東区", "population": 95580},
+            "33104": {"name": "南区", "population": 171058}
+          }
+        },
+        "33202": {"name": "倉敷市", "population": 474592}
+      }
+    },
+    "34": {
+      "name": "広島県",
+      "code": "34000",
+      "population": 2799702,
+      "age_distribution": {"0-14": 12.5, "15-64": 58.6, "65+": 28.9},
+      "medical_facilities": 2345,
+      "facilities_per_10000": 8.4,
+      "major_cities": {
+        "34100": {
+          "name": "広島市",
+          "population": 1200754,
+          "age_distribution": {"0-14": 13.1, "15-64": 61.3, "65+": 25.6},
+          "medical_facilities": 1234,
+          "facilities_per_10000": 10.3,
+          "wards": {
+            "34101": {"name": "中区", "population": 138289},
+            "34102": {"name": "東区", "population": 119303},
+            "34103": {"name": "南区", "population": 143356},
+            "34104": {"name": "西区", "population": 188952},
+            "34105": {"name": "安佐南区", "population": 244904},
+            "34106": {"name": "安佐北区", "population": 143190},
+            "34107": {"name": "安芸区", "population": 77464},
+            "34108": {"name": "佐伯区", "population": 142746}
+          }
+        },
+        "34202": {"name": "呉市", "population": 214162},
+        "34207": {"name": "福山市", "population": 460930}
+      }
+    },
+    "35": {
+      "name": "山口県",
+      "code": "35000",
+      "population": 1342059,
+      "age_distribution": {"0-14": 11.4, "15-64": 55.6, "65+": 33.0},
+      "medical_facilities": 1234,
+      "facilities_per_10000": 9.2,
+      "major_cities": {
+        "35201": {"name": "下関市", "population": 255051},
+        "35203": {"name": "山口市", "population": 195633}
+      }
+    },
+    "36": {
+      "name": "徳島県",
+      "code": "36000",
+      "population": 719559,
+      "age_distribution": {"0-14": 10.8, "15-64": 55.9, "65+": 33.3},
+      "medical_facilities": 678,
+      "facilities_per_10000": 9.4,
+      "major_cities": {
+        "36201": {"name": "徳島市", "population": 252391}
+      }
+    },
+    "37": {
+      "name": "香川県",
+      "code": "37000",
+      "population": 950244,
+      "age_distribution": {"0-14": 11.9, "15-64": 57.1, "65+": 31.0},
+      "medical_facilities": 734,
+      "facilities_per_10000": 7.7,
+      "major_cities": {
+        "37201": {"name": "高松市", "population": 419000}
+      }
+    },
+    "38": {
+      "name": "愛媛県",
+      "code": "38000",
+      "population": 1334841,
+      "age_distribution": {"0-14": 11.3, "15-64": 56.7, "65+": 32.0},
+      "medical_facilities": 1023,
+      "facilities_per_10000": 7.7,
+      "major_cities": {
+        "38201": {"name": "松山市", "population": 509754}
+      }
+    },
+    "39": {
+      "name": "高知県",
+      "code": "39000",
+      "population": 691527,
+      "age_distribution": {"0-14": 10.5, "15-64": 54.4, "65+": 35.1},
+      "medical_facilities": 567,
+      "facilities_per_10000": 8.2,
+      "major_cities": {
+        "39201": {"name": "高知市", "population": 326545}
+      }
+    },
+    "40": {
+      "name": "福岡県",
+      "code": "40000",
+      "population": 5135214,
+      "age_distribution": {"0-14": 12.5, "15-64": 60.6, "65+": 26.9},
+      "medical_facilities": 4567,
+      "facilities_per_10000": 8.9,
+      "major_cities": {
+        "40100": {
+          "name": "北九州市",
+          "population": 939029,
+          "age_distribution": {"0-14": 11.4, "15-64": 57.5, "65+": 31.1},
+          "medical_facilities": 987,
+          "facilities_per_10000": 10.5,
+          "wards": {
+            "40101": {"name": "門司区", "population": 93708},
+            "40103": {"name": "若松区", "population": 79773},
+            "40105": {"name": "戸畑区", "population": 56709},
+            "40106": {"name": "小倉北区", "population": 181084},
+            "40107": {"name": "小倉南区", "population": 211159},
+            "40108": {"name": "八幡東区", "population": 65851},
+            "40109": {"name": "八幡西区", "population": 250745}
+          }
+        },
+        "40130": {
+          "name": "福岡市",
+          "population": 1612392,
+          "age_distribution": {"0-14": 12.9, "15-64": 64.8, "65+": 22.3},
+          "medical_facilities": 1678,
+          "facilities_per_10000": 10.4,
+          "wards": {
+            "40131": {"name": "東区", "population": 324825},
+            "40132": {"name": "博多区", "population": 252549},
+            "40133": {"name": "中央区", "population": 205501},
+            "40134": {"name": "南区", "population": 266460},
+            "40135": {"name": "西区", "population": 212750},
+            "40136": {"name": "城南区", "population": 133023},
+            "40137": {"name": "早良区", "population": 220717}
+          }
+        },
+        "40202": {"name": "大牟田市", "population": 110266},
+        "40203": {"name": "久留米市", "population": 303316}
+      }
+    },
+    "41": {
+      "name": "佐賀県",
+      "code": "41000",
+      "population": 811442,
+      "age_distribution": {"0-14": 13.1, "15-64": 58.1, "65+": 28.8},
+      "medical_facilities": 678,
+      "facilities_per_10000": 8.4,
+      "major_cities": {
+        "41201": {"name": "佐賀市", "population": 232488}
+      }
+    },
+    "42": {
+      "name": "長崎県",
+      "code": "42000",
+      "population": 1312317,
+      "age_distribution": {"0-14": 11.9, "15-64": 56.5, "65+": 31.6},
+      "medical_facilities": 1234,
+      "facilities_per_10000": 9.4,
+      "major_cities": {
+        "42201": {"name": "長崎市", "population": 409118},
+        "42202": {"name": "佐世保市", "population": 243223}
+      }
+    },
+    "43": {
+      "name": "熊本県",
+      "code": "43000",
+      "population": 1738301,
+      "age_distribution": {"0-14": 12.7, "15-64": 57.3, "65+": 30.0},
+      "medical_facilities": 1567,
+      "facilities_per_10000": 9.0,
+      "major_cities": {
+        "43100": {
+          "name": "熊本市",
+          "population": 738865,
+          "age_distribution": {"0-14": 13.2, "15-64": 60.6, "65+": 26.2},
+          "medical_facilities": 789,
+          "facilities_per_10000": 10.7,
+          "wards": {
+            "43101": {"name": "中央区", "population": 187110},
+            "43102": {"name": "東区", "population": 188926},
+            "43103": {"name": "西区", "population": 91725},
+            "43104": {"name": "南区", "population": 129190},
+            "43105": {"name": "北区", "population": 141914}
+          }
+        }
+      }
+    },
+    "44": {
+      "name": "大分県",
+      "code": "44000",
+      "population": 1123852,
+      "age_distribution": {"0-14": 11.9, "15-64": 56.2, "65+": 31.9},
+      "medical_facilities": 987,
+      "facilities_per_10000": 8.8,
+      "major_cities": {
+        "44201": {"name": "大分市", "population": 478146}
+      }
+    },
+    "45": {
+      "name": "宮崎県",
+      "code": "45000",
+      "population": 1069576,
+      "age_distribution": {"0-14": 12.5, "15-64": 56.6, "65+": 30.9},
+      "medical_facilities": 876,
+      "facilities_per_10000": 8.2,
+      "major_cities": {
+        "45201": {"name": "宮崎市", "population": 398276}
+      }
+    },
+    "46": {
+      "name": "鹿児島県",
+      "code": "46000",
+      "population": 1588256,
+      "age_distribution": {"0-14": 12.4, "15-64": 56.1, "65+": 31.5},
+      "medical_facilities": 1345,
+      "facilities_per_10000": 8.5,
+      "major_cities": {
+        "46201": {"name": "鹿児島市", "population": 593128}
+      }
+    },
+    "47": {
+      "name": "沖縄県",
+      "code": "47000",
+      "population": 1467480,
+      "age_distribution": {"0-14": 16.5, "15-64": 61.3, "65+": 22.2},
+      "medical_facilities": 876,
+      "facilities_per_10000": 6.0,
+      "major_cities": {
+        "47201": {"name": "那覇市", "population": 317405}
+      }
+    }
+  },
+  "medical_demand_patterns": {
+    "urban_high_density": {
+      "estimated_patients_per_day": 15000,
+      "disease_prevalence": {
+        "生活習慣病": 35,
+        "呼吸器疾患": 16,
+        "消化器疾患": 20,
+        "精神疾患": 12,
+        "整形外科疾患": 12,
+        "皮膚科疾患": 5
+      },
+      "healthcare_accessibility": "very_high",
+      "avg_waiting_time_minutes": 60
+    },
+    "urban_medium_density": {
+      "estimated_patients_per_day": 8000,
+      "disease_prevalence": {
+        "生活習慣病": 32,
+        "呼吸器疾患": 14,
+        "消化器疾患": 18,
+        "精神疾患": 10,
+        "整形外科疾患": 15,
+        "皮膚科疾患": 11
+      },
+      "healthcare_accessibility": "high",
+      "avg_waiting_time_minutes": 45
+    },
+    "suburban": {
+      "estimated_patients_per_day": 3000,
+      "disease_prevalence": {
+        "生活習慣病": 38,
+        "呼吸器疾患": 13,
+        "消化器疾患": 17,
+        "精神疾患": 8,
+        "整形外科疾患": 18,
+        "皮膚科疾患": 6
+      },
+      "healthcare_accessibility": "medium",
+      "avg_waiting_time_minutes": 30
+    },
+    "rural": {
+      "estimated_patients_per_day": 500,
+      "disease_prevalence": {
+        "生活習慣病": 40,
+        "呼吸器疾患": 12,
+        "消化器疾患": 16,
+        "精神疾患": 6,
+        "整形外科疾患": 20,
+        "皮膚科疾患": 6
+      },
+      "healthcare_accessibility": "low",
+      "avg_waiting_time_minutes": 20
+    }
+  }
+}
