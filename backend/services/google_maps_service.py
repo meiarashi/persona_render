@@ -40,6 +40,7 @@ class GoogleMapsService:
         try:
             # 住所を座標に変換
             coordinates = await self._geocode_address(location)
+            logger.info(f"Geocoded coordinates for '{location}': {coordinates}")
             if not coordinates:
                 if not self.api_key:
                     return {"error": "Google Maps APIキーが設定されていません。管理者に連絡してください。", "results": []}
@@ -84,10 +85,12 @@ class GoogleMapsService:
             
             # 結果を整形
             formatted_results = []
+            out_of_range_results = []
+            
             for place in places_results:
                 formatted_place = await self._format_place_data(place)
                 if formatted_place:
-                    # 距離を計算して範囲内かチェック
+                    # 距離を計算
                     place_lat = formatted_place['location']['lat']
                     place_lng = formatted_place['location']['lng']
                     distance = self.calculate_distance(
@@ -95,11 +98,25 @@ class GoogleMapsService:
                         place_lat, place_lng
                     ) * 1000  # kmをmに変換
                     
+                    formatted_place['distance'] = round(distance)  # 距離情報を追加
+                    
                     if distance <= radius:
-                        formatted_place['distance'] = round(distance)  # 距離情報を追加
                         formatted_results.append(formatted_place)
                     else:
-                        logger.info(f"Excluding {formatted_place['name']} - distance: {round(distance)}m, radius: {radius}m")
+                        out_of_range_results.append(formatted_place)
+                        logger.info(f"Out of range: {formatted_place['name']} - distance: {round(distance)}m, radius: {radius}m")
+            
+            # 範囲内の結果が少ない場合、警告ログを出力
+            if len(formatted_results) == 0 and out_of_range_results:
+                logger.warning(f"No clinics found within {radius}m radius. Nearest clinic is {out_of_range_results[0]['distance']}m away.")
+                # 最低限の分析用に、最も近い3件を含める
+                out_of_range_results.sort(key=lambda x: x['distance'])
+                for i in range(min(3, len(out_of_range_results))):
+                    result = out_of_range_results[i]
+                    result['out_of_range'] = True  # 範囲外フラグを追加
+                    result['note'] = f"※指定範囲（{radius}m）外"
+                    formatted_results.append(result)
+                    logger.info(f"Including nearest clinic for minimal analysis: {result['name']} ({result['distance']}m)")
             
             return {
                 "center": coordinates,
@@ -123,20 +140,35 @@ class GoogleMapsService:
                 return None
             
             # 住所の前処理（より正確なジオコーディングのため）
-            # 郵便番号が先頭にある場合は除去（郵便番号だけで検索すると別の場所になることがある）
             import re
-            cleaned_address = re.sub(r'^〒?\d{3}-?\d{4}\s*', '', address)
-            cleaned_address = cleaned_address.strip()
+            
+            # 部屋番号などを一時的に保存
+            room_number_match = re.search(r'[-−\d]+号室?$|[-−]\d+$', address)
+            room_number = room_number_match.group() if room_number_match else ""
+            
+            # ジオコーディング用の住所を準備（部屋番号を除外）
+            geocoding_address = address
+            if room_number:
+                geocoding_address = address.replace(room_number, "").strip()
+            
+            # 郵便番号が先頭にある場合は除去
+            geocoding_address = re.sub(r'^〒?\d{3}-?\d{4}\s*', '', geocoding_address)
+            geocoding_address = geocoding_address.strip()
+            
+            # 日本の住所として明確にする
+            if not geocoding_address.startswith("日本"):
+                geocoding_address = f"日本 {geocoding_address}"
             
             async with aiohttp.ClientSession() as session:
                 params = {
-                    "address": cleaned_address,
+                    "address": geocoding_address,
                     "key": self.api_key,
                     "language": "ja",
-                    "region": "JP"  # 日本の住所を優先
+                    "region": "JP",  # 日本の住所を優先
+                    "components": "country:JP"  # 日本に限定
                 }
                 
-                logger.info(f"Geocoding address: {cleaned_address} (original: {address})")
+                logger.info(f"Geocoding address: {geocoding_address} (original: {address})")
                 
                 async with session.get(self.geocoding_url, params=params) as response:
                     response_text = await response.text()
@@ -200,24 +232,31 @@ class GoogleMapsService:
                     # レート制限を適用
                     await self.rate_limiter.acquire_with_wait()
                     
+                    # 検索範囲を設定値に準じて調整
+                    # ユーザーが3kmを指定した場合は3kmで検索し、それ以上は検索しない
+                    search_radius = radius
+                    
                     params = {
                         "location": f"{location['lat']},{location['lng']}",
-                        "radius": radius,
+                        "radius": search_radius,  # ユーザー指定の範囲をそのまま使用
                         "keyword": keyword,
-                        "type": "doctor",  # 'doctor'タイプに絞る（clinicタイプは日本では使えない）
+                        # typeパラメータを削除（より幅広い検索のため）
                         "key": self.api_key,
                         "language": "ja"
                     }
                     
                     url = f"{self.places_url}/nearbysearch/json"
+                    logger.info(f"Searching places with keyword: {keyword}, location: {location}, radius: {radius}")
+                    
                     async with session.get(url, params=params) as response:
                         data = await response.json()
                         
                         if data.get("status") == "OK":
                             results = data.get("results", [])
+                            logger.info(f"Found {len(results)} results for keyword: {keyword}")
                             all_results.extend(results[:limit])
                         else:
-                            logger.warning(f"Places search failed with status: {data.get('status')}")
+                            logger.warning(f"Places search failed for keyword '{keyword}' with status: {data.get('status')}, error: {data.get('error_message', 'No error message')}")
                 
                 # 重複を除去
                 unique_results = []

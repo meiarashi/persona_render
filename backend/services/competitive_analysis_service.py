@@ -344,14 +344,14 @@ class CompetitiveAnalysisService:
             except ImportError:
                 old_sdk_available = False
             
-            # 新SDKを優先的に試す（動作していた実装に戻す）
+            # 新SDKを優先的に試す（新しいasync APIを使用）
             if google_genai_available:
                 try:
                     client = google_genai_sdk.Client(api_key=api_key)
                     
                     logger.info(f"Using new Gemini SDK with model: {model}")
-                    # 動作していた実装：generate_content_asyncを使用
-                    response = await client.models.generate_content_async(
+                    # 新しいSDKのasync API: client.models.generate_content
+                    response = await client.models.generate_content(
                         model=model,
                         contents=f"{system_prompt}\n\n{prompt}",
                         config=google_genai_types.GenerateContentConfig(
@@ -360,7 +360,7 @@ class CompetitiveAnalysisService:
                         )
                     )
                     
-                    # シンプルなレスポンス処理（動作していた実装）
+                    # レスポンス処理
                     if hasattr(response, 'text') and response.text:
                         logger.info("Successfully got response from new Gemini SDK")
                         return response.text
