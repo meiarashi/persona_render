@@ -22,7 +22,7 @@ except ImportError:
 from .google_maps_service import GoogleMapsService
 from .web_research_service import WebResearchService, RegionalDataService
 from .estat_medical_stats import EStatMedicalStatsService
-from .crud import read_settings
+from backend.utils.config_manager import config_manager
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class CompetitiveAnalysisService:
         
         # 管理画面の設定を読み込み
         try:
-            self.settings = read_settings()
+            self.settings = config_manager.get_settings()
             # 新しいフィールド名を使用（models.text_api_model）
             if hasattr(self.settings, 'models') and self.settings.models:
                 self.selected_model = self.settings.models.text_api_model or "gpt-5-2025-08-07"
@@ -304,42 +304,6 @@ class CompetitiveAnalysisService:
                 )
                 content = response.text
                 
-            elif self.selected_provider == "anthropic" and self.anthropic_api_key and anthropic_available:
-                client = Anthropic(api_key=self.anthropic_api_key, timeout=30.0)  # 30秒のタイムアウトに最適化
-                response = client.messages.create(
-                    model=self.selected_model,
-                    max_tokens=1500,  # レスポンスを最適化して処理時間短縮
-                    temperature=0.7,
-                    system=system_prompt,
-                    messages=[{"role": "user", "content": prompt}]
-                )
-                content = response.content[0].text
-                
-            elif self.selected_provider == "openai" and self.openai_api_key and openai_available:
-                client = OpenAI(api_key=self.openai_api_key, timeout=30.0)  # 30秒のタイムアウトに最適化
-                # GPT-5 uses max_completion_tokens instead of max_tokens and temperature must be 1.0
-                if "gpt-5" in self.selected_model:
-                    response = client.chat.completions.create(
-                        model=self.selected_model,
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": prompt}
-                        ],
-                        temperature=1.0,  # GPT-5 only supports default temperature of 1.0
-                        max_completion_tokens=1500  # レスポンスを最適化して処理時間短縮
-                    )
-                else:
-                    response = client.chat.completions.create(
-                        model=self.selected_model,
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": prompt}
-                        ],
-                        temperature=0.7,
-                        max_tokens=1500  # レスポンスを最適化して処理時間短縮
-                    )
-                content = response.choices[0].message.content
-                
             else:
                 logger.warning(f"Selected provider {self.selected_provider} not available, using basic SWOT")
                 return self._generate_basic_swot(analysis_data), ""
@@ -348,7 +312,20 @@ class CompetitiveAnalysisService:
             return self._parse_swot_response(content), content
             
         except Exception as e:
-            logger.error(f"Error generating SWOT analysis with AI: {str(e)}")
+            error_msg = f"Error generating SWOT analysis with AI: {str(e)}"
+            logger.error(error_msg)
+            # エラーの種類に応じて詳細なログを出力
+            if "api_key" in str(e).lower():
+                logger.error(f"API key issue for provider {self.selected_provider}")
+            elif "quota" in str(e).lower() or "429" in str(e):
+                logger.error(f"Rate limit or quota exceeded for {self.selected_provider}")
+            elif "timeout" in str(e).lower():
+                logger.error(f"Request timeout for {self.selected_provider}")
+            else:
+                logger.error(f"Unexpected error with {self.selected_provider}: {type(e).__name__}")
+            
+            # 基本的なSWOT分析にフォールバック
+            logger.info("Falling back to basic SWOT analysis")
             return self._generate_basic_swot(analysis_data), ""
     
     def _build_swot_prompt(self, analysis_data: Dict[str, Any]) -> str:
@@ -602,6 +579,11 @@ SWOT分析に基づき、以下の競争戦略を提案してください：
             },
             "recommendations": []
         }
+        
+        # Nullチェックとデフォルト値の返却
+        if not content:
+            logger.warning("Content is None or empty, returning default SWOT structure")
+            return result
         
         current_section = None
         in_recommendations = False

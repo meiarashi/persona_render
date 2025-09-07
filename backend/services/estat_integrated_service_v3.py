@@ -474,6 +474,9 @@ class EStatIntegratedServiceV3:
         
         except Exception as e:
             logger.error(f"統計表データ取得エラー: {e}")
+            logger.error(f"Error type: {type(e).__name__}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
         
         return 0
     

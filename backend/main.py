@@ -105,7 +105,7 @@ async def startup_event():
     
     # 環境変数の包括的チェック
     try:
-        from services.env_validator import EnvironmentValidator
+        from backend.services.env_validator import EnvironmentValidator
         is_valid, report = EnvironmentValidator.check_and_report()
         
         if not is_valid:
@@ -2687,13 +2687,9 @@ async def test_geocoding(request: Request, username: str = Depends(verify_admin_
 @app.post("/api/competitive-analysis")
 async def analyze_competitors(request: Request, username: str = Depends(verify_admin_credentials)):
     """競合分析を実行"""
-    # レート制限チェック（条件付き）
-    try:
-        from backend.utils.rate_limiter import competitive_analysis_limiter, check_rate_limit
-        check_rate_limit(competitive_analysis_limiter, request, username)
-    except ImportError:
-        # レート制限モジュールが利用できない場合はスキップ
-        pass
+    # レート制限チェック
+    from backend.utils.rate_limiter import competitive_analysis_limiter, check_rate_limit
+    check_rate_limit(competitive_analysis_limiter, request, username)
     
     try:
         data = await request.json()

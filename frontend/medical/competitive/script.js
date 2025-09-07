@@ -186,6 +186,100 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // CSVファイルアップロードハンドラ
+    function handleCSVUpload(e) {
+        const file = e.target.files[0];
+        if (file && file.name.endsWith('.csv')) {
+            handleCSVFile(file);
+        } else {
+            showModal('CSVファイルのみアップロード可能です。');
+        }
+    }
+    
+    // CSVファイル処理
+    function handleCSVFile(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const csvContent = e.target.result;
+            parseAndFillCSVData(csvContent);
+        };
+        reader.readAsText(file, 'UTF-8');
+    }
+    
+    // CSV解析とフォーム自動入力
+    function parseAndFillCSVData(csvContent) {
+        try {
+            const lines = csvContent.split('\n').filter(line => line.trim());
+            
+            // ヘッダー行とデータ行を分離
+            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+            const data = lines[1] ? lines[1].split(',').map(d => d.trim().replace(/^"|"$/g, '')) : [];
+            
+            // データマッピング
+            const dataMap = {};
+            headers.forEach((header, index) => {
+                dataMap[header] = data[index] || '';
+            });
+            
+            // フォームに値を設定
+            // クリニック名
+            if (dataMap['クリニック名']) {
+                document.getElementById('clinic-name').value = dataMap['クリニック名'];
+            }
+            
+            // 郵便番号
+            if (dataMap['郵便番号']) {
+                document.getElementById('postal-code').value = dataMap['郵便番号'];
+            }
+            
+            // 住所
+            if (dataMap['住所']) {
+                document.getElementById('address').value = dataMap['住所'];
+            }
+            
+            // 診療科の選択
+            if (dataMap['診療科']) {
+                const department = dataMap['診療科'];
+                const deptRadio = document.querySelector(`input[name="department"][value="${department}"]`);
+                if (deptRadio) {
+                    deptRadio.checked = true;
+                    // selectedクラスの更新
+                    document.querySelectorAll('.department-checkbox-grid label').forEach(l => l.classList.remove('selected'));
+                    deptRadio.closest('label').classList.add('selected');
+                }
+            }
+            
+            // クリニックの強み・特徴
+            if (dataMap['クリニックの強み・特徴']) {
+                const strengthsField = document.getElementById('strengths');
+                if (strengthsField) {
+                    strengthsField.value = dataMap['クリニックの強み・特徴'];
+                }
+            }
+            
+            // 主なターゲット層（追加情報フィールドに設定）
+            if (dataMap['主なターゲット層']) {
+                const additionalInfoField = document.getElementById('additional-info');
+                if (additionalInfoField) {
+                    additionalInfoField.value = dataMap['主なターゲット層'];
+                }
+            }
+            
+            // 成功メッセージを表示
+            const statusDiv = document.getElementById('csv-upload-status');
+            if (statusDiv) {
+                statusDiv.style.display = 'block';
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 3000);
+            }
+            
+        } catch (error) {
+            console.error('CSV parsing error:', error);
+            showModal('CSVファイルの読み込みに失敗しました。フォーマットを確認してください。');
+        }
+    }
+    
     function setupEventListeners() {
         // 次へボタン
         document.querySelectorAll('.next-step-btn').forEach(btn => {
@@ -199,6 +293,41 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 分析開始ボタン
         document.querySelector('.analyze-btn').addEventListener('click', handleAnalyze);
+        
+        // CSVファイルアップロード
+        const csvFileInput = document.getElementById('csv-file-input');
+        if (csvFileInput) {
+            csvFileInput.addEventListener('change', handleCSVUpload);
+        }
+        
+        // CSVドラッグ&ドロップ
+        const csvUploadArea = document.querySelector('.csv-upload-area');
+        if (csvUploadArea) {
+            csvUploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                csvUploadArea.style.backgroundColor = '#f0f9ff';
+            });
+            
+            csvUploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                csvUploadArea.style.backgroundColor = '#fff';
+            });
+            
+            csvUploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                csvUploadArea.style.backgroundColor = '#fff';
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.name.endsWith('.csv')) {
+                        handleCSVFile(file);
+                    } else {
+                        showModal('CSVファイルのみアップロード可能です。');
+                    }
+                }
+            });
+        }
     }
     
     function handleNextStep(e) {
