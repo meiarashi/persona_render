@@ -358,12 +358,13 @@ class CompetitiveAnalysisService:
             
         elif provider == "anthropic" and anthropic_available:
             client = Anthropic(api_key=api_key, timeout=30.0)
+            # ペルソナ生成と同じパターン：システムプロンプトとユーザープロンプトを結合
+            full_prompt = f"{system_prompt}\n\n{prompt}"
             response = client.messages.create(
                 model=model,
-                max_tokens=2000,
+                max_tokens=2500,  # ペルソナ生成と同じ値に統一
                 temperature=0.7,
-                system=system_prompt,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": full_prompt}]  # systemパラメータを使わない
             )
             return response.content[0].text
             
@@ -382,12 +383,14 @@ class CompetitiveAnalysisService:
                     
                     logger.info(f"Using new Gemini SDK with model: {model}")
                     # 新しいSDKのasync API: client.models.generate_content
+                    # ペルソナ生成と同じパターン：システムプロンプトとユーザープロンプトを結合
+                    full_prompt = f"{system_prompt}\n\n{prompt}"
                     response = await client.models.generate_content(
                         model=model,
-                        contents=f"{system_prompt}\n\n{prompt}",
+                        contents=full_prompt,  # ペルソナ生成と同じ形式
                         config=google_genai_types.GenerateContentConfig(
                             temperature=0.7,
-                            max_output_tokens=2000
+                            max_output_tokens=2500  # ペルソナ生成と同じ値に統一
                         )
                     )
                     
@@ -408,7 +411,9 @@ class CompetitiveAnalysisService:
                     logger.info(f"Trying old Gemini SDK with model: {model}")
                     old_gemini_sdk.configure(api_key=api_key)
                     old_model = old_gemini_sdk.GenerativeModel(model)
-                    response = old_model.generate_content(f"{system_prompt}\n\n{prompt}")
+                    # ペルソナ生成と同じパターン：システムプロンプトとユーザープロンプトを結合
+                    full_prompt = f"{system_prompt}\n\n{prompt}"
+                    response = old_model.generate_content(full_prompt)
                     
                     if hasattr(response, 'text') and response.text:
                         logger.info("Successfully got response from old Gemini SDK")
