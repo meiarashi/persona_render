@@ -394,7 +394,7 @@ class CompetitiveAnalysisService:
                         contents=full_prompt,  # ペルソナ生成と同じ形式
                         config=google_genai_types.GenerateContentConfig(
                             temperature=0.7,
-                            max_output_tokens=2500  # ペルソナ生成と同じ値に統一
+                            max_output_tokens=4000  # 出力文字数を増やす
                         )
                     )
 
@@ -425,7 +425,17 @@ class CompetitiveAnalysisService:
                 try:
                     logger.info(f"Trying old Gemini SDK with model: {model}")
                     old_gemini_sdk.configure(api_key=api_key)
-                    old_model = old_gemini_sdk.GenerativeModel(model)
+
+                    # 生成設定を追加
+                    generation_config = {
+                        "temperature": 0.7,
+                        "max_output_tokens": 4000,  # 出力文字数を増やす
+                    }
+
+                    old_model = old_gemini_sdk.GenerativeModel(
+                        model_name=model,
+                        generation_config=generation_config
+                    )
                     # ペルソナ生成と同じパターン：システムプロンプトとユーザープロンプトを結合
                     full_prompt = f"{system_prompt}\n\n{prompt}"
                     response = old_model.generate_content(full_prompt)
@@ -577,8 +587,10 @@ class CompetitiveAnalysisService:
             for line in lines:
                 line = line.strip()
 
-                # 戦略カテゴリを検出
-                if "差別化戦略" in line:
+                # 戦略カテゴリを検出（### で始まるか、戦略名が含まれる行）
+                strategy_found = False
+                if ("### 差別化戦略" in line or "##差別化戦略" in line or
+                    (line.startswith("差別化戦略") and len(line) < 30)):
                     # 前の戦略を保存
                     if current_strategy and current_content:
                         logger.info(f"[Strategy Parser] Saving {current_strategy}: {len(current_content)} lines")
@@ -590,8 +602,10 @@ class CompetitiveAnalysisService:
                     logger.info(f"[Strategy Parser] Found 差別化戦略 in line: {line[:100]}")
                     current_strategy = "差別化戦略"
                     current_content = []
+                    strategy_found = True
 
-                elif "マーケティング戦略" in line:
+                elif ("### マーケティング戦略" in line or "##マーケティング戦略" in line or
+                      (line.startswith("マーケティング戦略") and len(line) < 30)):
                     if current_strategy and current_content:
                         logger.info(f"[Strategy Parser] Saving {current_strategy}: {len(current_content)} lines")
                         recommendations.append({
@@ -602,8 +616,10 @@ class CompetitiveAnalysisService:
                     logger.info(f"[Strategy Parser] Found マーケティング戦略 in line: {line[:100]}")
                     current_strategy = "マーケティング戦略"
                     current_content = []
+                    strategy_found = True
 
-                elif "オペレーション改善" in line:
+                elif ("### オペレーション改善" in line or "##オペレーション改善" in line or
+                      (line.startswith("オペレーション改善") and len(line) < 30)):
                     if current_strategy and current_content:
                         logger.info(f"[Strategy Parser] Saving {current_strategy}: {len(current_content)} lines")
                         recommendations.append({
@@ -614,12 +630,20 @@ class CompetitiveAnalysisService:
                     logger.info(f"[Strategy Parser] Found オペレーション改善 in line: {line[:100]}")
                     current_strategy = "オペレーション改善"
                     current_content = []
+                    strategy_found = True
 
-                # 内容を収集
-                elif current_strategy and line and not line.startswith('#'):
+                # 内容を収集（戦略ヘッダーでない場合）
+                if not strategy_found and current_strategy and line and not line.startswith('#'):
                     # 箇条書き記号を除去
-                    content = line.lstrip('・-●○■□* （').rstrip('）')
-                    if content and len(content) > 5:
+                    content = line
+                    for marker in ['・', '-', '●', '○', '■', '□', '*']:
+                        if line.startswith(marker):
+                            content = line[len(marker):].strip()
+                            break
+                    # 括弧も除去
+                    content = content.lstrip('（(').rstrip('）)')
+
+                    if content and len(content) > 3:
                         current_content.append(content)
 
             # 最後の戦略を保存
@@ -754,16 +778,31 @@ class CompetitiveAnalysisService:
 
                 # セクションヘッダーでない場合は内容として収集
                 if not section_found and current_section:
-                    # 箇条書きマーカーを除去
-                    content = line
-                    for marker in ['-', '・', '●', '○', '■', '□', '*', '**']:
-                        if line.startswith(marker):
+                    # 箇条書きマーカーがある場合、新しいアイテムとして開始
+                    is_new_item = False
+                    for marker in ['-', '・', '●', '○', '■', '□', '*']:
+                        if line.startswith(marker + ' '):
+                            # 前のアイテムを保存
+                            if current_item:
+                                full_item = " ".join(current_item).strip()
+                                if full_item and len(full_item) > 5:
+                                    logger.debug(f"[SWOT Parser] Saving item to {current_section}: {full_item[:50]}...")
+                                    swot[current_section].append(full_item)
+                            # 新しいアイテムを開始
                             content = line[len(marker):].strip()
+                            current_item = [content] if content else []
+                            is_new_item = True
                             break
 
-                    # 施策ラベル（例：「小児向け施策:」）を含む行も追加
-                    if content and (len(content) > 5 or ':' in content or '：' in content):
-                        current_item.append(content)
+                    # 箇条書きマーカーがない場合は、既存アイテムの継続または新しい内容
+                    if not is_new_item:
+                        # インデントされた行（2スペース以上）は既存アイテムの継続
+                        if line.startswith('  ') or line.startswith('\t'):
+                            if current_item:
+                                current_item.append(line.strip())
+                        # インデントなしで内容がある場合も追加
+                        elif line and len(line) > 5:
+                            current_item.append(line)
 
             # 最後のアイテムを保存
             if current_section and current_item:
