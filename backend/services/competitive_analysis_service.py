@@ -354,7 +354,7 @@ class CompetitiveAnalysisService:
                         {"role": "user", "content": prompt}
                     ],
                     temperature=0.7,
-                    max_tokens=2000
+                    max_tokens=128000  # GPT-5最大値
                 )
                 content = response.choices[0].message.content if response.choices else None
                 logger.info(f"OpenAI response length: {len(content) if content else 0} characters")
@@ -366,7 +366,7 @@ class CompetitiveAnalysisService:
             full_prompt = f"{system_prompt}\n\n{prompt}"
             response = client.messages.create(
                 model=model,
-                max_tokens=2500,  # ペルソナ生成と同じ値に統一
+                max_tokens=64000,  # Claude Sonnet 4最大値
                 temperature=0.7,
                 messages=[{"role": "user", "content": full_prompt}]  # systemパラメータを使わない
             )
@@ -394,7 +394,7 @@ class CompetitiveAnalysisService:
                         contents=full_prompt,  # ペルソナ生成と同じ形式
                         config=google_genai_types.GenerateContentConfig(
                             temperature=0.7,
-                            max_output_tokens=4000  # 出力文字数を増やす
+                            max_output_tokens=64000  # Gemini 2.5 Pro最大値（実際の制限）
                         )
                     )
 
@@ -429,7 +429,7 @@ class CompetitiveAnalysisService:
                     # 生成設定を追加
                     generation_config = {
                         "temperature": 0.7,
-                        "max_output_tokens": 4000,  # 出力文字数を増やす
+                        "max_output_tokens": 64000,  # Gemini 2.5 Pro最大値（実際の制限）
                     }
 
                     old_model = old_gemini_sdk.GenerativeModel(

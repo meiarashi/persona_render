@@ -551,7 +551,7 @@ async def generate_text_response(prompt_text, model_name, api_key):
                             model=model_name,
                             messages=[{"role": "user", "content": prompt_text}],
                             temperature=1.0,  # GPT-5はデフォルト値のみサポート
-                            max_completion_tokens=2500  # GPT-5用
+                            max_completion_tokens=128000  # GPT-5最大値
                         )
                         return completion.choices[0].message.content
                     except Exception as e2:
@@ -563,7 +563,7 @@ async def generate_text_response(prompt_text, model_name, api_key):
                     model=model_name,
                     messages=[{"role": "user", "content": prompt_text}],
                     temperature=0.7,
-                    max_tokens=2500
+                    max_tokens=128000  # 最大値に設定
                 )
                 return completion.choices[0].message.content
             
@@ -640,7 +640,7 @@ async def generate_text_response(prompt_text, model_name, api_key):
                         
                         response = client.messages.create(
                             model=model_name,
-                            max_tokens=2500,  # 502エラー対策で削減
+                            max_tokens=64000,  # Claude Sonnet 4最大値
                             messages=messages_to_send,
                             temperature=0.7
                         )
@@ -668,7 +668,11 @@ async def generate_text_response(prompt_text, model_name, api_key):
                 print(f"[DEBUG] Using new Gemini SDK with model: {model_name}")
                 response = client.models.generate_content(
                     model=model_name,
-                    contents=prompt_text
+                    contents=prompt_text,
+                    config=google_genai_types.GenerateContentConfig(
+                        temperature=0.7,
+                        max_output_tokens=64000  # Gemini 2.5 Pro最大値
+                    )
                 )
                 print(f"[DEBUG] Gemini response received: {response}")
                 if response.candidates and response.candidates[0].content.parts:
@@ -679,7 +683,11 @@ async def generate_text_response(prompt_text, model_name, api_key):
             else:
                 # Old SDK
                 print(f"[DEBUG] Using old Gemini SDK")
-                response = client.generate_content(prompt_text)
+                generation_config = {
+                    "temperature": 0.7,
+                    "max_output_tokens": 64000,  # Gemini 2.5 Pro最大値
+                }
+                response = client.generate_content(prompt_text, generation_config=generation_config)
                 generated_text = response.text
             
             # Remove Gemini-specific character count annotations
