@@ -134,7 +134,10 @@ class CompetitiveAnalysisService:
             
             # 4. SWOT分析と戦略的提案を生成
             swot_analysis, raw_response = await self._generate_swot_analysis(analysis_data)
-            
+
+            # 戦略提案を抽出
+            strategic_recommendations = self._parse_strategic_recommendations(raw_response)
+
             # 5. 結果を整形して返す
             return {
                 "success": True,
@@ -151,6 +154,7 @@ class CompetitiveAnalysisService:
                         "medical_stats": medical_stats
                     },
                     "swot_analysis": swot_analysis,
+                    "strategic_recommendations": strategic_recommendations,  # 構造化された戦略提案
                     "ai_response": raw_response,
                     "timestamp": datetime.now().isoformat()
                 }
@@ -382,10 +386,10 @@ class CompetitiveAnalysisService:
                     client = google_genai_sdk.Client(api_key=api_key)
                     
                     logger.info(f"Using new Gemini SDK with model: {model}")
-                    # 新しいSDKのasync API: client.models.generate_content
+                    # 新しいSDKは同期API（awaitは不要）
                     # ペルソナ生成と同じパターン：システムプロンプトとユーザープロンプトを結合
                     full_prompt = f"{system_prompt}\n\n{prompt}"
-                    response = await client.models.generate_content(
+                    response = client.models.generate_content(
                         model=model,
                         contents=full_prompt,  # ペルソナ生成と同じ形式
                         config=google_genai_types.GenerateContentConfig(
@@ -393,11 +397,12 @@ class CompetitiveAnalysisService:
                             max_output_tokens=2500  # ペルソナ生成と同じ値に統一
                         )
                     )
-                    
-                    # レスポンス処理
-                    if hasattr(response, 'text') and response.text:
+
+                    # レスポンス処理（ペルソナ生成と同じパターン）
+                    if response.candidates and response.candidates[0].content.parts:
+                        generated_text = response.candidates[0].content.parts[0].text
                         logger.info("Successfully got response from new Gemini SDK")
-                        return response.text
+                        return generated_text
                     
                     logger.warning(f"New SDK returned empty response for model {model}")
                     
@@ -518,33 +523,126 @@ class CompetitiveAnalysisService:
 ## SWOT分析
 
 ### 強み（Strengths）
-- （最大3項目、各項目は具体的に）
+- （2-3項目。各項目について具体的な内容を1-2文で説明してください）
 
 ### 弱み（Weaknesses）
-- （最大3項目、各項目は具体的に）
+- （2-3項目。各項目について具体的な内容を1-2文で説明してください）
 
 ### 機会（Opportunities）
-- （最大3項目、地域特性や市場動向を踏まえて）
+- （2-3項目。地域特性や市場動向を踏まえて、各項目を1-2文で説明してください）
 
 ### 脅威（Threats）
-- （最大3項目、競合状況を踏まえて）
+- （2-3項目。競合状況を踏まえて、各項目を1-2文で説明してください）
 
 ## 戦略的提案
 
 ### 差別化戦略
-（競合との差別化を図るための具体的な施策を1つ提案）
+（競合との差別化を図るための具体的な施策を詳しく提案。実施方法も含めて3-4文で）
 
 ### マーケティング戦略
-（ターゲット層にリーチするための具体的な施策を1つ提案）
+（ターゲット層にリーチするための具体的な施策を詳しく提案。実施方法も含めて3-4文で）
 
 ### オペレーション改善
-（業務効率化や患者満足度向上のための具体的な施策を1つ提案）
+（業務効率化や患者満足度向上のための具体的な施策を詳しく提案。実施方法も含めて3-4文で）
 """
         
         return prompt
     
+    def _parse_strategic_recommendations(self, response: str) -> List[Dict[str, str]]:
+        """AIレスポンスから戦略提案を抽出して構造化"""
+        recommendations = []
+
+        if not response or not isinstance(response, str):
+            return self._get_default_recommendations()
+
+        try:
+            lines = response.split('\n')
+            current_strategy = None
+            current_content = []
+
+            for line in lines:
+                line = line.strip()
+
+                # 戦略カテゴリを検出
+                if "差別化戦略" in line:
+                    # 前の戦略を保存
+                    if current_strategy and current_content:
+                        recommendations.append({
+                            "title": current_strategy,
+                            "description": " ".join(current_content),
+                            "priority": "high"
+                        })
+                    current_strategy = "差別化戦略"
+                    current_content = []
+
+                elif "マーケティング戦略" in line:
+                    if current_strategy and current_content:
+                        recommendations.append({
+                            "title": current_strategy,
+                            "description": " ".join(current_content),
+                            "priority": "high" if current_strategy == "差別化戦略" else "medium"
+                        })
+                    current_strategy = "マーケティング戦略"
+                    current_content = []
+
+                elif "オペレーション改善" in line:
+                    if current_strategy and current_content:
+                        recommendations.append({
+                            "title": current_strategy,
+                            "description": " ".join(current_content),
+                            "priority": "medium"
+                        })
+                    current_strategy = "オペレーション改善"
+                    current_content = []
+
+                # 内容を収集
+                elif current_strategy and line and not line.startswith('#'):
+                    # 箇条書き記号を除去
+                    content = line.lstrip('・-●○■□* （').rstrip('）')
+                    if content and len(content) > 5:
+                        current_content.append(content)
+
+            # 最後の戦略を保存
+            if current_strategy and current_content:
+                priority = "high" if current_strategy == "差別化戦略" else "medium"
+                recommendations.append({
+                    "title": current_strategy,
+                    "description": " ".join(current_content),
+                    "priority": priority
+                })
+
+            # 戦略提案が見つからない場合はデフォルトを返す
+            if not recommendations:
+                return self._get_default_recommendations()
+
+            return recommendations
+
+        except Exception as e:
+            logger.error(f"Error parsing strategic recommendations: {e}")
+            return self._get_default_recommendations()
+
+    def _get_default_recommendations(self) -> List[Dict[str, str]]:
+        """デフォルトの戦略提案を返す"""
+        return [
+            {
+                "title": "差別化戦略",
+                "description": "専門性を活かした特色ある診療メニューの開発と、地域のニーズに合わせた医療サービスの提供により、競合医院との差別化を図ります。",
+                "priority": "high"
+            },
+            {
+                "title": "マーケティング戦略",
+                "description": "SNSやウェブサイトを活用した情報発信の強化と、地域イベントへの積極的な参加により、認知度向上を目指します。",
+                "priority": "medium"
+            },
+            {
+                "title": "オペレーション改善",
+                "description": "オンライン予約システムの導入と待ち時間の短縮により、患者満足度の向上と業務効率化を実現します。",
+                "priority": "medium"
+            }
+        ]
+
     def _parse_swot_response(self, response: str) -> Dict[str, List[str]]:
-        """AIレスポンスからSWOT要素を抽出"""
+        """AIレスポンスからSWOT要素を抽出（詳細な内容も含む）"""
         try:
             swot = {
                 "strengths": [],
@@ -553,12 +651,12 @@ class CompetitiveAnalysisService:
                 "threats": [],
                 "strategies": []
             }
-            
+
             # Noneチェックと型チェック
             if not response or not isinstance(response, str):
                 logger.warning("Invalid response for SWOT parsing")
                 return swot
-            
+
             # 各セクションを抽出
             sections = {
                 "強み": "strengths",
@@ -566,30 +664,64 @@ class CompetitiveAnalysisService:
                 "機会": "opportunities",
                 "脅威": "threats"
             }
-            
+
             lines = response.split('\n')
             current_section = None
-            
+            current_item = []
+
             for line in lines:
                 line = line.strip()
                 if not line:
+                    # 空行で現在のアイテムを保存
+                    if current_section and current_item:
+                        full_item = " ".join(current_item).strip()
+                        if full_item and len(full_item) > 5:
+                            swot[current_section].append(full_item)
+                        current_item = []
                     continue
-                
+
                 # セクションヘッダーを検出
+                section_found = False
                 for jp_name, en_name in sections.items():
-                    if jp_name in line:
+                    if jp_name in line and ("(" in line or "（" in line or ":" in line):
+                        # 前のアイテムを保存
+                        if current_section and current_item:
+                            full_item = " ".join(current_item).strip()
+                            if full_item and len(full_item) > 5:
+                                swot[current_section].append(full_item)
+                            current_item = []
                         current_section = en_name
+                        section_found = True
                         break
-                
+
                 # 戦略セクションの検出
-                if any(keyword in line for keyword in ["戦略", "提案"]):
+                if not section_found and any(keyword in line for keyword in ["戦略", "提案"]):
+                    if current_section and current_item:
+                        full_item = " ".join(current_item).strip()
+                        if full_item and len(full_item) > 5:
+                            swot[current_section].append(full_item)
+                        current_item = []
                     current_section = "strategies"
-                
-                # 項目を抽出（箇条書きの場合）
-                if current_section and line.startswith(('-', '・', '●', '○', '■', '□', '*')):
-                    item = line.lstrip('-・●○■□* ').strip()
-                    if item and len(item) > 5:  # 短すぎる項目は除外
-                        swot[current_section].append(item)
+                    section_found = True
+
+                # セクションヘッダーでない場合は内容として収集
+                if not section_found and current_section:
+                    # 箇条書きマーカーを除去
+                    content = line
+                    for marker in ['-', '・', '●', '○', '■', '□', '*', '**']:
+                        if line.startswith(marker):
+                            content = line[len(marker):].strip()
+                            break
+
+                    # 施策ラベル（例：「小児向け施策:」）を含む行も追加
+                    if content and (len(content) > 5 or ':' in content or '：' in content):
+                        current_item.append(content)
+
+            # 最後のアイテムを保存
+            if current_section and current_item:
+                full_item = " ".join(current_item).strip()
+                if full_item and len(full_item) > 5:
+                    swot[current_section].append(full_item)
             
             # 最小限の項目を確保
             if not swot["strengths"]:

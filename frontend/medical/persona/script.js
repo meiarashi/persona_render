@@ -1735,53 +1735,61 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             
             try {
-                // ペルソナ生成と時系列分析を並列実行（同じ設定モデルを使用）
-                const [personaResponse, timelineResponse] = await Promise.all([
+                // すべての処理を真の並列実行
+                const promises = [
                     // ペルソナ生成
                     fetch(apiEndpoint, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(data)
-                    }),
-                    // 時系列データ取得
-                    window.pendingTimelineData.department && window.pendingTimelineData.chief_complaint ?
-                        fetch('/api/search-timeline', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(window.pendingTimelineData)
-                        }) : Promise.resolve(null)
-                ]);
+                    })
+                ];
 
-                // 時系列データを保存（後でタブクリック時に使用）
-                if (timelineResponse && timelineResponse.ok) {
-                    const timelineData = await timelineResponse.json();
-                    window.savedTimelineData = timelineData;
-                    console.log('[DEBUG] Timeline data saved:', timelineData);
+                // 時系列データ取得とAI分析を並列実行
+                if (window.pendingTimelineData.department && window.pendingTimelineData.chief_complaint) {
+                    // 時系列データ取得とその後のAI分析を一連の処理として管理
+                    const timelineAndAnalysisPromise = fetch('/api/search-timeline', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(window.pendingTimelineData)
+                    }).then(async (response) => {
+                        if (response.ok) {
+                            const data = await response.json();
+                            window.savedTimelineData = data;
+                            console.log('[DEBUG] Timeline data saved:', data);
 
-                    // AI分析も実行（キーワードがある場合のみ）
-                    if (timelineData.filtered_keywords && timelineData.filtered_keywords.length > 0) {
-                        const analysisPayload = {
-                            filtered_keywords: timelineData.filtered_keywords,
-                            persona_profile: window.pendingTimelineData
-                        };
+                            // キーワードがあればAI分析も開始し、完了を待つ
+                            if (data.filtered_keywords && data.filtered_keywords.length > 0) {
+                                const analysisPayload = {
+                                    filtered_keywords: data.filtered_keywords,
+                                    persona_profile: window.pendingTimelineData
+                                };
 
-                        try {
-                            const analysisResponse = await fetch('/api/search-timeline-analysis', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(analysisPayload)
-                            });
-
-                            if (analysisResponse.ok) {
-                                const analysisData = await analysisResponse.json();
-                                window.savedAIAnalysis = analysisData;
-                                console.log('[DEBUG] AI analysis saved:', analysisData);
+                                // AI分析を開始して完了を待つ
+                                await fetch('/api/search-timeline-analysis', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(analysisPayload)
+                                }).then(async (analysisResponse) => {
+                                    if (analysisResponse.ok) {
+                                        const analysisData = await analysisResponse.json();
+                                        window.savedAIAnalysis = analysisData;
+                                        console.log('[DEBUG] AI analysis saved:', analysisData);
+                                    }
+                                }).catch(err => {
+                                    console.error('[ERROR] AI analysis failed:', err);
+                                });
                             }
-                        } catch (err) {
-                            console.error('[ERROR] AI analysis failed:', err);
+                            return data;
                         }
-                    }
+                        return null;
+                    });
+
+                    promises.push(timelineAndAnalysisPromise);
                 }
+
+                // すべての処理を並列実行
+                const [personaResponse] = await Promise.all(promises);
 
                 const response = personaResponse;
                 if (!response.ok) {
