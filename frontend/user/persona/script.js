@@ -1735,60 +1735,54 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             
             try {
-                // ペルソナ生成とタイムライン分析を並列実行
-                const [personaResponse] = await Promise.all([
+                // ペルソナ生成と時系列分析を並列実行（同じ設定モデルを使用）
+                const [personaResponse, timelineResponse] = await Promise.all([
                     // ペルソナ生成
                     fetch(apiEndpoint, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(data)
                     }),
-                    // タイムライン分析（データ取得とAI分析も並列実行）
-                    window.pendingTimelineData.department && window.pendingTimelineData.chief_complaint ? 
+                    // 時系列データ取得
+                    window.pendingTimelineData.department && window.pendingTimelineData.chief_complaint ?
                         fetch('/api/search-timeline', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(window.pendingTimelineData)
-                        }).then(res => res.ok ? res.json() : null).then(timelineData => {
-                            if (timelineData) {
-                                window.preloadedTimelineData = timelineData;
-                                console.log('[DEBUG] Timeline data preloaded:', timelineData);
-                                
-                                // filtered_keywordsが存在し、かつ空でない場合のみAI分析を実行
-                                if (timelineData.filtered_keywords && timelineData.filtered_keywords.length > 0) {
-                                    const analysisPayload = {
-                                        filtered_keywords: timelineData.filtered_keywords,
-                                        persona_profile: window.pendingTimelineData
-                                    };
-                                    console.log('[DEBUG] Preloading AI analysis with:', analysisPayload);
-
-                                    // プリロード中フラグを設定
-                                    window.isPreloadingAIAnalysis = true;
-
-                                    return fetch('/api/search-timeline-analysis', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify(analysisPayload)
-                                    }).then(res => res.ok ? res.json() : null).then(analysisData => {
-                                        if (analysisData) {
-                                            window.preloadedAIAnalysis = analysisData;
-                                            console.log('[DEBUG] AI analysis preloaded:', analysisData);
-                                        }
-                                    }).catch(err => {
-                                        console.error('[ERROR] AI analysis preload failed:', err);
-                                    }).finally(() => {
-                                        // プリロード完了後にフラグをクリア
-                                        window.isPreloadingAIAnalysis = false;
-                                    });
-                                } else {
-                                    console.log('[DEBUG] No keywords found, skipping AI analysis preload');
-                                }
-                            }
-                        }).catch(err => {
-                            console.error('[ERROR] Timeline preload failed:', err);
-                        }) : null
+                        }) : Promise.resolve(null)
                 ]);
-                
+
+                // 時系列データを保存（後でタブクリック時に使用）
+                if (timelineResponse && timelineResponse.ok) {
+                    const timelineData = await timelineResponse.json();
+                    window.savedTimelineData = timelineData;
+                    console.log('[DEBUG] Timeline data saved:', timelineData);
+
+                    // AI分析も実行（キーワードがある場合のみ）
+                    if (timelineData.filtered_keywords && timelineData.filtered_keywords.length > 0) {
+                        const analysisPayload = {
+                            filtered_keywords: timelineData.filtered_keywords,
+                            persona_profile: window.pendingTimelineData
+                        };
+
+                        try {
+                            const analysisResponse = await fetch('/api/search-timeline-analysis', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(analysisPayload)
+                            });
+
+                            if (analysisResponse.ok) {
+                                const analysisData = await analysisResponse.json();
+                                window.savedAIAnalysis = analysisData;
+                                console.log('[DEBUG] AI analysis saved:', analysisData);
+                            }
+                        } catch (err) {
+                            console.error('[ERROR] AI analysis failed:', err);
+                        }
+                    }
+                }
+
                 const response = personaResponse;
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ detail: 'ペルソナ生成中に不明なエラーが発生しました。' }));
@@ -3438,11 +3432,11 @@ async function loadTimelineAnalysis(profile) {
     try {
         let data;
         
-        // 既に取得済みのデータがあるか確認
-        if (window.preloadedTimelineData) {
-            console.log('[DEBUG] Using preloaded timeline data');
-            data = window.preloadedTimelineData;
-            window.preloadedTimelineData = null; // 使用後はクリア
+        // 保存済みデータがあれば使用、なければAPIから取得
+        if (window.savedTimelineData) {
+            console.log('[DEBUG] Using saved timeline data');
+            data = window.savedTimelineData;
+            // 使用後もデータは保持（タブを何度もクリックできるように）
         } else {
             console.log('[DEBUG] Fetching timeline data from API');
         // 年齢を適切な形式に変換（年代形式に）
@@ -3481,32 +3475,23 @@ async function loadTimelineAnalysis(profile) {
             console.log('[ERROR] Server response:', errorText);
             throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
         }
-        
-            data = await response.json();
+
+        data = await response.json();
             console.log('[DEBUG] Timeline data received:', data);
             console.log('[DEBUG] Data has error?', data.error);
             console.log('[DEBUG] Filtered keywords count:', data.filtered_keywords ? data.filtered_keywords.length : 'undefined');
         }
         
-        // AI分析を取得（プリロード済みがあれば使用）
+        // AI分析を取得（保存済みがあれば使用）
         let analysisData = null;
 
-        // プリロード中の場合は完了を待つ
-        if (window.isPreloadingAIAnalysis) {
-            console.log('[DEBUG] Waiting for AI analysis preload to complete...');
-            const maxWaitTime = 10000; // 最大10秒待つ
-            const startTime = Date.now();
-            while (window.isPreloadingAIAnalysis && (Date.now() - startTime) < maxWaitTime) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-        }
-
-        if (window.preloadedAIAnalysis) {
-            console.log('[DEBUG] Using preloaded AI analysis');
-            analysisData = window.preloadedAIAnalysis;
-            window.preloadedAIAnalysis = null; // 使用後はクリア
-        } else if (data.filtered_keywords && data.filtered_keywords.length > 0 && !window.isPreloadingAIAnalysis) {
-            // プリロードされていない場合は通常通り取得（キーワードがある場合のみ）
+        // 保存済みAI分析があれば使用
+        if (window.savedAIAnalysis) {
+            console.log('[DEBUG] Using saved AI analysis');
+            analysisData = window.savedAIAnalysis;
+            // 使用後もデータは保持
+        } else if (data.filtered_keywords && data.filtered_keywords.length > 0) {
+            // 保存済みがない場合のみAI分析を実行
             const fullPersonaProfile = {
                 ...profile,
                 ...window.currentPersonaResult?.details  // 詳細情報も含める
