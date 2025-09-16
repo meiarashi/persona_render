@@ -308,33 +308,32 @@ class CompetitiveAnalysisService:
         """AIプロバイダーを呼び出してレスポンスを取得"""
         if provider == "openai" and openai_available:
             client = OpenAI(api_key=api_key, timeout=30.0)
-            
-            # GPT-5は新しいresponses APIを使用
+
+            # GPT-5は新しいresponses APIを使用（ペルソナ生成と同じパターン）
             if "gpt-5" in model:
                 try:
-                    # 新しいresponses APIを使用（最小実装）
+                    # 新しいresponses APIを使用（システムプロンプトとユーザープロンプトを結合）
                     full_prompt = f"{system_prompt}\n\n{prompt}"
                     response = client.responses.create(
                         model="gpt-5",
                         input=full_prompt,
-                        reasoning={"effort": "medium"}  # 処理時間短縮のため中程度に変更
+                        reasoning={"effort": "high"}  # 競合分析も詳細な推論が必要なのでhighに変更
                     )
                     content = response.output_text
                     logger.info(f"GPT-5 responses API - response length: {len(content) if content else 0} characters")
                     return content
                 except Exception as e:
                     logger.error(f"GPT-5 responses API error: {str(e)}")
-                    
-                    # chat.completions APIでリトライ（フォールバック）
+
+                    # chat.completions APIでリトライ（ペルソナ生成と同じパターン）
                     try:
+                        # GPT-5では role: user のみを使用（システムプロンプトも含めて単一メッセージ）
+                        full_prompt = f"{system_prompt}\n\n{prompt}"
                         response = client.chat.completions.create(
                             model=model,
-                            messages=[
-                                {"role": "system", "content": system_prompt},
-                                {"role": "user", "content": prompt}
-                            ],
+                            messages=[{"role": "user", "content": full_prompt}],  # ユーザーロールのみ
                             temperature=1.0,  # GPT-5はデフォルト値のみサポート
-                            max_completion_tokens=2000
+                            max_completion_tokens=2500  # ペルソナ生成と同じ値に調整
                         )
                         content = response.choices[0].message.content if response.choices else None
                         logger.info(f"GPT-5 chat API fallback - response length: {len(content) if content else 0} characters")
@@ -343,7 +342,7 @@ class CompetitiveAnalysisService:
                         logger.error(f"GPT-5 chat API error: {str(e2)}")
                         return None
             else:
-                # GPT-4以前のモデル
+                # GPT-4以前のモデル（従来通りシステムとユーザーを分ける）
                 response = client.chat.completions.create(
                     model=model,
                     messages=[

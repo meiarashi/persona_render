@@ -1761,7 +1761,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                                         persona_profile: window.pendingTimelineData
                                     };
                                     console.log('[DEBUG] Preloading AI analysis with:', analysisPayload);
-                                    
+
+                                    // プリロード中フラグを設定
+                                    window.isPreloadingAIAnalysis = true;
+
                                     return fetch('/api/search-timeline-analysis', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
@@ -1773,6 +1776,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                                         }
                                     }).catch(err => {
                                         console.error('[ERROR] AI analysis preload failed:', err);
+                                    }).finally(() => {
+                                        // プリロード完了後にフラグをクリア
+                                        window.isPreloadingAIAnalysis = false;
                                     });
                                 } else {
                                     console.log('[DEBUG] No keywords found, skipping AI analysis preload');
@@ -3484,12 +3490,22 @@ async function loadTimelineAnalysis(profile) {
         
         // AI分析を取得（プリロード済みがあれば使用）
         let analysisData = null;
-        
+
+        // プリロード中の場合は完了を待つ
+        if (window.isPreloadingAIAnalysis) {
+            console.log('[DEBUG] Waiting for AI analysis preload to complete...');
+            const maxWaitTime = 10000; // 最大10秒待つ
+            const startTime = Date.now();
+            while (window.isPreloadingAIAnalysis && (Date.now() - startTime) < maxWaitTime) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
+
         if (window.preloadedAIAnalysis) {
             console.log('[DEBUG] Using preloaded AI analysis');
             analysisData = window.preloadedAIAnalysis;
             window.preloadedAIAnalysis = null; // 使用後はクリア
-        } else if (data.filtered_keywords && data.filtered_keywords.length > 0) {
+        } else if (data.filtered_keywords && data.filtered_keywords.length > 0 && !window.isPreloadingAIAnalysis) {
             // プリロードされていない場合は通常通り取得（キーワードがある場合のみ）
             const fullPersonaProfile = {
                 ...profile,
