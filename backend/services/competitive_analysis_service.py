@@ -399,12 +399,22 @@ class CompetitiveAnalysisService:
                     )
 
                     # レスポンス処理（ペルソナ生成と同じパターン）
-                    if response.candidates and response.candidates[0].content.parts:
-                        generated_text = response.candidates[0].content.parts[0].text
-                        logger.info("Successfully got response from new Gemini SDK")
-                        return generated_text
-                    
-                    logger.warning(f"New SDK returned empty response for model {model}")
+                    logger.info(f"[Gemini] Response type: {type(response)}")
+                    if hasattr(response, 'candidates'):
+                        logger.info(f"[Gemini] Candidates count: {len(response.candidates) if response.candidates else 0}")
+
+                    if response.candidates and len(response.candidates) > 0:
+                        candidate = response.candidates[0]
+                        if candidate.content and candidate.content.parts:
+                            generated_text = candidate.content.parts[0].text
+                            logger.info(f"[Gemini] Successfully got response from new SDK: {len(generated_text)} chars")
+                            return generated_text
+                        else:
+                            logger.warning(f"[Gemini] Candidate has no content or parts")
+                    else:
+                        logger.warning(f"[Gemini] Response has no candidates")
+
+                    logger.warning(f"[Gemini] New SDK returned empty response for model {model}")
                     
                 except Exception as e:
                     logger.warning(f"New SDK failed: {e}")
@@ -550,9 +560,13 @@ class CompetitiveAnalysisService:
     
     def _parse_strategic_recommendations(self, response: str) -> List[Dict[str, str]]:
         """AIレスポンスから戦略提案を抽出して構造化"""
+        logger.info("="*60)
+        logger.info("[Strategy Parser] Starting to parse strategic recommendations")
+
         recommendations = []
 
         if not response or not isinstance(response, str):
+            logger.warning("[Strategy Parser] Invalid response, using defaults")
             return self._get_default_recommendations()
 
         try:
@@ -567,31 +581,37 @@ class CompetitiveAnalysisService:
                 if "差別化戦略" in line:
                     # 前の戦略を保存
                     if current_strategy and current_content:
+                        logger.info(f"[Strategy Parser] Saving {current_strategy}: {len(current_content)} lines")
                         recommendations.append({
                             "title": current_strategy,
                             "description": " ".join(current_content),
                             "priority": "high"
                         })
+                    logger.info(f"[Strategy Parser] Found 差別化戦略 in line: {line[:100]}")
                     current_strategy = "差別化戦略"
                     current_content = []
 
                 elif "マーケティング戦略" in line:
                     if current_strategy and current_content:
+                        logger.info(f"[Strategy Parser] Saving {current_strategy}: {len(current_content)} lines")
                         recommendations.append({
                             "title": current_strategy,
                             "description": " ".join(current_content),
                             "priority": "high" if current_strategy == "差別化戦略" else "medium"
                         })
+                    logger.info(f"[Strategy Parser] Found マーケティング戦略 in line: {line[:100]}")
                     current_strategy = "マーケティング戦略"
                     current_content = []
 
                 elif "オペレーション改善" in line:
                     if current_strategy and current_content:
+                        logger.info(f"[Strategy Parser] Saving {current_strategy}: {len(current_content)} lines")
                         recommendations.append({
                             "title": current_strategy,
                             "description": " ".join(current_content),
-                            "priority": "medium"
+                            "priority": "high" if current_strategy == "差別化戦略" else "medium"
                         })
+                    logger.info(f"[Strategy Parser] Found オペレーション改善 in line: {line[:100]}")
                     current_strategy = "オペレーション改善"
                     current_content = []
 
@@ -611,11 +631,29 @@ class CompetitiveAnalysisService:
                     "priority": priority
                 })
 
+            # 重複をチェックして削除
+            unique_recommendations = []
+            seen_titles = set()
+            for rec in recommendations:
+                if rec['title'] not in seen_titles:
+                    unique_recommendations.append(rec)
+                    seen_titles.add(rec['title'])
+                else:
+                    logger.warning(f"[Strategy Parser] Duplicate strategy found and removed: {rec['title']}")
+
+            # 結果をログ出力
+            logger.info("="*60)
+            logger.info(f"[Strategy Parser] Found {len(unique_recommendations)} unique strategies:")
+            for i, rec in enumerate(unique_recommendations, 1):
+                logger.info(f"  {i}. {rec['title']} (priority: {rec['priority']})")
+                logger.info(f"     Description preview: {rec['description'][:100]}...")
+
             # 戦略提案が見つからない場合はデフォルトを返す
-            if not recommendations:
+            if not unique_recommendations:
+                logger.warning("[Strategy Parser] No recommendations found, using defaults")
                 return self._get_default_recommendations()
 
-            return recommendations
+            return unique_recommendations
 
         except Exception as e:
             logger.error(f"Error parsing strategic recommendations: {e}")
@@ -643,6 +681,10 @@ class CompetitiveAnalysisService:
 
     def _parse_swot_response(self, response: str) -> Dict[str, List[str]]:
         """AIレスポンスからSWOT要素を抽出（詳細な内容も含む）"""
+        logger.info("="*60)
+        logger.info("[SWOT Parser] Starting to parse SWOT response")
+        logger.info(f"[SWOT Parser] Response length: {len(response) if response else 0} characters")
+
         try:
             swot = {
                 "strengths": [],
@@ -654,8 +696,12 @@ class CompetitiveAnalysisService:
 
             # Noneチェックと型チェック
             if not response or not isinstance(response, str):
-                logger.warning("Invalid response for SWOT parsing")
+                logger.warning("[SWOT Parser] Invalid response for SWOT parsing")
                 return swot
+
+            # レスポンスの最初の500文字をログ出力
+            logger.info(f"[SWOT Parser] Response preview (first 500 chars):\n{response[:500]}...")
+            logger.info("="*60)
 
             # 各セクションを抽出
             sections = {
@@ -676,6 +722,7 @@ class CompetitiveAnalysisService:
                     if current_section and current_item:
                         full_item = " ".join(current_item).strip()
                         if full_item and len(full_item) > 5:
+                            logger.debug(f"[SWOT Parser] Saving item to {current_section}: {full_item[:50]}...")
                             swot[current_section].append(full_item)
                         current_item = []
                     continue
@@ -690,6 +737,7 @@ class CompetitiveAnalysisService:
                             if full_item and len(full_item) > 5:
                                 swot[current_section].append(full_item)
                             current_item = []
+                        logger.info(f"[SWOT Parser] Section detected: {en_name} from line: {line[:100]}")
                         current_section = en_name
                         section_found = True
                         break
@@ -722,17 +770,31 @@ class CompetitiveAnalysisService:
                 full_item = " ".join(current_item).strip()
                 if full_item and len(full_item) > 5:
                     swot[current_section].append(full_item)
-            
+
+            # パース結果をログ出力
+            logger.info("="*60)
+            logger.info("[SWOT Parser] Parsing completed. Results:")
+            logger.info(f"  - Strengths: {len(swot['strengths'])} items")
+            logger.info(f"  - Weaknesses: {len(swot['weaknesses'])} items")
+            logger.info(f"  - Opportunities: {len(swot['opportunities'])} items")
+            logger.info(f"  - Threats: {len(swot['threats'])} items")
+            logger.info(f"  - Strategies: {len(swot['strategies'])} items")
+
             # 最小限の項目を確保
             if not swot["strengths"]:
+                logger.warning("[SWOT Parser] No strengths found, using defaults")
                 swot["strengths"] = ["専門性の高い医療サービス", "経験豊富な医療スタッフ"]
             if not swot["weaknesses"]:
+                logger.warning("[SWOT Parser] No weaknesses found, using defaults")
                 swot["weaknesses"] = ["認知度の向上が必要", "デジタルマーケティングの強化が必要"]
             if not swot["opportunities"]:
+                logger.warning("[SWOT Parser] No opportunities found, using defaults")
                 swot["opportunities"] = ["地域の高齢化による需要増", "予防医療への関心の高まり"]
             if not swot["threats"]:
+                logger.warning("[SWOT Parser] No threats found, using defaults")
                 swot["threats"] = ["近隣競合医院との競争", "患者の大病院志向"]
             if not swot["strategies"]:
+                logger.warning("[SWOT Parser] No strategies found, using defaults")
                 swot["strategies"] = [
                     "SNSを活用した情報発信の強化",
                     "予約システムの導入による利便性向上",

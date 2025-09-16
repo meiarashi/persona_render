@@ -53,6 +53,31 @@ function sanitizeHtml(str) {
     return div.innerHTML;
 }
 
+// マークダウン形式のテキストを簡単なHTMLに変換
+function renderMarkdown(text) {
+    if (!text) return '';
+
+    // エスケープ処理
+    let html = sanitizeHtml(text);
+
+    // **太字**を<strong>タグに変換
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+    // *斜体*を<em>タグに変換
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+    // ###見出し3を<strong>タグに変換
+    html = html.replace(/^###\s+(.+)$/gm, '<strong>$1</strong>');
+
+    // ##見出し2を<strong>タグに変換
+    html = html.replace(/^##\s+(.+)$/gm, '<strong>$1</strong>');
+
+    // 改行を<br>に変換（連続する改行は1つの改行として扱う）
+    html = html.replace(/\n/g, '<br>');
+
+    return html;
+}
+
 function sanitizeUrl(url) {
     if (!url) return '#';
     try {
@@ -966,25 +991,25 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="swot-section strengths">
                             <h4>強み (Strengths)</h4>
                             <ul>
-                                ${swotAnalysis.strengths ? swotAnalysis.strengths.map(s => `<li>${sanitizeHtml(s)}</li>`).join('') : ''}
+                                ${swotAnalysis.strengths ? swotAnalysis.strengths.map(s => `<li>${renderMarkdown(s)}</li>`).join('') : ''}
                             </ul>
                         </div>
                         <div class="swot-section weaknesses">
                             <h4>弱み (Weaknesses)</h4>
                             <ul>
-                                ${swotAnalysis.weaknesses ? swotAnalysis.weaknesses.map(w => `<li>${sanitizeHtml(w)}</li>`).join('') : ''}
+                                ${swotAnalysis.weaknesses ? swotAnalysis.weaknesses.map(w => `<li>${renderMarkdown(w)}</li>`).join('') : ''}
                             </ul>
                         </div>
                         <div class="swot-section opportunities">
                             <h4>機会 (Opportunities)</h4>
                             <ul>
-                                ${swotAnalysis.opportunities ? swotAnalysis.opportunities.map(o => `<li>${sanitizeHtml(o)}</li>`).join('') : ''}
+                                ${swotAnalysis.opportunities ? swotAnalysis.opportunities.map(o => `<li>${renderMarkdown(o)}</li>`).join('') : ''}
                             </ul>
                         </div>
                         <div class="swot-section threats">
                             <h4>脅威 (Threats)</h4>
                             <ul>
-                                ${swotAnalysis.threats ? swotAnalysis.threats.map(t => `<li>${sanitizeHtml(t)}</li>`).join('') : ''}
+                                ${swotAnalysis.threats ? swotAnalysis.threats.map(t => `<li>${renderMarkdown(t)}</li>`).join('') : ''}
                             </ul>
                         </div>
                     </div>
@@ -1000,7 +1025,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${result.strategic_recommendations.map(rec => `
                         <div class="recommendation-item ${sanitizeHtml(rec.priority)}">
                             <h4>${sanitizeHtml(rec.title)}</h4>
-                            <p>${sanitizeHtml(rec.description)}</p>
+                            <p>${renderMarkdown(rec.description)}</p>
                             <span class="priority-badge">優先度: ${rec.priority === 'high' ? '高' : rec.priority === 'medium' ? '中' : '低'}</span>
                         </div>
                     `).join('')}
