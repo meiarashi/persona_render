@@ -3919,8 +3919,8 @@ function drawTimelineChart(keywords) {
         const canvasArea = canvas.width * canvas.height;
         const baseArea = 600 * 400; // 基準サイズ（600x400px）
         const areaRatio = canvasArea / baseArea;
-        // ラベル数を少し減らして重なりを防ぐ
-        const maxLabels = Math.min(35, Math.max(15, Math.floor(20 * Math.sqrt(areaRatio))));
+        // 元の最大ラベル数に戻す
+        const maxLabels = Math.min(50, Math.max(20, Math.floor(25 * Math.sqrt(areaRatio))));
         console.log(`[DEBUG] Canvas size: ${canvas.width}x${canvas.height}, Max labels: ${maxLabels}`);
 
         // すべてのポイントの実座標を取得
@@ -3978,10 +3978,25 @@ function drawTimelineChart(keywords) {
         let displayCount = 0;
 
         // 各ポイントに対してラベル配置を決定
-        for (const point of allPoints) {
+        for (let i = 0; i < allPoints.length; i++) {
+            const point = allPoints[i];
             if (!point || !point.dataRef) {
                 console.log('[DEBUG] Skipping invalid point');
                 continue;
+            }
+
+            // 近くのポイントを検出（密集度の計算）
+            let nearbyCount = 0;
+            const proximityRadius = 50; // ピクセル
+            for (let j = 0; j < allPoints.length; j++) {
+                if (i !== j) {
+                    const dx = allPoints[j].x - point.x;
+                    const dy = allPoints[j].y - point.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < proximityRadius) {
+                        nearbyCount++;
+                    }
+                }
             }
 
             // ボリュームに応じてフォントサイズを動的に調整
@@ -3991,8 +4006,8 @@ function drawTimelineChart(keywords) {
 
             // テキスト幅を測定（調整後のフォントサイズで）
             const textMetrics = ctx.measureText(point.label);
-            const labelWidth = textMetrics.width;
-            const labelHeight = fontSize + 4; // フォントサイズ + パディング
+            const labelWidth = textMetrics.width + 8; // テキスト幅 + 左右パディング
+            const labelHeight = fontSize + 8; // フォントサイズ + 上下パディング
 
             // デバッグ: 最初のポイントの詳細
             if (displayCount === 0) {
@@ -4006,30 +4021,57 @@ function drawTimelineChart(keywords) {
                 });
             }
 
-            // datalabelsの配置パターンとオフセットの対応（拡張版）
-            const placements = [
-                // 基本配置（近い）- 優先度高
-                { align: 'right', anchor: 'center', offset: 12 },
-                { align: 'left', anchor: 'center', offset: 12 },
-                { align: 'top', anchor: 'center', offset: 12 },
-                // 斜め配置 - 重なりを避けやすい
-                { align: 'right', anchor: 'top', offset: 10 },
-                { align: 'left', anchor: 'top', offset: 10 },
-                { align: 'right', anchor: 'bottom', offset: 10 },
-                { align: 'left', anchor: 'bottom', offset: 10 },
-                // 中距離配置
-                { align: 'right', anchor: 'center', offset: 22 },
-                { align: 'left', anchor: 'center', offset: 22 },
-                { align: 'top', anchor: 'center', offset: 22 },
-                // 遠距離配置
-                { align: 'right', anchor: 'center', offset: 35 },
-                { align: 'left', anchor: 'center', offset: 35 },
-                { align: 'top', anchor: 'center', offset: 30 },
-                // 下向き配置（最後の手段）
-                { align: 'bottom', anchor: 'center', offset: 12 },
-                { align: 'bottom', anchor: 'center', offset: 22 },
-                { align: 'bottom', anchor: 'center', offset: 30 },
-            ];
+            // 密集度に応じて配置パターンを調整
+            let placements;
+            if (nearbyCount > 5) {
+                // 非常に密集している場合
+                placements = [
+                    { align: 'right', anchor: 'center', offset: 25 },
+                    { align: 'left', anchor: 'center', offset: 25 },
+                    { align: 'top', anchor: 'center', offset: 25 },
+                    { align: 'right', anchor: 'top', offset: 20 },
+                    { align: 'left', anchor: 'top', offset: 20 },
+                    { align: 'right', anchor: 'center', offset: 40 },
+                    { align: 'left', anchor: 'center', offset: 40 },
+                    { align: 'top', anchor: 'center', offset: 40 },
+                    { align: 'right', anchor: 'bottom', offset: 20 },
+                    { align: 'left', anchor: 'bottom', offset: 20 },
+                    { align: 'bottom', anchor: 'center', offset: 25 },
+                    { align: 'bottom', anchor: 'center', offset: 40 },
+                ];
+            } else if (nearbyCount > 2) {
+                // 中程度に密集している場合
+                placements = [
+                    { align: 'right', anchor: 'center', offset: 18 },
+                    { align: 'left', anchor: 'center', offset: 18 },
+                    { align: 'top', anchor: 'center', offset: 18 },
+                    { align: 'right', anchor: 'top', offset: 15 },
+                    { align: 'left', anchor: 'top', offset: 15 },
+                    { align: 'right', anchor: 'center', offset: 30 },
+                    { align: 'left', anchor: 'center', offset: 30 },
+                    { align: 'top', anchor: 'center', offset: 30 },
+                    { align: 'right', anchor: 'bottom', offset: 15 },
+                    { align: 'left', anchor: 'bottom', offset: 15 },
+                    { align: 'bottom', anchor: 'center', offset: 18 },
+                    { align: 'bottom', anchor: 'center', offset: 30 },
+                ];
+            } else {
+                // 通常の配置パターン
+                placements = [
+                    { align: 'right', anchor: 'center', offset: 12 },
+                    { align: 'left', anchor: 'center', offset: 12 },
+                    { align: 'top', anchor: 'center', offset: 12 },
+                    { align: 'right', anchor: 'top', offset: 10 },
+                    { align: 'left', anchor: 'top', offset: 10 },
+                    { align: 'right', anchor: 'bottom', offset: 10 },
+                    { align: 'left', anchor: 'bottom', offset: 10 },
+                    { align: 'right', anchor: 'center', offset: 25 },
+                    { align: 'left', anchor: 'center', offset: 25 },
+                    { align: 'top', anchor: 'center', offset: 25 },
+                    { align: 'bottom', anchor: 'center', offset: 12 },
+                    { align: 'bottom', anchor: 'center', offset: 25 },
+                ];
+            }
 
             let placed = false;
             let selectedPlacement = null;
@@ -4095,11 +4137,47 @@ function drawTimelineChart(keywords) {
                 // 他のラベルと衝突しないかチェック
                 let hasCollision = false;
                 for (const occupied of occupiedBoxes) {
-                    const margin = 5; // マージンを増やして重なりを防ぐ
-                    if (!(box.right + margin < occupied.left ||
-                          occupied.right + margin < box.left ||
-                          box.bottom + margin < occupied.top ||
-                          occupied.bottom + margin < box.top)) {
+                    // より洗練されたマージン計算
+                    let marginX = 4;
+                    let marginY = 4;
+
+                    // ボックスの中心座標を計算
+                    const centerX1 = box.left + (box.right - box.left) / 2;
+                    const centerY1 = box.top + (box.bottom - box.top) / 2;
+                    const centerX2 = occupied.left + (occupied.right - occupied.left) / 2;
+                    const centerY2 = occupied.top + (occupied.bottom - occupied.top) / 2;
+
+                    // 同じY座標の場合は横マージンを大きく
+                    const yDiff = Math.abs(centerY1 - centerY2);
+                    if (yDiff < labelHeight / 2) {
+                        marginX = 8;
+                    }
+
+                    // 同じX座標の場合は縦マージンを大きく
+                    const xDiff = Math.abs(centerX1 - centerX2);
+                    if (xDiff < labelWidth / 2) {
+                        marginY = 8;
+                    }
+
+                    // 近接度に基づく追加マージン
+                    const centerDistance = Math.sqrt(
+                        Math.pow(centerX1 - centerX2, 2) + 
+                        Math.pow(centerY1 - centerY2, 2)
+                    );
+                    
+                    // 非常に近い場合はさらにマージンを追加
+                    if (centerDistance < 40) {
+                        marginX += 3;
+                        marginY += 3;
+                    } else if (centerDistance < 60) {
+                        marginX += 1;
+                        marginY += 1;
+                    }
+
+                    if (!(box.right + marginX < occupied.left ||
+                          occupied.right + marginX < box.left ||
+                          box.bottom + marginY < occupied.top ||
+                          occupied.bottom + marginY < box.top)) {
                         hasCollision = true;
                         break;
                     }
