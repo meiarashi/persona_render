@@ -4161,10 +4161,27 @@ function drawTimelineChart(keywords) {
     // ChartDataLabelsプラグインが登録されているか確認
     if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
         console.log('[DEBUG] ChartDataLabels plugin is available');
-        // プラグインが登録されていない場合は再登録
-        if (!Chart.registry.plugins.has(ChartDataLabels)) {
-            Chart.register(ChartDataLabels);
-            console.log('[DEBUG] ChartDataLabels plugin registered');
+        // Chart.jsのバージョンによってregistryの構造が異なるため、try-catchで処理
+        try {
+            // Chart.js v3以降のチェック方法
+            if (Chart.registry && Chart.registry.plugins && typeof Chart.registry.plugins.has === 'function') {
+                if (!Chart.registry.plugins.has(ChartDataLabels)) {
+                    Chart.register(ChartDataLabels);
+                    console.log('[DEBUG] ChartDataLabels plugin registered (v3+)');
+                }
+            } else {
+                // Chart.js v2または他のバージョン - 常に登録を試みる
+                Chart.register(ChartDataLabels);
+                console.log('[DEBUG] ChartDataLabels plugin registered (v2 or fallback)');
+            }
+        } catch (e) {
+            console.log('[DEBUG] Plugin registration check failed, attempting registration anyway:', e);
+            try {
+                Chart.register(ChartDataLabels);
+                console.log('[DEBUG] ChartDataLabels plugin registered (fallback)');
+            } catch (regError) {
+                console.error('[ERROR] Failed to register ChartDataLabels plugin:', regError);
+            }
         }
     } else {
         console.error('[ERROR] ChartDataLabels plugin is not available');
