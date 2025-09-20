@@ -3830,92 +3830,125 @@ function drawTimelineChart(keywords) {
     console.log('[DEBUG] Pre-diagnosis data count:', preDiagnosisData.length);
     console.log('[DEBUG] Post-diagnosis data count:', postDiagnosisData.length);
 
-    // 衝突検出アルゴリズム：重複なしで最大限のラベルを表示
-    function detectAndResolveCollisions(allData, xRange, yRange) {
-        // すべてのデータを結合して優先度順にソート
-        const combined = []
-            .concat(preDiagnosisData.map(d => ({...d, dataset: 'pre'})))
-            .concat(postDiagnosisData.map(d => ({...d, dataset: 'post'})))
-            .filter(d => d.y > 0) // ボリュームが0より大きいもののみ
-            .sort((a, b) => b.y - a.y); // 重複ボリュームの大きい順
+    // Chart.js描画完了後に実座標で最適化
+    function optimizeLabelsAfterRender(chart) {
+        const meta0 = chart.getDatasetMeta(0); // 診断前データ
+        const meta1 = chart.getDatasetMeta(1); // 診断後データ
 
-        // ラベルの占有領域を管理
+        // すべてのポイントの実座標を取得
+        const allPoints = [];
+
+        // 診断前データのポイント
+        meta0.data.forEach((element, index) => {
+            const dataPoint = preDiagnosisData[index];
+            if (dataPoint && dataPoint.y > 0) {
+                allPoints.push({
+                    x: element.x,  // 実際のピクセル座標
+                    y: element.y,  // 実際のピクセル座標
+                    label: dataPoint.label,
+                    volume: dataPoint.y,
+                    dataRef: dataPoint,
+                    element: element
+                });
+            }
+        });
+
+        // 診断後データのポイント
+        meta1.data.forEach((element, index) => {
+            const dataPoint = postDiagnosisData[index];
+            if (dataPoint && dataPoint.y > 0) {
+                allPoints.push({
+                    x: element.x,  // 実際のピクセル座標
+                    y: element.y,  // 実際のピクセル座標
+                    label: dataPoint.label,
+                    volume: dataPoint.y,
+                    dataRef: dataPoint,
+                    element: element
+                });
+            }
+        });
+
+        // ボリューム順にソート（優先度）
+        allPoints.sort((a, b) => b.volume - a.volume);
+
+        // 実際のCanvas要素とコンテキストを取得
+        const canvas = chart.canvas;
+        const ctx = canvas.getContext('2d');
+        ctx.font = '12px sans-serif'; // datalabelsと同じフォント
+
+        // 占有領域を管理
         const occupiedBoxes = [];
-
-        // ラベルのバウンディングボックスを計算する関数
-        function getLabelBox(point, labelText) {
-            // グラフの座標系をピクセル座標に変換（推定値）
-            const chartWidth = 800;  // チャートの推定幅
-            const chartHeight = 400; // チャートの推定高さ
-
-            // X座標: time_diff_daysを画面座標に変換
-            const xPixel = ((point.x - xRange.min) / (xRange.max - xRange.min)) * chartWidth;
-
-            // Y座標: ボリュームを画面座標に変換（Y軸は反転）
-            const yPixel = chartHeight - ((point.y / yRange.max) * chartHeight);
-
-            // ラベルサイズの推定（文字数 × フォントサイズ）
-            const labelWidth = labelText.length * 7;  // 1文字約7px（12pxフォント）
-            const labelHeight = 16; // ラベルの高さ
-
-            // オフセットを考慮（datalabelsのoffsetが15-25px）
-            const offset = 20;
-
-            return {
-                left: xPixel + offset,
-                right: xPixel + offset + labelWidth,
-                top: yPixel - labelHeight / 2,
-                bottom: yPixel + labelHeight / 2,
-                point: point // 元のポイントデータを保持
-            };
-        }
-
-        // 2つのボックスが重複するかチェック
-        function hasCollision(box1, box2) {
-            // マージン（ラベル間の最小間隔）
-            const margin = 5;
-
-            return !(box1.right + margin < box2.left ||
-                     box2.right + margin < box1.left ||
-                     box1.bottom + margin < box2.top ||
-                     box2.bottom + margin < box1.top);
-        }
-
         let displayCount = 0;
 
-        // 貪欲法：優先度順に配置可能なラベルを選択
-        for (const point of combined) {
-            const labelBox = getLabelBox(point, point.label);
+        // 各ポイントに対してラベル配置を決定
+        allPoints.forEach((point, index) => {
+            // 実際の文字幅を測定
+            const textMetrics = ctx.measureText(point.label);
+            const labelWidth = textMetrics.width;
+            const labelHeight = 16; // フォントサイズ + パディング
 
-            // 既存のラベルと衝突チェック
-            let hasConflict = false;
-            for (const occupied of occupiedBoxes) {
-                if (hasCollision(labelBox, occupied)) {
-                    hasConflict = true;
+            // 複数の配置パターンを試す
+            const offsets = [
+                { x: 10, y: 0 },     // 右
+                { x: -labelWidth - 10, y: 0 },  // 左
+                { x: 10, y: -20 },   // 右上
+                { x: 10, y: 20 },    // 右下
+                { x: -labelWidth - 10, y: -20 }, // 左上
+                { x: -labelWidth - 10, y: 20 },  // 左下
+                { x: 0, y: -25 },    // 上
+                { x: 0, y: 25 },     // 下
+            ];
+
+            let placed = false;
+
+            for (const offset of offsets) {
+                const box = {
+                    left: point.x + offset.x,
+                    right: point.x + offset.x + labelWidth,
+                    top: point.y + offset.y - labelHeight / 2,
+                    bottom: point.y + offset.y + labelHeight / 2
+                };
+
+                // 画面内に収まるかチェック
+                if (box.left < 0 || box.right > canvas.width ||
+                    box.top < 0 || box.bottom > canvas.height) {
+                    continue;
+                }
+
+                // 他のラベルと衝突しないかチェック
+                let hasCollision = false;
+                for (const occupied of occupiedBoxes) {
+                    if (!(box.right < occupied.left ||
+                          occupied.right < box.left ||
+                          box.bottom < occupied.top ||
+                          occupied.bottom < box.top)) {
+                        hasCollision = true;
+                        break;
+                    }
+                }
+
+                if (!hasCollision) {
+                    // 配置可能
+                    point.dataRef.showLabel = true;
+                    occupiedBoxes.push(box);
+                    displayCount++;
+                    placed = true;
                     break;
                 }
             }
 
-            // 衝突がなければ表示
-            if (!hasConflict) {
-                point.showLabel = true;
-                occupiedBoxes.push(labelBox);
-                displayCount++;
-
-                // 元のデータセットに反映
-                if (point.dataset === 'pre') {
-                    const original = preDiagnosisData.find(d => d.label === point.label && d.x === point.x);
-                    if (original) original.showLabel = true;
-                } else {
-                    const original = postDiagnosisData.find(d => d.label === point.label && d.x === point.x);
-                    if (original) original.showLabel = true;
-                }
+            if (!placed) {
+                point.dataRef.showLabel = false;
             }
-        }
+        });
 
-        console.log(`[DEBUG] Collision detection: ${displayCount} labels will be displayed out of ${combined.length} candidates`);
-        return displayCount;
+        console.log(`[Optimized] ${displayCount} labels placed out of ${allPoints.length} candidates`);
+
+        // チャートを更新して新しいラベル表示を反映
+        chart.update('none'); // アニメーションなしで更新
     }
+
+    // 古い衝突検出関数は削除（Chart.js描画後の実座標ベースに移行）
 
     // Y軸の最大値を計算（グラフを横長にするため）
     const allYValues = [...preDiagnosisData, ...postDiagnosisData].map(d => d.y).filter(y => y > 0);
@@ -3931,10 +3964,8 @@ function drawTimelineChart(keywords) {
     const dynamicMinX = Math.floor((minX - xPadding) / 10) * 10;  // 10単位で丸める
     const dynamicMaxX = Math.ceil((maxX + xPadding * 2) / 10) * 10;  // 右側は多めに余白を取る
 
-    // 衝突検出を実行してラベル表示を決定
-    const xRangeObj = { min: dynamicMinX, max: dynamicMaxX };
-    const yRangeObj = { max: suggestedMaxY };
-    detectAndResolveCollisions([...preDiagnosisData, ...postDiagnosisData], xRangeObj, yRangeObj);
+    // 初期状態ではすべてのラベルを非表示
+    [...preDiagnosisData, ...postDiagnosisData].forEach(d => d.showLabel = false);
 
     // チャート作成
     timelineChartInstance = new Chart(ctx, {
@@ -4038,6 +4069,16 @@ function drawTimelineChart(keywords) {
                     borderRadius: 0,
                     padding: 3,
                     textAlign: 'left'
+                },
+                // Chart.js描画完了後の処理を追加
+                animation: {
+                    onComplete: function(animation) {
+                        // Chart.jsが描画完了後、実座標で衝突検出を実行
+                        if (animation.chart && !animation.chart.labelOptimizationDone) {
+                            optimizeLabelsAfterRender(animation.chart);
+                            animation.chart.labelOptimizationDone = true;
+                        }
+                    }
                 }
             },
             scales: {
