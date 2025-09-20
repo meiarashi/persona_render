@@ -4193,7 +4193,8 @@ function drawTimelineChart(keywords) {
     // カスタムラベルプラグインを定義
     const customLabelPlugin = {
         id: 'customLabels',
-        afterDraw: function(chart) {
+        // afterDatasetsDraw: データセットの後、ツールチップの前に描画
+        afterDatasetsDraw: function(chart) {
             const ctx = chart.ctx;
             ctx.save();
 
@@ -4296,6 +4297,15 @@ function drawTimelineChart(keywords) {
                     position: 'top'
                 },
                 tooltip: {
+                    enabled: true,
+                    displayColors: true,
+                    backgroundColor: 'rgba(0, 0, 0, 0.9)',  // 濃い背景で見やすく
+                    titleColor: 'rgba(255, 255, 255, 1)',
+                    bodyColor: 'rgba(255, 255, 255, 1)',
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    borderWidth: 1,
+                    cornerRadius: 4,
+                    padding: 10,
                     callbacks: {
                         label: function(context) {
                             const point = context.raw;
