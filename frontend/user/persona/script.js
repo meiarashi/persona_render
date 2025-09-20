@@ -4012,17 +4012,21 @@ function drawTimelineChart(keywords) {
         const maxPerSector = Math.ceil(maxLabels / 4); // セクターあたりの最大数
         let displayCount = 0;
 
-        // 各ポイントに対してラベル配置を決定
-        for (let i = 0; i < allPoints.length; i++) {
+        // シンプルな重複回避ロジック：重複しないラベルのみ表示
+        for (let i = 0; i < allPoints.length && displayCount < maxLabels; i++) {
             const point = allPoints[i];
             if (!point || !point.dataRef) {
                 console.log('[DEBUG] Skipping invalid point');
                 continue;
             }
 
-            // 近くのポイントを検出（密集度の計算）
+            // フォントサイズの計算
+            const volumeRatio = point.volume / allPoints[0].volume;
+            let fontSize = 12; // デフォルトサイズ
+            
+            // 密集度の計算（周囲のポイント数）
             let nearbyCount = 0;
-            const proximityRadius = 50; // ピクセル
+            const proximityRadius = 60;
             for (let j = 0; j < allPoints.length; j++) {
                 if (i !== j) {
                     const dx = allPoints[j].x - point.x;
@@ -4033,272 +4037,114 @@ function drawTimelineChart(keywords) {
                     }
                 }
             }
-
-            // 適応的フォントサイズ：密集度とボリュームを考慮
-            const volumeRatio = point.volume / allPoints[0].volume; // 最大ボリュームとの比率
             
-            // 密集度に応じてベースフォントサイズを調整
-            let baseFontSize;
+            // 密集度に応じてフォントサイズを調整
             if (nearbyCount > 5) {
-                baseFontSize = 9; // 非常に密集：小さく
+                fontSize = 9;
             } else if (nearbyCount > 2) {
-                baseFontSize = 10; // 中程度密集：やや小さく
+                fontSize = 10;
             } else {
-                baseFontSize = 11; // 通常：標準サイズ
+                fontSize = 11;
             }
             
-            // ボリュームによる追加調整（重要度が高いものは大きく）
-            const fontSize = Math.max(8, Math.min(14, baseFontSize + volumeRatio * 3));
+            // ボリュームによる微調整
+            fontSize = Math.max(8, Math.min(14, fontSize + volumeRatio * 2));
             ctx.font = `${fontSize}px sans-serif`;
             
-            // テキスト幅を測定（調整後のフォントサイズで）
+            // ラベルサイズの計算
             const textMetrics = ctx.measureText(point.label);
-            const labelWidth = textMetrics.width + 8; // テキスト幅 + 左右パディング
-            const labelHeight = fontSize + 8; // フォントサイズ + 上下パディング
+            const labelWidth = textMetrics.width + 10;
+            const labelHeight = fontSize + 8;
             
-            // デバッグ: 最初のポイントの詳細
-            if (displayCount === 0) {
-                console.log('[DEBUG] First point details:', {
-                    label: point.label,
-                    x: point.x,
-                    y: point.y,
-                    volume: point.volume,
-                    fontSize: fontSize,
-                    labelWidth: labelWidth
-                });
-            }
+            // 最適な配置位置を決定（シンプルに右側優先）
+            const positions = [
+                { x: point.x + 15, y: point.y, align: 'left', baseline: 'middle' },     // 右
+                { x: point.x - 15, y: point.y, align: 'right', baseline: 'middle' },    // 左
+                { x: point.x, y: point.y - 15, align: 'center', baseline: 'bottom' },   // 上
+                { x: point.x, y: point.y + 15, align: 'center', baseline: 'top' },      // 下
+                { x: point.x + 20, y: point.y - 10, align: 'left', baseline: 'bottom' }, // 右上
+                { x: point.x - 20, y: point.y - 10, align: 'right', baseline: 'bottom' },// 左上
+                { x: point.x + 20, y: point.y + 10, align: 'left', baseline: 'top' },    // 右下
+                { x: point.x - 20, y: point.y + 10, align: 'right', baseline: 'top' },   // 左下
+            ];
             
-            // 密集度に応じて配置パターンを調整（より離れた配置を優先）
-            let placements;
-            if (nearbyCount > 5) {
-                // 非常に密集している場合
-                placements = [
-                    { align: 'right', anchor: 'center', offset: 40 },
-                    { align: 'left', anchor: 'center', offset: 40 },
-                    { align: 'top', anchor: 'center', offset: 40 },
-                    { align: 'right', anchor: 'top', offset: 35 },
-                    { align: 'left', anchor: 'top', offset: 35 },
-                    { align: 'right', anchor: 'center', offset: 55 },
-                    { align: 'left', anchor: 'center', offset: 55 },
-                    { align: 'top', anchor: 'center', offset: 55 },
-                    { align: 'right', anchor: 'bottom', offset: 35 },
-                    { align: 'left', anchor: 'bottom', offset: 35 },
-                    { align: 'bottom', anchor: 'center', offset: 40 },
-                    { align: 'bottom', anchor: 'center', offset: 55 },
-                ];
-            } else if (nearbyCount > 2) {
-                // 中程度に密集している場合
-                placements = [
-                    { align: 'right', anchor: 'center', offset: 28 },
-                    { align: 'left', anchor: 'center', offset: 28 },
-                    { align: 'top', anchor: 'center', offset: 28 },
-                    { align: 'right', anchor: 'top', offset: 24 },
-                    { align: 'left', anchor: 'top', offset: 24 },
-                    { align: 'right', anchor: 'center', offset: 42 },
-                    { align: 'left', anchor: 'center', offset: 42 },
-                    { align: 'top', anchor: 'center', offset: 42 },
-                    { align: 'right', anchor: 'bottom', offset: 24 },
-                    { align: 'left', anchor: 'bottom', offset: 24 },
-                    { align: 'bottom', anchor: 'center', offset: 28 },
-                    { align: 'bottom', anchor: 'center', offset: 42 },
-                ];
-            } else {
-                // 通常の配置パターン
-                placements = [
-                    { align: 'right', anchor: 'center', offset: 20 },
-                    { align: 'left', anchor: 'center', offset: 20 },
-                    { align: 'top', anchor: 'center', offset: 20 },
-                    { align: 'right', anchor: 'top', offset: 16 },
-                    { align: 'left', anchor: 'top', offset: 16 },
-                    { align: 'right', anchor: 'bottom', offset: 16 },
-                    { align: 'left', anchor: 'bottom', offset: 16 },
-                    { align: 'right', anchor: 'center', offset: 35 },
-                    { align: 'left', anchor: 'center', offset: 35 },
-                    { align: 'top', anchor: 'center', offset: 35 },
-                    { align: 'bottom', anchor: 'center', offset: 20 },
-                    { align: 'bottom', anchor: 'center', offset: 35 },
-                ];
-            }
-
             let placed = false;
-            let selectedPlacement = null;
-
-            for (const placement of placements) {
-                // 下部に近いポイントは下向き配置を最後に試す
-                const isNearBottom = point.y > canvas.height - 80;
-                if (isNearBottom && placement.align === 'bottom' && placement.offset < 20) {
-                    continue; // 近い下向き配置のみスキップ（遠い配置は試す）
-                }
-
-                // datalabelsの配置ロジックを模倣してボックスを計算
-                let boxLeft, boxTop, boxRight, boxBottom;
-
-                // anchor位置の計算
-                let anchorX = point.x;
-                let anchorY = point.y;
-
-                // alignに基づく位置調整
-                if (placement.align === 'left') {
-                    boxRight = anchorX - placement.offset;
-                    boxLeft = boxRight - labelWidth;
-                } else if (placement.align === 'right') {
-                    boxLeft = anchorX + placement.offset;
-                    boxRight = boxLeft + labelWidth;
-                } else if (placement.align === 'top') {
-                    boxBottom = anchorY - placement.offset;
-                    boxTop = boxBottom - labelHeight;
-                    boxLeft = anchorX - labelWidth / 2;
-                    boxRight = anchorX + labelWidth / 2;
-                } else if (placement.align === 'bottom') {
-                    boxTop = anchorY + placement.offset;
-                    boxBottom = boxTop + labelHeight;
-                    boxLeft = anchorX - labelWidth / 2;
-                    boxRight = anchorX + labelWidth / 2;
+            let selectedPosition = null;
+            
+            // 各位置で重複をチェック
+            for (const pos of positions) {
+                // ラベルのバウンディングボックスを計算
+                let boxLeft, boxRight, boxTop, boxBottom;
+                
+                if (pos.align === 'left') {
+                    boxLeft = pos.x;
+                    boxRight = pos.x + labelWidth;
+                } else if (pos.align === 'right') {
+                    boxRight = pos.x;
+                    boxLeft = pos.x - labelWidth;
                 } else { // center
-                    boxLeft = anchorX - labelWidth / 2;
-                    boxRight = anchorX + labelWidth / 2;
+                    boxLeft = pos.x - labelWidth / 2;
+                    boxRight = pos.x + labelWidth / 2;
                 }
-
-                // anchorに基づく垂直位置調整（左右配置の場合）
-                if (placement.align === 'left' || placement.align === 'right') {
-                    if (placement.anchor === 'top') {
-                        boxBottom = anchorY;
-                        boxTop = boxBottom - labelHeight;
-                    } else if (placement.anchor === 'bottom') {
-                        boxTop = anchorY;
-                        boxBottom = boxTop + labelHeight;
-                    } else { // center
-                        boxTop = anchorY - labelHeight / 2;
-                        boxBottom = anchorY + labelHeight / 2;
-                    }
+                
+                if (pos.baseline === 'top') {
+                    boxTop = pos.y;
+                    boxBottom = pos.y + labelHeight;
+                } else if (pos.baseline === 'bottom') {
+                    boxBottom = pos.y;
+                    boxTop = pos.y - labelHeight;
+                } else { // middle
+                    boxTop = pos.y - labelHeight / 2;
+                    boxBottom = pos.y + labelHeight / 2;
                 }
-
+                
                 const box = { left: boxLeft, right: boxRight, top: boxTop, bottom: boxBottom };
-
+                
                 // 画面内に収まるかチェック
-                if (box.left < 0 || box.right > canvas.width ||
-                    box.top < 0 || box.bottom > canvas.height) {
+                if (box.left < 5 || box.right > canvas.width - 5 ||
+                    box.top < 5 || box.bottom > canvas.height - 50) { // 下部は軸ラベル用に余裕を持たせる
                     continue;
                 }
-
-                // 他のラベルと衝突しないかチェック
+                
+                // 既存のラベルと重複しないかチェック
                 let hasCollision = false;
+                const minSpacing = 5; // ラベル間の最小間隔
+                
                 for (const occupied of occupiedBoxes) {
-                    // より洗練されたマージン計算
-                    let marginX = 4;
-                    let marginY = 4;
-
-                    // ボックスの中心座標を計算
-                    const centerX1 = box.left + (box.right - box.left) / 2;
-                    const centerY1 = box.top + (box.bottom - box.top) / 2;
-                    const centerX2 = occupied.left + (occupied.right - occupied.left) / 2;
-                    const centerY2 = occupied.top + (occupied.bottom - occupied.top) / 2;
-
-                    // 同じY座標の場合は横マージンを大きく
-                    const yDiff = Math.abs(centerY1 - centerY2);
-                    if (yDiff < labelHeight / 2) {
-                        marginX = 8;
-                    }
-
-                    // 同じX座標の場合は縦マージンを大きく
-                    const xDiff = Math.abs(centerX1 - centerX2);
-                    if (xDiff < labelWidth / 2) {
-                        marginY = 8;
-                    }
-
-                    // 近接度に基づく追加マージン
-                    const centerDistance = Math.sqrt(
-                        Math.pow(centerX1 - centerX2, 2) + 
-                        Math.pow(centerY1 - centerY2, 2)
-                    );
-                    
-                    // 距離に応じた段階的マージン調整
-                    if (centerDistance < 30) {
-                        marginX += 6;
-                        marginY += 6;
-                    } else if (centerDistance < 50) {
-                        marginX += 4;
-                        marginY += 4;
-                    } else if (centerDistance < 70) {
-                        marginX += 2;
-                        marginY += 2;
-                    }
-                    
-                    // ラベル同士の最小距離を保証（よりアグレッシブに）
-                    const minDistance = Math.max(labelWidth * 0.5, labelHeight * 0.5, 15);
-                    if (centerDistance < minDistance * 2) {
-                        // 中心距離が最小距離の2倍未満なら、マージンを大幅に増加
-                        const additionalMargin = (minDistance * 2 - centerDistance) / 2;
-                        marginX = Math.max(marginX, additionalMargin);
-                        marginY = Math.max(marginY, additionalMargin);
-                    }
-
-                    // シンプルで確実な衝突判定
-                    // 2つのボックスが重なっているかを判定（マージンを考慮）
-                    const expandedBox = {
-                        left: box.left - marginX,
-                        right: box.right + marginX,
-                        top: box.top - marginY,
-                        bottom: box.bottom + marginY
-                    };
-                    
-                    const expandedOccupied = {
-                        left: occupied.left - marginX,
-                        right: occupied.right + marginX,
-                        top: occupied.top - marginY,
-                        bottom: occupied.bottom + marginY
-                    };
-                    
-                    const collision = !(
-                        expandedBox.right < expandedOccupied.left || 
-                        expandedBox.left > expandedOccupied.right ||
-                        expandedBox.bottom < expandedOccupied.top || 
-                        expandedBox.top > expandedOccupied.bottom
-                    );
-                    
-                    if (collision) {
+                    // シンプルな重複判定（最小間隔を考慮）
+                    if (!(box.right + minSpacing < occupied.left || 
+                          box.left - minSpacing > occupied.right ||
+                          box.bottom + minSpacing < occupied.top || 
+                          box.top - minSpacing > occupied.bottom)) {
                         hasCollision = true;
                         break;
                     }
                 }
-
+                
                 if (!hasCollision) {
-                    // 最大表示数チェック
-                    if (displayCount >= maxLabels) {
-                        break;
-                    }
-
-                    // 配置可能
-                    point.dataRef.showLabel = true;
-                    point.dataRef.labelAlign = placement.align;
-                    point.dataRef.labelAnchor = placement.anchor;
-                    point.dataRef.labelOffset = placement.offset;
-                    point.dataRef.labelFontSize = fontSize; // フォントサイズも保存
+                    // 重複しないので表示決定
+                    placed = true;
+                    selectedPosition = pos;
                     occupiedBoxes.push(box);
                     displayCount++;
-                    placed = true;
-                    selectedPlacement = placement;
-
-                    // デバッグ: 配置成功
-                    if (displayCount <= 3) {
-                        console.log(`[DEBUG] Label placed #${displayCount}:`, {
-                            label: point.label,
-                            align: placement.align,
-                            anchor: placement.anchor,
-                            box: box
-                        });
+                    
+                    // データに表示情報を保存
+                    point.dataRef.showLabel = true;
+                    point.dataRef.labelX = pos.x;
+                    point.dataRef.labelY = pos.y;
+                    point.dataRef.labelAlign = pos.align;
+                    point.dataRef.labelBaseline = pos.baseline;
+                    point.dataRef.labelFontSize = fontSize;
+                    
+                    if (displayCount <= 5) {
+                        console.log(`[DEBUG] Label placed #${displayCount}: ${point.label} at`, pos);
                     }
                     break;
                 }
             }
-
+            
             if (!placed) {
                 point.dataRef.showLabel = false;
-            }
-
-            // 最大表示数に達したら終了
-            if (displayCount >= maxLabels) {
-                break;
             }
         }
 
@@ -4370,56 +4216,31 @@ function drawTimelineChart(keywords) {
 
             // 各データセットのラベルを描画
             chart.data.datasets.forEach((dataset, datasetIndex) => {
-                const meta = chart.getDatasetMeta(datasetIndex);
-                dataset.data.forEach((dataPoint, index) => {
+                dataset.data.forEach((dataPoint) => {
                     // showLabelフラグがtrueの場合のみ描画
                     if (dataPoint.showLabel === true) {
-                        const element = meta.data[index];
-                        if (element) {
-                            // ラベルの位置を計算
-                            let x = element.x;
-                            let y = element.y;
+                        // 保存された位置情報を使用
+                        const x = dataPoint.labelX;
+                        const y = dataPoint.labelY;
+                        const fontSize = dataPoint.labelFontSize || 12;
+                        const text = dataPoint.label || '';
+                        
+                        // フォントサイズを設定
+                        ctx.font = `${fontSize}px sans-serif`;
+                        ctx.textAlign = dataPoint.labelAlign || 'left';
+                        ctx.textBaseline = dataPoint.labelBaseline || 'middle';
+                        
+                        // 影を付けて視認性を向上
+                        ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+                        ctx.shadowBlur = 3;
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+                        ctx.lineWidth = 3;
+                        ctx.strokeText(text, x, y);
 
-                            // 配置に基づいて位置を調整
-                            const align = dataPoint.labelAlign || 'right';
-                            const offset = dataPoint.labelOffset || 15;
-
-                            // 下部境界チェック - 軸ラベルと重ならないように
-                            const bottomLimit = chart.chartArea.bottom - 10;
-
-                            if (align === 'right') {
-                                x += offset;
-                                ctx.textAlign = 'left';
-                            } else if (align === 'left') {
-                                x -= offset;
-                                ctx.textAlign = 'right';
-                            } else if (align === 'top') {
-                                y -= offset;
-                                ctx.textAlign = 'center';
-                            } else if (align === 'bottom') {
-                                y += offset;
-                                ctx.textAlign = 'center';
-                                // 下部境界を超えないように制限
-                                if (y > bottomLimit) {
-                                    y = element.y - offset; // 上向きに配置
-                                }
-                            }
-
-                            // テキストを描画（背景なしでシンプルに）
-                            const text = dataPoint.label || '';
-
-                            // 影を付けて視認性を向上
-                            ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
-                            ctx.shadowBlur = 3;
-                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-                            ctx.lineWidth = 3;
-                            ctx.strokeText(text, x, y);
-
-                            // テキスト本体を描画
-                            ctx.shadowBlur = 0;
-                            ctx.fillStyle = datasetIndex === 0 ? 'rgba(59, 130, 246, 1)' : 'rgba(239, 68, 68, 1)';
-                            ctx.fillText(text, x, y);
-                        }
+                        // テキスト本体を描画
+                        ctx.shadowBlur = 0;
+                        ctx.fillStyle = datasetIndex === 0 ? 'rgba(59, 130, 246, 1)' : 'rgba(239, 68, 68, 1)';
+                        ctx.fillText(text, x, y);
                     }
                 });
             });
