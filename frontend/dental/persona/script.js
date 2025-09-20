@@ -3429,6 +3429,19 @@ function initializeTabFunctionality() {
                 targetContent.classList.add('active');
                 targetContent.style.display = 'block';
                 console.log('[DEBUG] Content displayed:', targetTab);
+                
+                // タイムラインタブに切り替えたときにチャートをリサイズ
+                if (targetTab === 'timeline' && window.timelineChartInstance) {
+                    console.log('[DEBUG] Resizing timeline chart on tab switch');
+                    setTimeout(() => {
+                        window.timelineChartInstance.resize();
+                        // リサイズ後にラベルの最適化を再実行
+                        if (!window.timelineChartInstance.labelOptimizationDone) {
+                            optimizeLabelsAfterRender(window.timelineChartInstance);
+                            window.timelineChartInstance.labelOptimizationDone = true;
+                        }
+                    }, 50);
+                }
             }
         });
     });
@@ -3850,6 +3863,21 @@ function drawTimelineChart(keywords) {
 
         // グラフサイズに基づいて最大ラベル数を動的に計算
         const canvas = chart.canvas;
+        
+        // キャンバスサイズが0の場合は、チャートのリサイズを試みる
+        if (canvas.width === 0 || canvas.height === 0) {
+            console.log('[DEBUG] Canvas size is 0, attempting to resize chart');
+            chart.resize();
+            // それでも0の場合は遅延実行
+            if (canvas.width === 0 || canvas.height === 0) {
+                console.log('[DEBUG] Canvas still 0, deferring label optimization');
+                setTimeout(() => {
+                    optimizeLabelsAfterRender(chart);
+                }, 100);
+                return;
+            }
+        }
+        
         const canvasArea = canvas.width * canvas.height;
         const baseArea = 600 * 400; // 基準サイズ（600x400px）
         const areaRatio = canvasArea / baseArea;

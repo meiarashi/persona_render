@@ -74,11 +74,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Import from new structure
-from .api import admin_settings, config
-from .services import timeline_analyzer
-from .services import crud, rag_processor
-from .services.async_image_generator import generate_image_async
-from .services.cache_manager import get_chief_complaints, preload_cache, load_chief_complaints_data
+from api import admin_settings, config
+from services import timeline_analyzer
+from services import crud, rag_processor
+from services.async_image_generator import generate_image_async
+from services.cache_manager import get_chief_complaints, preload_cache, load_chief_complaints_data
 from .services.competitive_analysis_service import CompetitiveAnalysisService
 from .services.google_maps_service import GoogleMapsService
 from .middleware.auth import verify_admin_credentials, verify_department_credentials
