@@ -2,7 +2,7 @@
 from fastapi import APIRouter, HTTPException
 from typing import Dict, List, Any
 
-from ..utils import config_loader
+from backend.utils import config_loader
 
 router = APIRouter()
 

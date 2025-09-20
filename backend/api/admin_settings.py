@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, Body, status, Depends
 from typing import Dict, List, Optional
 
-from ..services import crud
-from ..models import schemas
-from ..services import rag_processor
-from ..middleware.auth import verify_admin_credentials
+from backend.services import crud
+from backend.models import schemas
+from backend.services import rag_processor
+from backend.middleware.auth import verify_admin_credentials
 
 router = APIRouter()
 

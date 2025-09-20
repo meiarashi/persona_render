@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from typing import Dict, Union
 
-from ..models.schemas import AdminSettings, ModelSettings
+from backend.models.schemas import AdminSettings, ModelSettings
 
 # 永続ディスクのマウントパス (Renderで設定したものに合わせる)
 # /var/app_settings で設定済みとのこと
