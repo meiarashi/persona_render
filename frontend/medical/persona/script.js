@@ -3911,20 +3911,15 @@ function drawTimelineChart(keywords) {
 
         // 各ポイントに対してラベル配置を決定
         allPoints.forEach((point, index) => {
-            // 実際の文字幅を測定
-            const textMetrics = ctx.measureText(point.label);
-            const labelWidth = textMetrics.width;
-            const labelHeight = 16; // フォントサイズ + パディング
-
             // ボリュームに応じてフォントサイズを動的に調整
             const volumeRatio = point.volume / allPoints[0].volume; // 最大ボリュームとの比率
             const fontSize = Math.max(10, Math.min(14, 10 + volumeRatio * 4)); // 10-14pxの範囲
             ctx.font = `${fontSize}px sans-serif`;
 
-            // 再度テキスト幅を測定（フォントサイズ変更後）
-            const adjustedTextMetrics = ctx.measureText(point.label);
-            const adjustedLabelWidth = adjustedTextMetrics.width;
-            const adjustedLabelHeight = fontSize + 4; // フォントサイズ + パディング
+            // テキスト幅を測定（調整後のフォントサイズで）
+            const textMetrics = ctx.measureText(point.label);
+            const labelWidth = textMetrics.width;
+            const labelHeight = fontSize + 4; // フォントサイズ + パディング
 
             // datalabelsの配置パターンとオフセットの対応（拡張版）
             const placements = [
@@ -3942,10 +3937,6 @@ function drawTimelineChart(keywords) {
                 { align: 'top', anchor: 'center', offset: 15 },
                 { align: 'bottom', anchor: 'center', offset: 15 },
             ];
-
-            // 使用する幅と高さを調整済みのものに変更
-            const labelWidth = adjustedLabelWidth;
-            const labelHeight = adjustedLabelHeight;
 
             let placed = false;
             let selectedPlacement = null;
