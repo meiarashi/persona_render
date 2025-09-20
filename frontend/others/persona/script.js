@@ -3887,27 +3887,66 @@ function drawTimelineChart(keywords) {
             const labelWidth = textMetrics.width;
             const labelHeight = 16; // フォントサイズ + パディング
 
-            // 複数の配置パターンを試す
-            const offsets = [
-                { x: 10, y: 0 },     // 右
-                { x: -labelWidth - 10, y: 0 },  // 左
-                { x: 10, y: -20 },   // 右上
-                { x: 10, y: 20 },    // 右下
-                { x: -labelWidth - 10, y: -20 }, // 左上
-                { x: -labelWidth - 10, y: 20 },  // 左下
-                { x: 0, y: -25 },    // 上
-                { x: 0, y: 25 },     // 下
+            // datalabelsの配置パターンとオフセットの対応
+            const placements = [
+                { align: 'right', anchor: 'center', offset: 10 },
+                { align: 'left', anchor: 'center', offset: 10 },
+                { align: 'right', anchor: 'top', offset: 10 },
+                { align: 'right', anchor: 'bottom', offset: 10 },
+                { align: 'top', anchor: 'center', offset: 10 },
+                { align: 'bottom', anchor: 'center', offset: 10 },
+                { align: 'left', anchor: 'top', offset: 10 },
+                { align: 'left', anchor: 'bottom', offset: 10 },
             ];
 
             let placed = false;
+            let selectedPlacement = null;
 
-            for (const offset of offsets) {
-                const box = {
-                    left: point.x + offset.x,
-                    right: point.x + offset.x + labelWidth,
-                    top: point.y + offset.y - labelHeight / 2,
-                    bottom: point.y + offset.y + labelHeight / 2
-                };
+            for (const placement of placements) {
+                // datalabelsの配置ロジックを模倣してボックスを計算
+                let boxLeft, boxTop, boxRight, boxBottom;
+
+                // anchor位置の計算
+                let anchorX = point.x;
+                let anchorY = point.y;
+
+                // alignに基づく位置調整
+                if (placement.align === 'left') {
+                    boxRight = anchorX - placement.offset;
+                    boxLeft = boxRight - labelWidth;
+                } else if (placement.align === 'right') {
+                    boxLeft = anchorX + placement.offset;
+                    boxRight = boxLeft + labelWidth;
+                } else if (placement.align === 'top') {
+                    boxBottom = anchorY - placement.offset;
+                    boxTop = boxBottom - labelHeight;
+                    boxLeft = anchorX - labelWidth / 2;
+                    boxRight = anchorX + labelWidth / 2;
+                } else if (placement.align === 'bottom') {
+                    boxTop = anchorY + placement.offset;
+                    boxBottom = boxTop + labelHeight;
+                    boxLeft = anchorX - labelWidth / 2;
+                    boxRight = anchorX + labelWidth / 2;
+                } else { // center
+                    boxLeft = anchorX - labelWidth / 2;
+                    boxRight = anchorX + labelWidth / 2;
+                }
+
+                // anchorに基づく垂直位置調整（左右配置の場合）
+                if (placement.align === 'left' || placement.align === 'right') {
+                    if (placement.anchor === 'top') {
+                        boxBottom = anchorY;
+                        boxTop = boxBottom - labelHeight;
+                    } else if (placement.anchor === 'bottom') {
+                        boxTop = anchorY;
+                        boxBottom = boxTop + labelHeight;
+                    } else { // center
+                        boxTop = anchorY - labelHeight / 2;
+                        boxBottom = anchorY + labelHeight / 2;
+                    }
+                }
+
+                const box = { left: boxLeft, right: boxRight, top: boxTop, bottom: boxBottom };
 
                 // 画面内に収まるかチェック
                 if (box.left < 0 || box.right > canvas.width ||
@@ -3918,10 +3957,11 @@ function drawTimelineChart(keywords) {
                 // 他のラベルと衝突しないかチェック
                 let hasCollision = false;
                 for (const occupied of occupiedBoxes) {
-                    if (!(box.right < occupied.left ||
-                          occupied.right < box.left ||
-                          box.bottom < occupied.top ||
-                          occupied.bottom < box.top)) {
+                    const margin = 3; // わずかなマージン
+                    if (!(box.right + margin < occupied.left ||
+                          occupied.right + margin < box.left ||
+                          box.bottom + margin < occupied.top ||
+                          occupied.bottom + margin < box.top)) {
                         hasCollision = true;
                         break;
                     }
@@ -3930,9 +3970,13 @@ function drawTimelineChart(keywords) {
                 if (!hasCollision) {
                     // 配置可能
                     point.dataRef.showLabel = true;
+                    point.dataRef.labelAlign = placement.align;
+                    point.dataRef.labelAnchor = placement.anchor;
+                    point.dataRef.labelOffset = placement.offset;
                     occupiedBoxes.push(box);
                     displayCount++;
                     placed = true;
+                    selectedPlacement = placement;
                     break;
                 }
             }
@@ -4028,30 +4072,19 @@ function drawTimelineChart(keywords) {
                         return context.dataset.data[context.dataIndex].showLabel === true;
                     },
                     align: function(context) {
-                        // データインデックスに基づいて微妙に位置をずらす
-                        const index = context.dataIndex;
-                        const positions = ['right', 'right', 'right'];  // 基本は右
-                        return positions[index % positions.length];
+                        // 最適化で決定された配置を使用
+                        const data = context.dataset.data[context.dataIndex];
+                        return data.labelAlign || 'right';
                     },
                     anchor: function(context) {
-                        // Y座標に基づいてアンカーポイントを調整
+                        // 最適化で決定されたアンカーを使用
                         const data = context.dataset.data[context.dataIndex];
-                        const yValue = data.y;
-                        const maxY = Math.max(...context.dataset.data.map(d => d.y));
-                        const yRatio = yValue / maxY;
-                        
-                        // 上部のポイントは下からアンカー、下部は上からアンカー
-                        if (yRatio > 0.7) {
-                            return 'bottom';
-                        } else if (yRatio < 0.3) {
-                            return 'top';
-                        }
-                        return 'center';
+                        return data.labelAnchor || 'center';
                     },
                     offset: function(context) {
-                        // インデックスに基づいてオフセットを変える
-                        const index = context.dataIndex;
-                        return 15 + (index % 3) * 5;  // 15, 20, 25のパターン
+                        // 最適化で決定されたオフセットを使用
+                        const data = context.dataset.data[context.dataIndex];
+                        return data.labelOffset || 10;
                     },
                     clip: false,           // グラフ領域外も表示
                     formatter: function(value) {
