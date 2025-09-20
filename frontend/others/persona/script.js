@@ -4224,19 +4224,36 @@ function drawTimelineChart(keywords) {
                         marginY += 2;
                     }
                     
-                    // ラベル同士の最小距離を保証
-                    const minDistance = Math.max(labelWidth * 0.3, labelHeight * 0.3, 10);
-                    if (centerDistance < minDistance) {
-                        marginX = Math.max(marginX, minDistance - centerDistance + 5);
-                        marginY = Math.max(marginY, minDistance - centerDistance + 5);
+                    // ラベル同士の最小距離を保証（よりアグレッシブに）
+                    const minDistance = Math.max(labelWidth * 0.5, labelHeight * 0.5, 15);
+                    if (centerDistance < minDistance * 2) {
+                        // 中心距離が最小距離の2倍未満なら、マージンを大幅に増加
+                        const additionalMargin = (minDistance * 2 - centerDistance) / 2;
+                        marginX = Math.max(marginX, additionalMargin);
+                        marginY = Math.max(marginY, additionalMargin);
                     }
 
-                    // より厳密な衝突判定
+                    // シンプルで確実な衝突判定
+                    // 2つのボックスが重なっているかを判定（マージンを考慮）
+                    const expandedBox = {
+                        left: box.left - marginX,
+                        right: box.right + marginX,
+                        top: box.top - marginY,
+                        bottom: box.bottom + marginY
+                    };
+                    
+                    const expandedOccupied = {
+                        left: occupied.left - marginX,
+                        right: occupied.right + marginX,
+                        top: occupied.top - marginY,
+                        bottom: occupied.bottom + marginY
+                    };
+                    
                     const collision = !(
-                        box.right + marginX <= occupied.left || 
-                        box.left >= occupied.right + marginX ||
-                        box.bottom + marginY <= occupied.top || 
-                        box.top >= occupied.bottom + marginY
+                        expandedBox.right < expandedOccupied.left || 
+                        expandedBox.left > expandedOccupied.right ||
+                        expandedBox.bottom < expandedOccupied.top || 
+                        expandedBox.top > expandedOccupied.bottom
                     );
                     
                     if (collision) {
