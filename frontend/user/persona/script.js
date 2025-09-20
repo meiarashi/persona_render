@@ -4040,6 +4040,37 @@ function drawTimelineChart(keywords) {
             // 密集度に応じてベースフォントサイズを調整
             let baseFontSize;
             if (nearbyCount > 5) {
+                baseFontSize = 9; // 非常に密集：小さく
+            } else if (nearbyCount > 2) {
+                baseFontSize = 10; // 中程度密集：やや小さく
+            } else {
+                baseFontSize = 11; // 通常：標準サイズ
+            }
+            
+            // ボリュームによる追加調整（重要度が高いものは大きく）
+            const fontSize = Math.max(8, Math.min(14, baseFontSize + volumeRatio * 3));
+            ctx.font = `${fontSize}px sans-serif`;
+            
+            // テキスト幅を測定（調整後のフォントサイズで）
+            const textMetrics = ctx.measureText(point.label);
+            const labelWidth = textMetrics.width + 8; // テキスト幅 + 左右パディング
+            const labelHeight = fontSize + 8; // フォントサイズ + 上下パディング
+            
+            // デバッグ: 最初のポイントの詳細
+            if (displayCount === 0) {
+                console.log('[DEBUG] First point details:', {
+                    label: point.label,
+                    x: point.x,
+                    y: point.y,
+                    volume: point.volume,
+                    fontSize: fontSize,
+                    labelWidth: labelWidth
+                });
+            }
+            
+            // 密集度に応じて配置パターンを調整（より離れた配置を優先）
+            let placements;
+            if (nearbyCount > 5) {
                 // 非常に密集している場合
                 placements = [
                     { align: 'right', anchor: 'center', offset: 40 },
