@@ -4040,83 +4040,52 @@ function drawTimelineChart(keywords) {
             // 密集度に応じてベースフォントサイズを調整
             let baseFontSize;
             if (nearbyCount > 5) {
-                baseFontSize = 9; // 非常に密集：小さく
-            } else if (nearbyCount > 2) {
-                baseFontSize = 10; // 中程度密集：やや小さく
-            } else {
-                baseFontSize = 11; // 通常：標準サイズ
-            }
-            
-            // ボリュームによる追加調整（重要度が高いものは大きく）
-            const fontSize = Math.max(8, Math.min(14, baseFontSize + volumeRatio * 3));
-            ctx.font = `${fontSize}px sans-serif`;
-
-            // テキスト幅を測定（調整後のフォントサイズで）
-            const textMetrics = ctx.measureText(point.label);
-            const labelWidth = textMetrics.width + 8; // テキスト幅 + 左右パディング
-            const labelHeight = fontSize + 8; // フォントサイズ + 上下パディング
-
-            // デバッグ: 最初のポイントの詳細
-            if (displayCount === 0) {
-                console.log('[DEBUG] First point details:', {
-                    label: point.label,
-                    x: point.x,
-                    y: point.y,
-                    volume: point.volume,
-                    fontSize: fontSize,
-                    labelWidth: labelWidth
-                });
-            }
-
-            // 密集度に応じて配置パターンを調整
-            let placements;
-            if (nearbyCount > 5) {
                 // 非常に密集している場合
                 placements = [
-                    { align: 'right', anchor: 'center', offset: 25 },
-                    { align: 'left', anchor: 'center', offset: 25 },
-                    { align: 'top', anchor: 'center', offset: 25 },
-                    { align: 'right', anchor: 'top', offset: 20 },
-                    { align: 'left', anchor: 'top', offset: 20 },
                     { align: 'right', anchor: 'center', offset: 40 },
                     { align: 'left', anchor: 'center', offset: 40 },
                     { align: 'top', anchor: 'center', offset: 40 },
-                    { align: 'right', anchor: 'bottom', offset: 20 },
-                    { align: 'left', anchor: 'bottom', offset: 20 },
-                    { align: 'bottom', anchor: 'center', offset: 25 },
+                    { align: 'right', anchor: 'top', offset: 35 },
+                    { align: 'left', anchor: 'top', offset: 35 },
+                    { align: 'right', anchor: 'center', offset: 55 },
+                    { align: 'left', anchor: 'center', offset: 55 },
+                    { align: 'top', anchor: 'center', offset: 55 },
+                    { align: 'right', anchor: 'bottom', offset: 35 },
+                    { align: 'left', anchor: 'bottom', offset: 35 },
                     { align: 'bottom', anchor: 'center', offset: 40 },
+                    { align: 'bottom', anchor: 'center', offset: 55 },
                 ];
             } else if (nearbyCount > 2) {
                 // 中程度に密集している場合
                 placements = [
-                    { align: 'right', anchor: 'center', offset: 18 },
-                    { align: 'left', anchor: 'center', offset: 18 },
-                    { align: 'top', anchor: 'center', offset: 18 },
-                    { align: 'right', anchor: 'top', offset: 15 },
-                    { align: 'left', anchor: 'top', offset: 15 },
-                    { align: 'right', anchor: 'center', offset: 30 },
-                    { align: 'left', anchor: 'center', offset: 30 },
-                    { align: 'top', anchor: 'center', offset: 30 },
-                    { align: 'right', anchor: 'bottom', offset: 15 },
-                    { align: 'left', anchor: 'bottom', offset: 15 },
-                    { align: 'bottom', anchor: 'center', offset: 18 },
-                    { align: 'bottom', anchor: 'center', offset: 30 },
+                    { align: 'right', anchor: 'center', offset: 28 },
+                    { align: 'left', anchor: 'center', offset: 28 },
+                    { align: 'top', anchor: 'center', offset: 28 },
+                    { align: 'right', anchor: 'top', offset: 24 },
+                    { align: 'left', anchor: 'top', offset: 24 },
+                    { align: 'right', anchor: 'center', offset: 42 },
+                    { align: 'left', anchor: 'center', offset: 42 },
+                    { align: 'top', anchor: 'center', offset: 42 },
+                    { align: 'right', anchor: 'bottom', offset: 24 },
+                    { align: 'left', anchor: 'bottom', offset: 24 },
+                    { align: 'bottom', anchor: 'center', offset: 28 },
+                    { align: 'bottom', anchor: 'center', offset: 42 },
                 ];
             } else {
                 // 通常の配置パターン
                 placements = [
-                    { align: 'right', anchor: 'center', offset: 12 },
-                    { align: 'left', anchor: 'center', offset: 12 },
-                    { align: 'top', anchor: 'center', offset: 12 },
-                    { align: 'right', anchor: 'top', offset: 10 },
-                    { align: 'left', anchor: 'top', offset: 10 },
-                    { align: 'right', anchor: 'bottom', offset: 10 },
-                    { align: 'left', anchor: 'bottom', offset: 10 },
-                    { align: 'right', anchor: 'center', offset: 25 },
-                    { align: 'left', anchor: 'center', offset: 25 },
-                    { align: 'top', anchor: 'center', offset: 25 },
-                    { align: 'bottom', anchor: 'center', offset: 12 },
-                    { align: 'bottom', anchor: 'center', offset: 25 },
+                    { align: 'right', anchor: 'center', offset: 20 },
+                    { align: 'left', anchor: 'center', offset: 20 },
+                    { align: 'top', anchor: 'center', offset: 20 },
+                    { align: 'right', anchor: 'top', offset: 16 },
+                    { align: 'left', anchor: 'top', offset: 16 },
+                    { align: 'right', anchor: 'bottom', offset: 16 },
+                    { align: 'left', anchor: 'bottom', offset: 16 },
+                    { align: 'right', anchor: 'center', offset: 35 },
+                    { align: 'left', anchor: 'center', offset: 35 },
+                    { align: 'top', anchor: 'center', offset: 35 },
+                    { align: 'bottom', anchor: 'center', offset: 20 },
+                    { align: 'bottom', anchor: 'center', offset: 35 },
                 ];
             }
 
@@ -4212,19 +4181,34 @@ function drawTimelineChart(keywords) {
                         Math.pow(centerY1 - centerY2, 2)
                     );
                     
-                    // 非常に近い場合はさらにマージンを追加
-                    if (centerDistance < 40) {
-                        marginX += 3;
-                        marginY += 3;
-                    } else if (centerDistance < 60) {
-                        marginX += 1;
-                        marginY += 1;
+                    // 距離に応じた段階的マージン調整
+                    if (centerDistance < 30) {
+                        marginX += 6;
+                        marginY += 6;
+                    } else if (centerDistance < 50) {
+                        marginX += 4;
+                        marginY += 4;
+                    } else if (centerDistance < 70) {
+                        marginX += 2;
+                        marginY += 2;
+                    }
+                    
+                    // ラベル同士の最小距離を保証
+                    const minDistance = Math.max(labelWidth * 0.3, labelHeight * 0.3, 10);
+                    if (centerDistance < minDistance) {
+                        marginX = Math.max(marginX, minDistance - centerDistance + 5);
+                        marginY = Math.max(marginY, minDistance - centerDistance + 5);
                     }
 
-                    if (!(box.right + marginX < occupied.left ||
-                          occupied.right + marginX < box.left ||
-                          box.bottom + marginY < occupied.top ||
-                          occupied.bottom + marginY < box.top)) {
+                    // より厳密な衝突判定
+                    const collision = !(
+                        box.right + marginX <= occupied.left || 
+                        box.left >= occupied.right + marginX ||
+                        box.bottom + marginY <= occupied.top || 
+                        box.top >= occupied.bottom + marginY
+                    );
+                    
+                    if (collision) {
                         hasCollision = true;
                         break;
                     }
