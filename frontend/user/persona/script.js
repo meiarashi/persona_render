@@ -3910,7 +3910,7 @@ function drawTimelineChart(keywords) {
         let displayCount = 0;
 
         // 各ポイントに対してラベル配置を決定
-        allPoints.forEach((point, index) => {
+        for (const point of allPoints) {
             // ボリュームに応じてフォントサイズを動的に調整
             const volumeRatio = point.volume / allPoints[0].volume; // 最大ボリュームとの比率
             const fontSize = Math.max(10, Math.min(14, 10 + volumeRatio * 4)); // 10-14pxの範囲
@@ -4034,7 +4034,7 @@ function drawTimelineChart(keywords) {
             if (displayCount >= maxLabels) {
                 break;
             }
-        });
+        }
 
         console.log(`[Optimized] ${displayCount} labels placed out of ${allPoints.length} candidates`);
 
