@@ -6,6 +6,30 @@ let mapInstance = null;
 let markers = [];
 let infoWindow = null;
 
+// エラーメッセージ表示関数
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #f44336;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 4px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        z-index: 10000;
+        max-width: 300px;
+    `;
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
+    
+    setTimeout(() => {
+        errorDiv.remove();
+    }, 5000);
+}
+
 // Google Maps APIを動的に読み込む
 async function loadGoogleMapsAPI() {
     try {
@@ -24,6 +48,7 @@ async function loadGoogleMapsAPI() {
         
         if (!apiKey) {
             console.error('No API key received');
+            showError('Google Maps APIキーが設定されていません。管理者にお問い合わせください。');
             return;
         }
         
@@ -1060,7 +1085,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="action-buttons">
                     <button class="btn btn-primary" onclick="window.print()">印刷</button>
                     <button class="btn btn-secondary" onclick="location.href='/others/competitive/'">新しい分析を開始</button>
-                    <a href="/medical/" class="btn btn-link">ダッシュボードに戻る</a>
+                    <a href="/others/" class="btn btn-link">ダッシュボードに戻る</a>
                 </div>
             </div>
         `;
