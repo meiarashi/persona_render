@@ -82,8 +82,8 @@ from backend.services.cache_manager import get_chief_complaints, preload_cache, 
 from backend.services.competitive_analysis_service import CompetitiveAnalysisService
 from backend.services.google_maps_service import GoogleMapsService
 from backend.middleware.auth import verify_admin_credentials, verify_department_credentials, verify_any_credentials
-from .models import schemas as models
-from .utils import config_loader, prompt_builder
+from backend.models import schemas as models
+from backend.utils import config_loader, prompt_builder
 
 # Create a FastAPI app instance
 # アプリケーション起動時にキャッシュをプリロード

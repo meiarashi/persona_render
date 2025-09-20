@@ -4126,6 +4126,9 @@ function drawTimelineChart(keywords) {
             anchor: p.dataRef.labelAnchor
         })));
 
+        // チャートを更新してラベルの表示を反映
+        chart.update('none'); // 'none'でアニメーションなしで即座に更新
+
         // チャートを更新して新しいラベル表示を反映
         // update()を呼ぶとonCompleteが再度呼ばれてしまうので削除
     }
