@@ -546,7 +546,7 @@ class CompetitiveAnalysisService:
 - （2-3項目。各項目について具体的な内容を1-2文で説明してください）
 
 ### 弱み（Weaknesses）
-- （2-3項目。各項目について具体的な内容を1-2文で説明してください）
+- （2-3項目。入力された課題や、競合と比較して劣位にある点、改善が必要な領域について、具体的な内容を1-2文で説明してください。データがない場合でも、市場分析や競合情報から推測される弱みを必ず記載してください）
 
 ### 機会（Opportunities）
 - （2-3項目。地域特性や市場動向を踏まえて、各項目を1-2文で説明してください）
@@ -590,6 +590,8 @@ class CompetitiveAnalysisService:
                 # 戦略カテゴリを検出（### で始まるか、戦略名が含まれる行）
                 strategy_found = False
                 if ("### 差別化戦略" in line or "##差別化戦略" in line or
+                    "## 差別化戦略" in line or "###差別化戦略" in line or
+                    line == "差別化戦略" or
                     (line.startswith("差別化戦略") and len(line) < 30)):
                     # 前の戦略を保存
                     if current_strategy and current_content:
@@ -605,6 +607,8 @@ class CompetitiveAnalysisService:
                     strategy_found = True
 
                 elif ("### マーケティング戦略" in line or "##マーケティング戦略" in line or
+                      "## マーケティング戦略" in line or "###マーケティング戦略" in line or
+                      line == "マーケティング戦略" or
                       (line.startswith("マーケティング戦略") and len(line) < 30)):
                     if current_strategy and current_content:
                         logger.info(f"[Strategy Parser] Saving {current_strategy}: {len(current_content)} lines")
@@ -619,6 +623,8 @@ class CompetitiveAnalysisService:
                     strategy_found = True
 
                 elif ("### オペレーション改善" in line or "##オペレーション改善" in line or
+                      "## オペレーション改善" in line or "###オペレーション改善" in line or
+                      line == "オペレーション改善" or
                       (line.startswith("オペレーション改善") and len(line) < 30)):
                     if current_strategy and current_content:
                         logger.info(f"[Strategy Parser] Saving {current_strategy}: {len(current_content)} lines")
@@ -754,7 +760,11 @@ class CompetitiveAnalysisService:
                 # セクションヘッダーを検出
                 section_found = False
                 for jp_name, en_name in sections.items():
-                    if jp_name in line and ("(" in line or "（" in line or ":" in line):
+                    # より柔軟な条件: ### を含むか、セクション名から始まる行を検出
+                    if (jp_name in line and ("(" in line or "（" in line or ":" in line)) or \
+                       (line.startswith("###") and jp_name in line) or \
+                       (line.startswith("##") and jp_name in line) or \
+                       (line == jp_name):  # 完全一致も許可
                         # 前のアイテムを保存
                         if current_section and current_item:
                             full_item = " ".join(current_item).strip()
