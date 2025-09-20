@@ -4033,6 +4033,12 @@ function drawTimelineChart(keywords) {
             let selectedPlacement = null;
 
             for (const placement of placements) {
+                // 下部に近いポイントは下向き配置をスキップ
+                const isNearBottom = point.y > canvas.height - 100;
+                if (isNearBottom && placement.align === 'bottom') {
+                    continue; // 下向き配置をスキップ
+                }
+
                 // datalabelsの配置ロジックを模倣してボックスを計算
                 let boxLeft, boxTop, boxRight, boxBottom;
 
@@ -4219,6 +4225,9 @@ function drawTimelineChart(keywords) {
                             const align = dataPoint.labelAlign || 'right';
                             const offset = dataPoint.labelOffset || 15;
 
+                            // 下部境界チェック - 軸ラベルと重ならないように
+                            const bottomLimit = chart.chartArea.bottom - 10;
+
                             if (align === 'right') {
                                 x += offset;
                                 ctx.textAlign = 'left';
@@ -4231,6 +4240,10 @@ function drawTimelineChart(keywords) {
                             } else if (align === 'bottom') {
                                 y += offset;
                                 ctx.textAlign = 'center';
+                                // 下部境界を超えないように制限
+                                if (y > bottomLimit) {
+                                    y = element.y - offset; // 上向きに配置
+                                }
                             }
 
                             // テキストを描画（背景なしでシンプルに）
@@ -4288,7 +4301,7 @@ function drawTimelineChart(keywords) {
                     left: 10,
                     right: 60,  // 適度な余白
                     top: 10,
-                    bottom: 10
+                    bottom: 30  // 下部の余白を増やして軸ラベルを保護
                 }
             },
             plugins: {
@@ -4391,7 +4404,13 @@ function drawTimelineChart(keywords) {
                     max: dynamicMaxX,  // 動的に計算された範囲を使用
                     title: {
                         display: true,
-                        text: '診断日からの日数'
+                        text: '診断日からの日数',
+                        padding: {
+                            top: 10
+                        }
+                    },
+                    ticks: {
+                        padding: 8  // 軸ラベルと目盛りの間隔を増やす
                     },
                     grid: {
                         drawBorder: true,
