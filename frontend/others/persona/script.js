@@ -3461,10 +3461,8 @@ function initializeTabFunctionality() {
                     setTimeout(() => {
                         window.timelineChartInstance.resize();
                         // リサイズ後にラベルの最適化を再実行
-                        if (!window.timelineChartInstance.labelOptimizationDone) {
-                            optimizeLabelsAfterRender(window.timelineChartInstance);
-                            window.timelineChartInstance.labelOptimizationDone = true;
-                        }
+                        // optimizeLabelsAfterRenderは内部関数なので、ここでは呼び出さない
+                        // Chart自体のアニメーション完了時に自動的に実行される
                     }, 50);
                 }
             }
