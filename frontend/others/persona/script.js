@@ -3838,10 +3838,17 @@ function drawTimelineChart(keywords) {
         // すべてのポイントの実座標を取得
         const allPoints = [];
 
-        // 診断前データのポイント
+        // デバッグ情報
+        console.log('[DEBUG] Chart datasets count:', chart.data.datasets.length);
+        console.log('[DEBUG] Dataset 0 data count:', chart.data.datasets[0].data.length);
+        console.log('[DEBUG] Dataset 1 data count:', chart.data.datasets[1].data.length);
+
+        // 診断前データのポイント - chart.dataを直接参照
+        const chartPreData = chart.data.datasets[0].data;
         meta0.data.forEach((element, index) => {
-            const dataPoint = preDiagnosisData[index];
+            const dataPoint = chartPreData[index];  // 実際のチャートデータを使用
             if (dataPoint && dataPoint.y > 0) {
+                if (index < 3) console.log('[DEBUG] Pre point:', dataPoint.label, 'days:', dataPoint.x);
                 allPoints.push({
                     x: element.x,  // 実際のピクセル座標
                     y: element.y,  // 実際のピクセル座標
@@ -3853,10 +3860,12 @@ function drawTimelineChart(keywords) {
             }
         });
 
-        // 診断後データのポイント
+        // 診断後データのポイント - chart.dataを直接参照
+        const chartPostData = chart.data.datasets[1].data;
         meta1.data.forEach((element, index) => {
-            const dataPoint = postDiagnosisData[index];
+            const dataPoint = chartPostData[index];  // 実際のチャートデータを使用
             if (dataPoint && dataPoint.y > 0) {
+                if (index < 3) console.log('[DEBUG] Post point:', dataPoint.label, 'days:', dataPoint.x);
                 allPoints.push({
                     x: element.x,  // 実際のピクセル座標
                     y: element.y,  // 実際のピクセル座標
@@ -3987,6 +3996,15 @@ function drawTimelineChart(keywords) {
         });
 
         console.log(`[Optimized] ${displayCount} labels placed out of ${allPoints.length} candidates`);
+
+        // 配置されたラベルの詳細を表示
+        const placedLabels = allPoints.filter(p => p.dataRef.showLabel);
+        console.log('[DEBUG] Placed labels:', placedLabels.map(p => ({
+            label: p.label,
+            days: p.dataRef.x,
+            align: p.dataRef.labelAlign,
+            anchor: p.dataRef.labelAnchor
+        })));
 
         // チャートを更新して新しいラベル表示を反映
         chart.update('none'); // アニメーションなしで更新
