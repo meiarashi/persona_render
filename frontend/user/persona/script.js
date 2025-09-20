@@ -3877,24 +3877,41 @@ function drawTimelineChart(keywords) {
     console.log('[DEBUG] Post-diagnosis data count:', postDiagnosisData.length);
 
     // Chart.js描画完了後に実座標で最適化
-    function optimizeLabelsAfterRender(chart) {
-        console.log('[DEBUG] optimizeLabelsAfterRender called');
+    function optimizeLabelsAfterRender(chart, retryCount = 0) {
+        console.log('[DEBUG] optimizeLabelsAfterRender called, retry count:', retryCount);
         const meta0 = chart.getDatasetMeta(0); // 診断前データ
         const meta1 = chart.getDatasetMeta(1); // 診断後データ
 
         // グラフサイズに基づいて最大ラベル数を動的に計算
         const canvas = chart.canvas;
-        
+
+        // タブが表示されているか確認
+        const timelineTab = document.getElementById('timeline-content');
+        const isTabVisible = timelineTab && timelineTab.style.display !== 'none';
+
         // キャンバスサイズが0の場合は、チャートのリサイズを試みる
         if (canvas.width === 0 || canvas.height === 0) {
-            console.log('[DEBUG] Canvas size is 0, attempting to resize chart');
+            console.log('[DEBUG] Canvas size is 0, tab visible:', isTabVisible);
+
+            // タブが非表示の場合はスキップ
+            if (!isTabVisible) {
+                console.log('[DEBUG] Timeline tab is not visible, skipping optimization');
+                return;
+            }
+
+            // リトライ回数を制限
+            if (retryCount >= 5) {
+                console.log('[DEBUG] Max retry count reached, aborting optimization');
+                return;
+            }
+
             chart.resize();
             // それでも0の場合は遅延実行
             if (canvas.width === 0 || canvas.height === 0) {
                 console.log('[DEBUG] Canvas still 0, deferring label optimization');
                 setTimeout(() => {
-                    optimizeLabelsAfterRender(chart);
-                }, 100);
+                    optimizeLabelsAfterRender(chart, retryCount + 1);
+                }, 200);
                 return;
             }
         }
@@ -4127,7 +4144,23 @@ function drawTimelineChart(keywords) {
         // チャートを更新してラベルの表示を反映
         // フラグを設定して無限ループを防ぐ
         chart.labelOptimizationDone = true;
-        chart.update('none'); // 'none'でアニメーションなしで即座に更新
+
+        // データラベルプラグインを強制的に更新
+        // chart.update()だけでは反映されない場合があるため、より確実な方法を使用
+        try {
+            // オプションを再設定してプラグインを強制更新
+            chart.options.plugins.datalabels = chart.options.plugins.datalabels || {};
+            chart.update('none'); // アニメーションなしで更新
+
+            // それでも表示されない場合は、少し遅延してから再更新
+            setTimeout(() => {
+                chart.update();
+                console.log('[DEBUG] Chart updated with labels');
+            }, 10);
+        } catch (e) {
+            console.error('[ERROR] Failed to update chart:', e);
+            chart.update('none');
+        }
     }
 
     // 古い衝突検出関数は削除（Chart.js描画後の実座標ベースに移行）
