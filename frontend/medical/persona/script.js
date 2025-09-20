@@ -4007,19 +4007,26 @@ function drawTimelineChart(keywords) {
 
             // datalabelsの配置パターンとオフセットの対応（拡張版）
             const placements = [
-                { align: 'right', anchor: 'center', offset: 8 },
-                { align: 'left', anchor: 'center', offset: 8 },
-                { align: 'top', anchor: 'center', offset: 8 },
-                { align: 'bottom', anchor: 'center', offset: 8 },
-                { align: 'right', anchor: 'top', offset: 6 },
-                { align: 'right', anchor: 'bottom', offset: 6 },
-                { align: 'left', anchor: 'top', offset: 6 },
-                { align: 'left', anchor: 'bottom', offset: 6 },
-                // 追加の配置パターン（斜め配置）
-                { align: 'right', anchor: 'center', offset: 15 },
-                { align: 'left', anchor: 'center', offset: 15 },
-                { align: 'top', anchor: 'center', offset: 15 },
-                { align: 'bottom', anchor: 'center', offset: 15 },
+                // 基本配置（近い）
+                { align: 'right', anchor: 'center', offset: 10 },
+                { align: 'left', anchor: 'center', offset: 10 },
+                { align: 'top', anchor: 'center', offset: 10 },
+                { align: 'bottom', anchor: 'center', offset: 10 },
+                // 斜め配置
+                { align: 'right', anchor: 'top', offset: 8 },
+                { align: 'right', anchor: 'bottom', offset: 8 },
+                { align: 'left', anchor: 'top', offset: 8 },
+                { align: 'left', anchor: 'bottom', offset: 8 },
+                // 遠い配置
+                { align: 'right', anchor: 'center', offset: 20 },
+                { align: 'left', anchor: 'center', offset: 20 },
+                { align: 'top', anchor: 'center', offset: 20 },
+                { align: 'bottom', anchor: 'center', offset: 20 },
+                // さらに遠い配置
+                { align: 'right', anchor: 'center', offset: 30 },
+                { align: 'left', anchor: 'center', offset: 30 },
+                { align: 'top', anchor: 'center', offset: 25 },
+                { align: 'bottom', anchor: 'center', offset: 25 },
             ];
 
             let placed = false;
@@ -4209,7 +4216,7 @@ function drawTimelineChart(keywords) {
 
                             // 配置に基づいて位置を調整
                             const align = dataPoint.labelAlign || 'right';
-                            const offset = 15;
+                            const offset = dataPoint.labelOffset || 15;
 
                             if (align === 'right') {
                                 x += offset;
@@ -4225,20 +4232,18 @@ function drawTimelineChart(keywords) {
                                 ctx.textAlign = 'center';
                             }
 
-                            // 背景を描画
+                            // テキストを描画（背景なしでシンプルに）
                             const text = dataPoint.label || '';
-                            const metrics = ctx.measureText(text);
-                            const padding = 4;
 
-                            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                            ctx.fillRect(
-                                x - (ctx.textAlign === 'right' ? metrics.width + padding : ctx.textAlign === 'center' ? metrics.width/2 + padding : -padding),
-                                y - 8,
-                                metrics.width + padding * 2,
-                                16
-                            );
+                            // 影を付けて視認性を向上
+                            ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+                            ctx.shadowBlur = 3;
+                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+                            ctx.lineWidth = 3;
+                            ctx.strokeText(text, x, y);
 
-                            // テキストを描画
+                            // テキスト本体を描画
+                            ctx.shadowBlur = 0;
                             ctx.fillStyle = datasetIndex === 0 ? 'rgba(59, 130, 246, 1)' : 'rgba(239, 68, 68, 1)';
                             ctx.fillText(text, x, y);
                         }
