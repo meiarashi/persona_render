@@ -4111,11 +4111,15 @@ function drawTimelineChart(keywords) {
                 const minSpacing = 5; // ラベル間の最小間隔
                 
                 for (const occupied of occupiedBoxes) {
-                    // シンプルな重複判定（最小間隔を考慮）
-                    if (!(box.right + minSpacing < occupied.left || 
-                          box.left - minSpacing > occupied.right ||
-                          box.bottom + minSpacing < occupied.top || 
-                          box.top - minSpacing > occupied.bottom)) {
+                    // 正確な重複判定（最小間隔を考慮）
+                    // 重複する条件：どの分離条件も満たさない場合
+                    const noOverlap = 
+                        box.right + minSpacing <= occupied.left ||  // 新ラベルが左側
+                        box.left >= occupied.right + minSpacing ||   // 新ラベルが右側
+                        box.bottom + minSpacing <= occupied.top ||   // 新ラベルが上側
+                        box.top >= occupied.bottom + minSpacing;     // 新ラベルが下側
+                    
+                    if (!noOverlap) {
                         hasCollision = true;
                         break;
                     }
