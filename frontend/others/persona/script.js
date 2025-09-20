@@ -1738,9 +1738,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // すべての処理を真の並列実行
                 const promises = [
                     // ペルソナ生成
-                    fetch(apiEndpoint, {
+                    authenticatedFetch(apiEndpoint, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(data)
                     })
                 ];
@@ -1748,9 +1747,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // 時系列データ取得とAI分析を並列実行
                 if (window.pendingTimelineData.department && window.pendingTimelineData.chief_complaint) {
                     // 時系列データ取得とその後のAI分析を一連の処理として管理
-                    const timelineAndAnalysisPromise = fetch('/api/search-timeline', {
+                    const timelineAndAnalysisPromise = authenticatedFetch('/api/search-timeline', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(window.pendingTimelineData)
                     }).then(async (response) => {
                         if (response.ok) {
@@ -1766,9 +1764,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 };
 
                                 // AI分析を開始して完了を待つ
-                                await fetch('/api/search-timeline-analysis', {
+                                await authenticatedFetch('/api/search-timeline-analysis', {
                                     method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify(analysisPayload)
                                 }).then(async (analysisResponse) => {
                                     if (analysisResponse.ok) {
@@ -1923,9 +1920,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     timeline_analysis: window.currentTimelineAnalysis || null
                 };
                 
-                const response = await fetch('/api/download/pdf', {
+                const response = await authenticatedFetch('/api/download/pdf', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(downloadData)
                 });
                 if (!response.ok) throw new Error(`サーバーエラー ${response.status}`);
@@ -1972,9 +1968,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     timeline_analysis: window.currentTimelineAnalysis || null
                 };
                 
-                const response = await fetch('/api/download/ppt', {
+                const response = await authenticatedFetch('/api/download/ppt', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(downloadData)
                 });
                 if (!response.ok) throw new Error(`サーバーエラー ${response.status}`);
@@ -3372,7 +3367,37 @@ function stopProgressAnimation() {
 // 関数は他の場所で定義されているため、この重複した定義は削除しました
 
 // タイムライン分析用のグローバル変数
-let timelineChartInstance = null;
+// グローバルにアクセス可能にする
+window.timelineChartInstance = null;
+
+// 認証ヘッダーを含むfetchのユーティリティ関数
+async function authenticatedFetch(url, options = {}) {
+    const defaultOptions = {
+        credentials: 'include', // クッキーを含める
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    };
+    
+    try {
+        const response = await fetch(url, { ...defaultOptions, ...options });
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                console.error('Authentication failed');
+                alert('認証エラー: ログインし直してください');
+                window.location.reload();
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return response;
+    } catch (error) {
+        console.error('Fetch error:', error);
+        throw error;
+    }
+}
 
 // Chart.jsにChartDataLabelsプラグインを登録
 if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
@@ -3485,9 +3510,8 @@ async function loadTimelineAnalysis(profile) {
         };
         console.log('[DEBUG] Request data:', requestData);
         
-        const response = await fetch('/api/search-timeline', {
+        const response = await authenticatedFetch('/api/search-timeline', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestData)
         });
         
@@ -3519,9 +3543,8 @@ async function loadTimelineAnalysis(profile) {
             };
             console.log('[DEBUG] Full persona profile for AI analysis:', fullPersonaProfile);
             
-            const analysisResponse = await fetch('/api/search-timeline-analysis', {
+            const analysisResponse = await authenticatedFetch('/api/search-timeline-analysis', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     filtered_keywords: data.filtered_keywords,
                     persona_profile: fullPersonaProfile
@@ -4126,8 +4149,15 @@ function drawTimelineChart(keywords) {
     // 初期状態ではすべてのラベルを非表示
     [...preDiagnosisData, ...postDiagnosisData].forEach(d => d.showLabel = false);
 
+    // 既存のチャートインスタンスがあれば破棄（メモリリーク防止）
+    if (window.timelineChartInstance) {
+        console.log('[DEBUG] Destroying existing chart instance');
+        window.timelineChartInstance.destroy();
+        window.timelineChartInstance = null;
+    }
+
     // チャート作成
-    timelineChartInstance = new Chart(ctx, {
+    window.timelineChartInstance = new Chart(ctx, {
         type: 'scatter',
         data: {
             datasets: [
