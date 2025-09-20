@@ -4145,22 +4145,16 @@ function drawTimelineChart(keywords) {
         // フラグを設定して無限ループを防ぐ
         chart.labelOptimizationDone = true;
 
-        // データラベルプラグインを強制的に更新
-        // chart.update()だけでは反映されない場合があるため、より確実な方法を使用
-        try {
-            // オプションを再設定してプラグインを強制更新
-            chart.options.plugins.datalabels = chart.options.plugins.datalabels || {};
-            chart.update('none'); // アニメーションなしで更新
-
-            // それでも表示されない場合は、少し遅延してから再更新
-            setTimeout(() => {
-                chart.update();
+        // チャートを更新 - シンプルに1回だけ呼び出す
+        // 複数回の更新は再帰エラーの原因になる
+        setTimeout(() => {
+            try {
+                chart.update('none');
                 console.log('[DEBUG] Chart updated with labels');
-            }, 10);
-        } catch (e) {
-            console.error('[ERROR] Failed to update chart:', e);
-            chart.update('none');
-        }
+            } catch (e) {
+                console.error('[ERROR] Failed to update chart:', e);
+            }
+        }, 50);
     }
 
     // 古い衝突検出関数は削除（Chart.js描画後の実座標ベースに移行）
@@ -4276,22 +4270,43 @@ function drawTimelineChart(keywords) {
                 datalabels: {
                     display: function(context) {
                         // showLabelフラグがtrueのデータのみ表示
-                        return context.dataset.data[context.dataIndex].showLabel === true;
+                        try {
+                            if (!context.dataset || !context.dataset.data ||
+                                context.dataIndex === undefined ||
+                                !context.dataset.data[context.dataIndex]) {
+                                return false;
+                            }
+                            return context.dataset.data[context.dataIndex].showLabel === true;
+                        } catch (e) {
+                            return false;
+                        }
                     },
                     align: function(context) {
                         // 最適化で決定された配置を使用
-                        const data = context.dataset.data[context.dataIndex];
-                        return data.labelAlign || 'right';
+                        try {
+                            const data = context.dataset.data[context.dataIndex];
+                            return data && data.labelAlign ? data.labelAlign : 'right';
+                        } catch (e) {
+                            return 'right';
+                        }
                     },
                     anchor: function(context) {
                         // 最適化で決定されたアンカーを使用
-                        const data = context.dataset.data[context.dataIndex];
-                        return data.labelAnchor || 'center';
+                        try {
+                            const data = context.dataset.data[context.dataIndex];
+                            return data && data.labelAnchor ? data.labelAnchor : 'center';
+                        } catch (e) {
+                            return 'center';
+                        }
                     },
                     offset: function(context) {
                         // 最適化で決定されたオフセットを使用
-                        const data = context.dataset.data[context.dataIndex];
-                        return data.labelOffset || 10;
+                        try {
+                            const data = context.dataset.data[context.dataIndex];
+                            return data && data.labelOffset ? data.labelOffset : 10;
+                        } catch (e) {
+                            return 10;
+                        }
                     },
                     clip: false,           // グラフ領域外も表示
                     formatter: function(value) {
