@@ -3919,7 +3919,8 @@ function drawTimelineChart(keywords) {
         const canvasArea = canvas.width * canvas.height;
         const baseArea = 600 * 400; // 基準サイズ（600x400px）
         const areaRatio = canvasArea / baseArea;
-        const maxLabels = Math.min(50, Math.max(20, Math.floor(25 * Math.sqrt(areaRatio))));
+        // ラベル数を少し減らして重なりを防ぐ
+        const maxLabels = Math.min(35, Math.max(15, Math.floor(20 * Math.sqrt(areaRatio))));
         console.log(`[DEBUG] Canvas size: ${canvas.width}x${canvas.height}, Max labels: ${maxLabels}`);
 
         // すべてのポイントの実座標を取得
@@ -4007,36 +4008,37 @@ function drawTimelineChart(keywords) {
 
             // datalabelsの配置パターンとオフセットの対応（拡張版）
             const placements = [
-                // 基本配置（近い）
-                { align: 'right', anchor: 'center', offset: 10 },
-                { align: 'left', anchor: 'center', offset: 10 },
-                { align: 'top', anchor: 'center', offset: 10 },
-                { align: 'bottom', anchor: 'center', offset: 10 },
-                // 斜め配置
-                { align: 'right', anchor: 'top', offset: 8 },
-                { align: 'right', anchor: 'bottom', offset: 8 },
-                { align: 'left', anchor: 'top', offset: 8 },
-                { align: 'left', anchor: 'bottom', offset: 8 },
-                // 遠い配置
-                { align: 'right', anchor: 'center', offset: 20 },
-                { align: 'left', anchor: 'center', offset: 20 },
-                { align: 'top', anchor: 'center', offset: 20 },
-                { align: 'bottom', anchor: 'center', offset: 20 },
-                // さらに遠い配置
-                { align: 'right', anchor: 'center', offset: 30 },
-                { align: 'left', anchor: 'center', offset: 30 },
-                { align: 'top', anchor: 'center', offset: 25 },
-                { align: 'bottom', anchor: 'center', offset: 25 },
+                // 基本配置（近い）- 優先度高
+                { align: 'right', anchor: 'center', offset: 12 },
+                { align: 'left', anchor: 'center', offset: 12 },
+                { align: 'top', anchor: 'center', offset: 12 },
+                // 斜め配置 - 重なりを避けやすい
+                { align: 'right', anchor: 'top', offset: 10 },
+                { align: 'left', anchor: 'top', offset: 10 },
+                { align: 'right', anchor: 'bottom', offset: 10 },
+                { align: 'left', anchor: 'bottom', offset: 10 },
+                // 中距離配置
+                { align: 'right', anchor: 'center', offset: 22 },
+                { align: 'left', anchor: 'center', offset: 22 },
+                { align: 'top', anchor: 'center', offset: 22 },
+                // 遠距離配置
+                { align: 'right', anchor: 'center', offset: 35 },
+                { align: 'left', anchor: 'center', offset: 35 },
+                { align: 'top', anchor: 'center', offset: 30 },
+                // 下向き配置（最後の手段）
+                { align: 'bottom', anchor: 'center', offset: 12 },
+                { align: 'bottom', anchor: 'center', offset: 22 },
+                { align: 'bottom', anchor: 'center', offset: 30 },
             ];
 
             let placed = false;
             let selectedPlacement = null;
 
             for (const placement of placements) {
-                // 下部に近いポイントは下向き配置をスキップ
-                const isNearBottom = point.y > canvas.height - 100;
-                if (isNearBottom && placement.align === 'bottom') {
-                    continue; // 下向き配置をスキップ
+                // 下部に近いポイントは下向き配置を最後に試す
+                const isNearBottom = point.y > canvas.height - 80;
+                if (isNearBottom && placement.align === 'bottom' && placement.offset < 20) {
+                    continue; // 近い下向き配置のみスキップ（遠い配置は試す）
                 }
 
                 // datalabelsの配置ロジックを模倣してボックスを計算
@@ -4093,7 +4095,7 @@ function drawTimelineChart(keywords) {
                 // 他のラベルと衝突しないかチェック
                 let hasCollision = false;
                 for (const occupied of occupiedBoxes) {
-                    const margin = 2; // わずかなマージンを減らして密度を上げる
+                    const margin = 5; // マージンを増やして重なりを防ぐ
                     if (!(box.right + margin < occupied.left ||
                           occupied.right + margin < box.left ||
                           box.bottom + margin < occupied.top ||
