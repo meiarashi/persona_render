@@ -78,3 +78,61 @@ def verify_department_credentials(department: str):
         return credentials.username
     
     return verify_credentials
+
+def verify_any_credentials(credentials: HTTPBasicCredentials = Depends(security)):
+    """Verify either admin or any department credentials for API access"""
+    # First, try admin credentials
+    admin_username = os.environ.get("ADMIN_USERNAME", "admin")
+    admin_password = os.environ.get("ADMIN_PASSWORD", "changeme")
+    
+    admin_username_correct = secrets.compare_digest(
+        credentials.username.encode("utf8"),
+        admin_username.encode("utf8")
+    )
+    admin_password_correct = secrets.compare_digest(
+        credentials.password.encode("utf8"),
+        admin_password.encode("utf8")
+    )
+    
+    if admin_username_correct and admin_password_correct:
+        return credentials.username
+    
+    # Try department credentials
+    department_credentials = {
+        "medical": {
+            "username": os.environ.get("MEDICAL_USERNAME", "medical"),
+            "password": os.environ.get("MEDICAL_PASSWORD", "medical123")
+        },
+        "dental": {
+            "username": os.environ.get("DENTAL_USERNAME", "dental"),
+            "password": os.environ.get("DENTAL_PASSWORD", "dental123")
+        },
+        "others": {
+            "username": os.environ.get("OTHERS_USERNAME", "others"),
+            "password": os.environ.get("OTHERS_PASSWORD", "others123")
+        },
+        "user": {
+            "username": os.environ.get("USER_USERNAME", "user"),
+            "password": os.environ.get("USER_PASSWORD", "user123")
+        }
+    }
+    
+    for dept, creds in department_credentials.items():
+        dept_username_correct = secrets.compare_digest(
+            credentials.username.encode("utf8"),
+            creds["username"].encode("utf8")
+        )
+        dept_password_correct = secrets.compare_digest(
+            credentials.password.encode("utf8"),
+            creds["password"].encode("utf8")
+        )
+        
+        if dept_username_correct and dept_password_correct:
+            return credentials.username
+    
+    # If no credentials match, raise unauthorized error
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Incorrect username or password",
+        headers={"WWW-Authenticate": "Basic"},
+    )

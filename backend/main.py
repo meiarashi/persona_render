@@ -81,7 +81,7 @@ from backend.services.async_image_generator import generate_image_async
 from backend.services.cache_manager import get_chief_complaints, preload_cache, load_chief_complaints_data
 from backend.services.competitive_analysis_service import CompetitiveAnalysisService
 from backend.services.google_maps_service import GoogleMapsService
-from .middleware.auth import verify_admin_credentials, verify_department_credentials
+from backend.middleware.auth import verify_admin_credentials, verify_department_credentials, verify_any_credentials
 from .models import schemas as models
 from .utils import config_loader, prompt_builder
 
@@ -374,7 +374,7 @@ if frontend_dir.exists() and frontend_dir.is_dir():
     
     # 主訴リスト取得API（キャッシュ使用版）
     @app.get("/api/chief-complaints/{category}/{department}")
-    async def get_chief_complaints_api(category: str, department: str, username: str = Depends(verify_admin_credentials)):
+    async def get_chief_complaints_api(category: str, department: str, username: str = Depends(verify_any_credentials)):
         """指定された診療科の主訴リストを返す（キャッシュから高速取得）"""
         # キャッシュから主訴を取得
         chief_complaints_list = get_chief_complaints(category, department)
@@ -991,7 +991,7 @@ def parse_ai_response(text):
     return sections
 
 @app.post("/api/generate")
-async def generate_persona(request: Request, username: str = Depends(verify_admin_credentials)):
+async def generate_persona(request: Request, username: str = Depends(verify_any_credentials)):
     try:
         data = await request.json()
         
@@ -1299,7 +1299,7 @@ async def generate_persona(request: Request, username: str = Depends(verify_admi
 # [削除済み] /api/generate-by-complaintエンドポイントは/api/generateに統合されました
 
 @app.post("/api/download/pdf")
-async def download_pdf(request: Request, username: str = Depends(verify_admin_credentials)):
+async def download_pdf(request: Request, username: str = Depends(verify_any_credentials)):
     """ペルソナデータをPDFとしてダウンロードするエンドポイント"""
     try:
         data = await request.json()
@@ -1343,7 +1343,7 @@ async def download_pdf(request: Request, username: str = Depends(verify_admin_cr
         )
 
 @app.post("/api/download/ppt")
-async def download_ppt(request: Request, username: str = Depends(verify_admin_credentials)):
+async def download_ppt(request: Request, username: str = Depends(verify_any_credentials)):
     """ペルソナデータをPPTXとしてダウンロードするエンドポイント"""
     try:
         data = await request.json()
@@ -1491,7 +1491,7 @@ async def health_check():
     return {"status": "ok"}
 
 @app.post("/api/search-timeline")
-async def get_search_timeline(request: Request, username: str = Depends(verify_admin_credentials)):
+async def get_search_timeline(request: Request, username: str = Depends(verify_any_credentials)):
     """検索キーワードの時系列データを取得"""
     try:
         data = await request.json()
@@ -1528,7 +1528,7 @@ async def get_search_timeline(request: Request, username: str = Depends(verify_a
         )
 
 @app.post("/api/search-timeline-analysis")
-async def analyze_search_behavior(request: Request, username: str = Depends(verify_admin_credentials)):
+async def analyze_search_behavior(request: Request, username: str = Depends(verify_any_credentials)):
     """検索行動をAIで分析"""
     try:
         data = await request.json()
