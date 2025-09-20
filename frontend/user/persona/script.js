@@ -3912,6 +3912,11 @@ function drawTimelineChart(keywords) {
 
         // 各ポイントに対してラベル配置を決定
         for (const point of allPoints) {
+            if (!point || !point.dataRef) {
+                console.log('[DEBUG] Skipping invalid point');
+                continue;
+            }
+
             // ボリュームに応じてフォントサイズを動的に調整
             const volumeRatio = point.volume / allPoints[0].volume; // 最大ボリュームとの比率
             const fontSize = Math.max(10, Math.min(14, 10 + volumeRatio * 4)); // 10-14pxの範囲
@@ -3921,6 +3926,18 @@ function drawTimelineChart(keywords) {
             const textMetrics = ctx.measureText(point.label);
             const labelWidth = textMetrics.width;
             const labelHeight = fontSize + 4; // フォントサイズ + パディング
+
+            // デバッグ: 最初のポイントの詳細
+            if (displayCount === 0) {
+                console.log('[DEBUG] First point details:', {
+                    label: point.label,
+                    x: point.x,
+                    y: point.y,
+                    volume: point.volume,
+                    fontSize: fontSize,
+                    labelWidth: labelWidth
+                });
+            }
 
             // datalabelsの配置パターンとオフセットの対応（拡張版）
             const placements = [
@@ -4023,6 +4040,16 @@ function drawTimelineChart(keywords) {
                     displayCount++;
                     placed = true;
                     selectedPlacement = placement;
+
+                    // デバッグ: 配置成功
+                    if (displayCount <= 3) {
+                        console.log(`[DEBUG] Label placed #${displayCount}:`, {
+                            label: point.label,
+                            align: placement.align,
+                            anchor: placement.anchor,
+                            box: box
+                        });
+                    }
                     break;
                 }
             }
@@ -4049,7 +4076,7 @@ function drawTimelineChart(keywords) {
         })));
 
         // チャートを更新して新しいラベル表示を反映
-        chart.update('none'); // アニメーションなしで更新
+        // update()を呼ぶとonCompleteが再度呼ばれてしまうので削除
     }
 
     // 古い衝突検出関数は削除（Chart.js描画後の実座標ベースに移行）
