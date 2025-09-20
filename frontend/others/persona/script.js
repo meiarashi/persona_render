@@ -4183,38 +4183,77 @@ function drawTimelineChart(keywords) {
         window.timelineChartInstance = null;
     }
 
-    // ChartDataLabelsプラグインが登録されているか確認
-    if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
-        console.log('[DEBUG] ChartDataLabels plugin is available');
-        // Chart.jsのバージョンによってregistryの構造が異なるため、try-catchで処理
-        try {
-            // Chart.js v3以降のチェック方法
-            if (Chart.registry && Chart.registry.plugins && typeof Chart.registry.plugins.has === 'function') {
-                if (!Chart.registry.plugins.has(ChartDataLabels)) {
-                    Chart.register(ChartDataLabels);
-                    console.log('[DEBUG] ChartDataLabels plugin registered (v3+)');
-                }
-            } else {
-                // Chart.js v2または他のバージョン - 常に登録を試みる
-                Chart.register(ChartDataLabels);
-                console.log('[DEBUG] ChartDataLabels plugin registered (v2 or fallback)');
-            }
-        } catch (e) {
-            console.log('[DEBUG] Plugin registration check failed, attempting registration anyway:', e);
-            try {
-                Chart.register(ChartDataLabels);
-                console.log('[DEBUG] ChartDataLabels plugin registered (fallback)');
-            } catch (regError) {
-                console.error('[ERROR] Failed to register ChartDataLabels plugin:', regError);
-            }
-        }
-    } else {
-        console.error('[ERROR] ChartDataLabels plugin is not available');
-    }
+    // カスタムラベルプラグインを定義
+    const customLabelPlugin = {
+        id: 'customLabels',
+        afterDraw: function(chart) {
+            const ctx = chart.ctx;
+            ctx.save();
 
-    // チャート作成
+            // フォント設定
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+
+            // 各データセットのラベルを描画
+            chart.data.datasets.forEach((dataset, datasetIndex) => {
+                const meta = chart.getDatasetMeta(datasetIndex);
+                dataset.data.forEach((dataPoint, index) => {
+                    // showLabelフラグがtrueの場合のみ描画
+                    if (dataPoint.showLabel === true) {
+                        const element = meta.data[index];
+                        if (element) {
+                            // ラベルの位置を計算
+                            let x = element.x;
+                            let y = element.y;
+
+                            // 配置に基づいて位置を調整
+                            const align = dataPoint.labelAlign || 'right';
+                            const offset = 15;
+
+                            if (align === 'right') {
+                                x += offset;
+                                ctx.textAlign = 'left';
+                            } else if (align === 'left') {
+                                x -= offset;
+                                ctx.textAlign = 'right';
+                            } else if (align === 'top') {
+                                y -= offset;
+                                ctx.textAlign = 'center';
+                            } else if (align === 'bottom') {
+                                y += offset;
+                                ctx.textAlign = 'center';
+                            }
+
+                            // 背景を描画
+                            const text = dataPoint.label || '';
+                            const metrics = ctx.measureText(text);
+                            const padding = 4;
+
+                            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                            ctx.fillRect(
+                                x - (ctx.textAlign === 'right' ? metrics.width + padding : ctx.textAlign === 'center' ? metrics.width/2 + padding : -padding),
+                                y - 8,
+                                metrics.width + padding * 2,
+                                16
+                            );
+
+                            // テキストを描画
+                            ctx.fillStyle = datasetIndex === 0 ? 'rgba(59, 130, 246, 1)' : 'rgba(239, 68, 68, 1)';
+                            ctx.fillText(text, x, y);
+                        }
+                    }
+                });
+            });
+
+            ctx.restore();
+        }
+    };
+
+    // チャート作成（カスタムプラグインを追加）
     window.timelineChartInstance = new Chart(ctx, {
         type: 'scatter',
+        plugins: [customLabelPlugin], // カスタムラベルプラグインを登録
         data: {
             datasets: [
                 {
@@ -4268,19 +4307,7 @@ function drawTimelineChart(keywords) {
                     }
                 },
                 datalabels: {
-                    display: function(context) {
-                        // showLabelフラグがtrueのデータのみ表示
-                        try {
-                            if (!context.dataset || !context.dataset.data ||
-                                context.dataIndex === undefined ||
-                                !context.dataset.data[context.dataIndex]) {
-                                return false;
-                            }
-                            return context.dataset.data[context.dataIndex].showLabel === true;
-                        } catch (e) {
-                            return false;
-                        }
-                    },
+                    display: false, // ChartDataLabelsプラグインを無効化（カスタムプラグインを使用）
                     align: function(context) {
                         // 最適化で決定された配置を使用
                         try {
