@@ -4127,10 +4127,9 @@ function drawTimelineChart(keywords) {
         })));
 
         // チャートを更新してラベルの表示を反映
+        // フラグを設定して無限ループを防ぐ
+        chart.labelOptimizationDone = true;
         chart.update('none'); // 'none'でアニメーションなしで即座に更新
-
-        // チャートを更新して新しいラベル表示を反映
-        // update()を呼ぶとonCompleteが再度呼ばれてしまうので削除
     }
 
     // 古い衝突検出関数は削除（Chart.js描画後の実座標ベースに移行）
@@ -4157,6 +4156,18 @@ function drawTimelineChart(keywords) {
         console.log('[DEBUG] Destroying existing chart instance');
         window.timelineChartInstance.destroy();
         window.timelineChartInstance = null;
+    }
+
+    // ChartDataLabelsプラグインが登録されているか確認
+    if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+        console.log('[DEBUG] ChartDataLabels plugin is available');
+        // プラグインが登録されていない場合は再登録
+        if (!Chart.registry.plugins.has(ChartDataLabels)) {
+            Chart.register(ChartDataLabels);
+            console.log('[DEBUG] ChartDataLabels plugin registered');
+        }
+    } else {
+        console.error('[ERROR] ChartDataLabels plugin is not available');
     }
 
     // チャート作成
@@ -4258,11 +4269,12 @@ function drawTimelineChart(keywords) {
             },
             animation: {
                 onComplete: function(animation) {
-                    console.log('[DEBUG] Animation completed, running label optimization');
+                    console.log('[DEBUG] Animation completed, labelOptimizationDone:', animation.chart.labelOptimizationDone);
                     // Chart.jsが描画完了後、実座標で衝突検出を実行
                     if (animation.chart && !animation.chart.labelOptimizationDone) {
+                        console.log('[DEBUG] Running label optimization');
                         optimizeLabelsAfterRender(animation.chart);
-                        animation.chart.labelOptimizationDone = true;
+                        // labelOptimizationDoneはoptimizeLabelsAfterRender内で設定される
                     }
                 }
             },

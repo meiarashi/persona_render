@@ -73,7 +73,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Import from new structure
+# Import from backend structure (fixed import issue - v2)
 from backend.api import admin_settings, config
 from backend.services import timeline_analyzer
 from backend.services import crud, rag_processor
