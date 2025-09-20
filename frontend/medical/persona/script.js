@@ -3782,11 +3782,17 @@ function drawTimelineChart(keywords) {
     // データ構造を確認
     console.log('[DEBUG] First keyword sample:', keywords[0]);
     
-    // 重要キーワードを選定（重複ボリューム基準）
-    // 重ならないラベルをできるだけ多く表示
-    const importantKeywords = selectImportantKeywords(keywords, 50);  // 上限大幅緩和
-    const importantKeywordSet = new Set(importantKeywords.map(k => k.keyword));
-    console.log('[DEBUG] Important keywords selected:', importantKeywords.length);
+    // すべてのキーワードを候補として、衝突検出で最大限表示
+    const allCandidates = keywords.filter(k =>
+        k && k.keyword && !isNaN(getOverlapVolume(k)) && getOverlapVolume(k) > 0
+    );
+
+    // 優先度順にソート（重複ボリュームの大きい順）
+    allCandidates.sort((a, b) => getOverlapVolume(b) - getOverlapVolume(a));
+
+    // 後で衝突検出により showLabel フラグを設定する
+    const importantKeywordSet = new Set();
+    console.log('[DEBUG] Total candidates for labels:', allCandidates.length);
     
     // 重複ボリュームを取得する関数
     function getOverlapVolume(keyword) {
@@ -3808,9 +3814,9 @@ function drawTimelineChart(keywords) {
             y: getOverlapVolume(k),  // 実際の重複ボリュームを使用
             originalVolume: k.estimated_volume || k.search_volume || 0,
             label: k.keyword,
-            showLabel: importantKeywordSet.has(k.keyword)
+            showLabel: false  // 初期値はfalse、後で衝突検出で設定
         }));
-    
+
     const postDiagnosisData = keywords
         .filter(k => k.time_diff_days >= 0)
         .map(k => ({
@@ -3818,12 +3824,99 @@ function drawTimelineChart(keywords) {
             y: getOverlapVolume(k),  // 実際の重複ボリュームを使用
             originalVolume: k.estimated_volume || k.search_volume || 0,
             label: k.keyword,
-            showLabel: importantKeywordSet.has(k.keyword)
+            showLabel: false  // 初期値はfalse、後で衝突検出で設定
         }));
     
     console.log('[DEBUG] Pre-diagnosis data count:', preDiagnosisData.length);
     console.log('[DEBUG] Post-diagnosis data count:', postDiagnosisData.length);
-    
+
+    // 衝突検出アルゴリズム：重複なしで最大限のラベルを表示
+    function detectAndResolveCollisions(allData, xRange, yRange) {
+        // すべてのデータを結合して優先度順にソート
+        const combined = []
+            .concat(preDiagnosisData.map(d => ({...d, dataset: 'pre'})))
+            .concat(postDiagnosisData.map(d => ({...d, dataset: 'post'})))
+            .filter(d => d.y > 0) // ボリュームが0より大きいもののみ
+            .sort((a, b) => b.y - a.y); // 重複ボリュームの大きい順
+
+        // ラベルの占有領域を管理
+        const occupiedBoxes = [];
+
+        // ラベルのバウンディングボックスを計算する関数
+        function getLabelBox(point, labelText) {
+            // グラフの座標系をピクセル座標に変換（推定値）
+            const chartWidth = 800;  // チャートの推定幅
+            const chartHeight = 400; // チャートの推定高さ
+
+            // X座標: time_diff_daysを画面座標に変換
+            const xPixel = ((point.x - xRange.min) / (xRange.max - xRange.min)) * chartWidth;
+
+            // Y座標: ボリュームを画面座標に変換（Y軸は反転）
+            const yPixel = chartHeight - ((point.y / yRange.max) * chartHeight);
+
+            // ラベルサイズの推定（文字数 × フォントサイズ）
+            const labelWidth = labelText.length * 7;  // 1文字約7px（12pxフォント）
+            const labelHeight = 16; // ラベルの高さ
+
+            // オフセットを考慮（datalabelsのoffsetが15-25px）
+            const offset = 20;
+
+            return {
+                left: xPixel + offset,
+                right: xPixel + offset + labelWidth,
+                top: yPixel - labelHeight / 2,
+                bottom: yPixel + labelHeight / 2,
+                point: point // 元のポイントデータを保持
+            };
+        }
+
+        // 2つのボックスが重複するかチェック
+        function hasCollision(box1, box2) {
+            // マージン（ラベル間の最小間隔）
+            const margin = 5;
+
+            return !(box1.right + margin < box2.left ||
+                     box2.right + margin < box1.left ||
+                     box1.bottom + margin < box2.top ||
+                     box2.bottom + margin < box1.top);
+        }
+
+        let displayCount = 0;
+
+        // 貪欲法：優先度順に配置可能なラベルを選択
+        for (const point of combined) {
+            const labelBox = getLabelBox(point, point.label);
+
+            // 既存のラベルと衝突チェック
+            let hasConflict = false;
+            for (const occupied of occupiedBoxes) {
+                if (hasCollision(labelBox, occupied)) {
+                    hasConflict = true;
+                    break;
+                }
+            }
+
+            // 衝突がなければ表示
+            if (!hasConflict) {
+                point.showLabel = true;
+                occupiedBoxes.push(labelBox);
+                displayCount++;
+
+                // 元のデータセットに反映
+                if (point.dataset === 'pre') {
+                    const original = preDiagnosisData.find(d => d.label === point.label && d.x === point.x);
+                    if (original) original.showLabel = true;
+                } else {
+                    const original = postDiagnosisData.find(d => d.label === point.label && d.x === point.x);
+                    if (original) original.showLabel = true;
+                }
+            }
+        }
+
+        console.log(`[DEBUG] Collision detection: ${displayCount} labels will be displayed out of ${combined.length} candidates`);
+        return displayCount;
+    }
+
     // Y軸の最大値を計算（グラフを横長にするため）
     const allYValues = [...preDiagnosisData, ...postDiagnosisData].map(d => d.y).filter(y => y > 0);
     const maxY = Math.max(...allYValues);
@@ -3837,7 +3930,12 @@ function drawTimelineChart(keywords) {
     const xPadding = xRange * 0.15;  // 15%の余白を追加
     const dynamicMinX = Math.floor((minX - xPadding) / 10) * 10;  // 10単位で丸める
     const dynamicMaxX = Math.ceil((maxX + xPadding * 2) / 10) * 10;  // 右側は多めに余白を取る
-    
+
+    // 衝突検出を実行してラベル表示を決定
+    const xRangeObj = { min: dynamicMinX, max: dynamicMaxX };
+    const yRangeObj = { max: suggestedMaxY };
+    detectAndResolveCollisions([...preDiagnosisData, ...postDiagnosisData], xRangeObj, yRangeObj);
+
     // チャート作成
     timelineChartInstance = new Chart(ctx, {
         type: 'scatter',
