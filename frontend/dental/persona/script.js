@@ -3844,6 +3844,7 @@ function drawTimelineChart(keywords) {
 
     // Chart.js描画完了後に実座標で最適化
     function optimizeLabelsAfterRender(chart) {
+        console.log('[DEBUG] optimizeLabelsAfterRender called');
         const meta0 = chart.getDatasetMeta(0); // 診断前データ
         const meta1 = chart.getDatasetMeta(1); // 診断後データ
 
@@ -4165,15 +4166,15 @@ function drawTimelineChart(keywords) {
                     borderRadius: 0,
                     padding: 3,
                     textAlign: 'left'
-                },
-                // Chart.js描画完了後の処理を追加
-                animation: {
-                    onComplete: function(animation) {
-                        // Chart.jsが描画完了後、実座標で衝突検出を実行
-                        if (animation.chart && !animation.chart.labelOptimizationDone) {
-                            optimizeLabelsAfterRender(animation.chart);
-                            animation.chart.labelOptimizationDone = true;
-                        }
+                }
+            },
+            animation: {
+                onComplete: function(animation) {
+                    console.log('[DEBUG] Animation completed, running label optimization');
+                    // Chart.jsが描画完了後、実座標で衝突検出を実行
+                    if (animation.chart && !animation.chart.labelOptimizationDone) {
+                        optimizeLabelsAfterRender(animation.chart);
+                        animation.chart.labelOptimizationDone = true;
                     }
                 }
             },
