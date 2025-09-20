@@ -3919,8 +3919,8 @@ function drawTimelineChart(keywords) {
         const canvasArea = canvas.width * canvas.height;
         const baseArea = 600 * 400; // 基準サイズ（600x400px）
         const areaRatio = canvasArea / baseArea;
-        // 元の最大ラベル数に戻す
-        const maxLabels = Math.min(50, Math.max(20, Math.floor(25 * Math.sqrt(areaRatio))));
+        // 最大ラベル数を増やして、小さいフォントでより多く表示
+        const maxLabels = Math.min(80, Math.max(30, Math.floor(40 * Math.sqrt(areaRatio))));
         console.log(`[DEBUG] Canvas size: ${canvas.width}x${canvas.height}, Max labels: ${maxLabels}`);
 
         // すべてのポイントの実座標を取得
@@ -3965,16 +3965,51 @@ function drawTimelineChart(keywords) {
             }
         });
 
-        // ボリューム順にソート（優先度）
-        allPoints.sort((a, b) => b.volume - a.volume);
+        // セクター分析のための準備
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        
+        // 各ポイントにセクター情報を追加
+        allPoints.forEach(point => {
+            // 角度を計算（-π to π）
+            const angle = Math.atan2(point.y - centerY, point.x - centerX);
+            // セクターID（8分割）
+            const sectorId = Math.floor((angle + Math.PI) / (Math.PI / 4));
+            point.sector = sectorId;
+            
+            // 中心からの距離
+            point.distanceFromCenter = Math.sqrt(
+                Math.pow(point.x - centerX, 2) + 
+                Math.pow(point.y - centerY, 2)
+            );
+        });
+        
+        // 複合優先度でソート：ボリューム + 位置の独自性
+        allPoints.sort((a, b) => {
+            // 同じセクターの他のポイント数をカウント
+            const aSectorCount = allPoints.filter(p => p.sector === a.sector).length;
+            const bSectorCount = allPoints.filter(p => p.sector === b.sector).length;
+            
+            // セクター内での相対的な重要度
+            const aUniqueness = 1 / (aSectorCount + 1);
+            const bUniqueness = 1 / (bSectorCount + 1);
+            
+            // 複合スコア（ボリューム70% + 独自性30%）
+            const aScore = a.volume * 0.7 + (a.volume * aUniqueness) * 0.3;
+            const bScore = b.volume * 0.7 + (b.volume * bUniqueness) * 0.3;
+            
+            return bScore - aScore;
+        });
 
         // 実際のCanvas要素とコンテキストを取得
         // canvasは既に上で宣言済みなので、ctxのみを取得
         const ctx = canvas.getContext('2d');
         ctx.font = '12px sans-serif'; // datalabelsと同じフォント
 
-        // 占有領域を管理
+        // 占有領域を管理（セクターごとに管理）
         const occupiedBoxes = [];
+        const sectorCounts = new Array(8).fill(0); // セクターごとのラベル数
+        const maxPerSector = Math.ceil(maxLabels / 4); // セクターあたりの最大数
         let displayCount = 0;
 
         // 各ポイントに対してラベル配置を決定
@@ -3999,9 +4034,21 @@ function drawTimelineChart(keywords) {
                 }
             }
 
-            // ボリュームに応じてフォントサイズを動的に調整
+            // 適応的フォントサイズ：密集度とボリュームを考慮
             const volumeRatio = point.volume / allPoints[0].volume; // 最大ボリュームとの比率
-            const fontSize = Math.max(10, Math.min(14, 10 + volumeRatio * 4)); // 10-14pxの範囲
+            
+            // 密集度に応じてベースフォントサイズを調整
+            let baseFontSize;
+            if (nearbyCount > 5) {
+                baseFontSize = 9; // 非常に密集：小さく
+            } else if (nearbyCount > 2) {
+                baseFontSize = 10; // 中程度密集：やや小さく
+            } else {
+                baseFontSize = 11; // 通常：標準サイズ
+            }
+            
+            // ボリュームによる追加調整（重要度が高いものは大きく）
+            const fontSize = Math.max(8, Math.min(14, baseFontSize + volumeRatio * 3));
             ctx.font = `${fontSize}px sans-serif`;
 
             // テキスト幅を測定（調整後のフォントサイズで）
