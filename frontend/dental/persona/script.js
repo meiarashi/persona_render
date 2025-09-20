@@ -3901,7 +3901,7 @@ function drawTimelineChart(keywords) {
         allPoints.sort((a, b) => b.volume - a.volume);
 
         // 実際のCanvas要素とコンテキストを取得
-        const canvas = chart.canvas;
+        // canvasは既に上で宣言済みなので、ctxのみを取得
         const ctx = canvas.getContext('2d');
         ctx.font = '12px sans-serif'; // datalabelsと同じフォント
 
