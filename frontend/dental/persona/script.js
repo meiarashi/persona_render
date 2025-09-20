@@ -3787,8 +3787,20 @@ function drawTimelineChart(keywords) {
         k && k.keyword && !isNaN(getOverlapVolume(k)) && getOverlapVolume(k) > 0
     );
 
-    // 優先度順にソート（重複ボリュームの大きい順）
-    allCandidates.sort((a, b) => getOverlapVolume(b) - getOverlapVolume(a));
+    // 優先度順にソート（重複ボリュームと時間分散を考慮）
+    allCandidates.sort((a, b) => {
+        // 重複ボリュームの重み: 70%
+        const volumeWeight = 0.7;
+        const volumeDiff = (getOverlapVolume(b) - getOverlapVolume(a)) * volumeWeight;
+
+        // 時間的分散の重み: 30%（診断前後で分散させる）
+        const timeWeight = 0.3;
+        const aTimeScore = Math.abs(a.time_diff_days) <= 30 ? 1 : 0.5; // 30日以内は高優先度
+        const bTimeScore = Math.abs(b.time_diff_days) <= 30 ? 1 : 0.5;
+        const timeDiff = (bTimeScore - aTimeScore) * timeWeight * 1000;
+
+        return volumeDiff + timeDiff;
+    });
 
     // 後で衝突検出により showLabel フラグを設定する
     const importantKeywordSet = new Set();
@@ -3834,6 +3846,14 @@ function drawTimelineChart(keywords) {
     function optimizeLabelsAfterRender(chart) {
         const meta0 = chart.getDatasetMeta(0); // 診断前データ
         const meta1 = chart.getDatasetMeta(1); // 診断後データ
+
+        // グラフサイズに基づいて最大ラベル数を動的に計算
+        const canvas = chart.canvas;
+        const canvasArea = canvas.width * canvas.height;
+        const baseArea = 600 * 400; // 基準サイズ（600x400px）
+        const areaRatio = canvasArea / baseArea;
+        const maxLabels = Math.min(50, Math.max(20, Math.floor(25 * Math.sqrt(areaRatio))));
+        console.log(`[DEBUG] Canvas size: ${canvas.width}x${canvas.height}, Max labels: ${maxLabels}`);
 
         // すべてのポイントの実座標を取得
         const allPoints = [];
@@ -3896,17 +3916,36 @@ function drawTimelineChart(keywords) {
             const labelWidth = textMetrics.width;
             const labelHeight = 16; // フォントサイズ + パディング
 
-            // datalabelsの配置パターンとオフセットの対応
+            // ボリュームに応じてフォントサイズを動的に調整
+            const volumeRatio = point.volume / allPoints[0].volume; // 最大ボリュームとの比率
+            const fontSize = Math.max(10, Math.min(14, 10 + volumeRatio * 4)); // 10-14pxの範囲
+            ctx.font = `${fontSize}px sans-serif`;
+
+            // 再度テキスト幅を測定（フォントサイズ変更後）
+            const adjustedTextMetrics = ctx.measureText(point.label);
+            const adjustedLabelWidth = adjustedTextMetrics.width;
+            const adjustedLabelHeight = fontSize + 4; // フォントサイズ + パディング
+
+            // datalabelsの配置パターンとオフセットの対応（拡張版）
             const placements = [
-                { align: 'right', anchor: 'center', offset: 10 },
-                { align: 'left', anchor: 'center', offset: 10 },
-                { align: 'right', anchor: 'top', offset: 10 },
-                { align: 'right', anchor: 'bottom', offset: 10 },
-                { align: 'top', anchor: 'center', offset: 10 },
-                { align: 'bottom', anchor: 'center', offset: 10 },
-                { align: 'left', anchor: 'top', offset: 10 },
-                { align: 'left', anchor: 'bottom', offset: 10 },
+                { align: 'right', anchor: 'center', offset: 8 },
+                { align: 'left', anchor: 'center', offset: 8 },
+                { align: 'top', anchor: 'center', offset: 8 },
+                { align: 'bottom', anchor: 'center', offset: 8 },
+                { align: 'right', anchor: 'top', offset: 6 },
+                { align: 'right', anchor: 'bottom', offset: 6 },
+                { align: 'left', anchor: 'top', offset: 6 },
+                { align: 'left', anchor: 'bottom', offset: 6 },
+                // 追加の配置パターン（斜め配置）
+                { align: 'right', anchor: 'center', offset: 15 },
+                { align: 'left', anchor: 'center', offset: 15 },
+                { align: 'top', anchor: 'center', offset: 15 },
+                { align: 'bottom', anchor: 'center', offset: 15 },
             ];
+
+            // 使用する幅と高さを調整済みのものに変更
+            const labelWidth = adjustedLabelWidth;
+            const labelHeight = adjustedLabelHeight;
 
             let placed = false;
             let selectedPlacement = null;
@@ -3966,7 +4005,7 @@ function drawTimelineChart(keywords) {
                 // 他のラベルと衝突しないかチェック
                 let hasCollision = false;
                 for (const occupied of occupiedBoxes) {
-                    const margin = 3; // わずかなマージン
+                    const margin = 2; // わずかなマージンを減らして密度を上げる
                     if (!(box.right + margin < occupied.left ||
                           occupied.right + margin < box.left ||
                           box.bottom + margin < occupied.top ||
@@ -3977,11 +4016,17 @@ function drawTimelineChart(keywords) {
                 }
 
                 if (!hasCollision) {
+                    // 最大表示数チェック
+                    if (displayCount >= maxLabels) {
+                        break;
+                    }
+
                     // 配置可能
                     point.dataRef.showLabel = true;
                     point.dataRef.labelAlign = placement.align;
                     point.dataRef.labelAnchor = placement.anchor;
                     point.dataRef.labelOffset = placement.offset;
+                    point.dataRef.labelFontSize = fontSize; // フォントサイズも保存
                     occupiedBoxes.push(box);
                     displayCount++;
                     placed = true;
@@ -3992,6 +4037,11 @@ function drawTimelineChart(keywords) {
 
             if (!placed) {
                 point.dataRef.showLabel = false;
+            }
+
+            // 最大表示数に達したら終了
+            if (displayCount >= maxLabels) {
+                break;
             }
         });
 
@@ -4109,7 +4159,11 @@ function drawTimelineChart(keywords) {
                         return value.label;  // キーワードを表示
                     },
                     font: {
-                        size: 12,
+                        size: function(context) {
+                            // 最適化で決定されたフォントサイズを使用
+                            const data = context.dataset.data[context.dataIndex];
+                            return data.labelFontSize || 12;
+                        },
                         weight: 'bold',
                         family: 'sans-serif'
                     },
