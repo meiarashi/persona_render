@@ -2203,19 +2203,33 @@ def generate_pdf(data):
                     
                     # 一時ファイルに保存
                     import tempfile
+                    from PIL import Image
+                    import io
+
                     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
                         tmp_file.write(image_data)
                         chart_image_path = tmp_file.name
-                    
+
+                    # 画像の実際のサイズを取得してアスペクト比を計算
+                    img = Image.open(io.BytesIO(image_data))
+                    original_width, original_height = img.size
+                    aspect_ratio = original_height / original_width
+
                     # グラフをPDFに追加（ページ幅の80%を使用）
                     page_width = pdf.w - pdf.l_margin - pdf.r_margin
                     graph_width = page_width * 0.8
                     graph_x = pdf.l_margin + (page_width - graph_width) / 2
-                    
-                    # グラフの高さを計算（幅の約半分）
-                    graph_height = graph_width * 0.5
+
+                    # アスペクト比を保持した高さを計算
+                    graph_height = graph_width * aspect_ratio
                     current_y = pdf.get_y()
-                    
+
+                    # ページの残り高さを確認し、必要なら新しいページへ
+                    remaining_height = pdf.h - current_y - pdf.b_margin
+                    if graph_height > remaining_height:
+                        pdf.add_page()
+                        current_y = pdf.get_y()
+
                     pdf.image(chart_image_path, x=graph_x, y=current_y, w=graph_width, h=graph_height)
                     
                     # グラフの後に適切なスペースを追加
@@ -2609,17 +2623,40 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
                     
                     # 一時ファイルに保存
                     import tempfile
+                    from PIL import Image
+                    import io
+
                     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
                         tmp_file.write(image_data)
                         chart_image_path = tmp_file.name
-                    
-                    # グラフをスライドに追加（上部に配置、サイズを調整）
+
+                    # 画像の実際のサイズを取得してアスペクト比を計算
+                    img = Image.open(io.BytesIO(image_data))
+                    original_width, original_height = img.size
+                    aspect_ratio = original_height / original_width
+
+                    # グラフをスライドに追加（アスペクト比を保持）
                     slide_width = prs.slide_width
-                    graph_width = Cm(18)  # 18cm幅に縮小
-                    graph_height = Cm(7)  # 7cm高さに縮小
+                    slide_height = prs.slide_height
+
+                    # 最大幅を18cmに設定
+                    max_width = Cm(18)
+                    # スライドの高さの60%を最大高さとする
+                    max_height = slide_height * 0.6
+
+                    # アスペクト比を保持しながら、最大サイズ内に収める
+                    if aspect_ratio > (max_height / max_width):
+                        # 高さが制約になる場合
+                        graph_height = max_height
+                        graph_width = graph_height / aspect_ratio
+                    else:
+                        # 幅が制約になる場合
+                        graph_width = max_width
+                        graph_height = graph_width * aspect_ratio
+
                     graph_x = (slide_width - graph_width) / 2
                     graph_y = Cm(2.0)  # 2cmから開始
-                    
+
                     slide.shapes.add_picture(chart_image_path, graph_x, graph_y, width=graph_width, height=graph_height)
                     graph_added = True
                     
