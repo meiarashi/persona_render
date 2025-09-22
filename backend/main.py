@@ -2780,11 +2780,18 @@ async def get_google_maps_static(
 async def get_departments_list(category: str):
     """指定カテゴリの診療科リストを取得"""
     try:
+        from backend.services.cache_manager import load_departments_data, load_chief_complaints_data
+        
+        # departments_by_category.jsonから診療科を取得
+        departments_config = load_departments_data()
+        
+        # chief_complaints.jsonから診療科名を取得
         chief_complaints = load_chief_complaints_data()
+        
         if category not in chief_complaints:
             raise HTTPException(status_code=404, detail=f"Category {category} not found")
         
-        # 診療科名のリストを返す
+        # chief_complaints.jsonの診療科名のリストを返す（日本語名）
         departments = list(chief_complaints[category].keys())
         return {"departments": departments}
     except Exception as e:
