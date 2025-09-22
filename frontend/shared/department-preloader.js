@@ -15,39 +15,40 @@ class DepartmentPreloader {
     getDepartmentInfo(departmentValue) {
         // 各ページのマッピングを統合
         const mappings = {
-            // 医科
-            'ophthalmology': { category: 'medical', name: '眼科' },
-            'internal_medicine': { category: 'medical', name: '内科' },
-            'surgery': { category: 'medical', name: '外科' },
-            'pediatrics': { category: 'medical', name: '小児科' },
-            'orthopedics': { category: 'medical', name: '整形外科' },
-            'otorhinolaryngology': { category: 'medical', name: '耳鼻咽喉科' },
-            'dermatology': { category: 'medical', name: '皮膚科' },
-            'gynecology': { category: 'medical', name: '婦人科' },
-            'urology': { category: 'medical', name: '泌尿器科' },
-            'psychiatry': { category: 'medical', name: '精神科' },
-            'neurosurgery': { category: 'medical', name: '脳神経外科' },
-            'anesthesiology': { category: 'others', name: '麻酔科' },
-            'radiology': { category: 'others', name: '放射線科' },
-            'rehabilitation': { category: 'others', name: 'リハビリテーション科' },
-            'allergy': { category: 'others', name: 'アレルギー科' },
-            'cardiology': { category: 'medical', name: '循環器内科' },
-            'gastroenterology': { category: 'medical', name: '消化器内科' },
-            'respiratory_medicine': { category: 'medical', name: '呼吸器内科' },
-            'diabetes_medicine': { category: 'medical', name: '糖尿病内科' },
-            'nephrology': { category: 'medical', name: '腎臓内科' },
-            'neurology': { category: 'medical', name: '神経内科' },
-            'hematology': { category: 'medical', name: '血液内科' },
-            'endocrinology': { category: 'medical', name: '内分泌科' }, // 名称を修正
-            'plastic_surgery': { category: 'medical', name: '形成外科' },
-            'beauty_surgery': { category: 'medical', name: '美容外科' },
+            // 医科（日本語名をvalueとして使用する場合）
+            '眼科': { category: 'medical', name: '眼科' },
+            '内科': { category: 'medical', name: '内科' },
+            '外科': { category: 'medical', name: '外科' },
+            '小児科': { category: 'medical', name: '小児科' },
+            '整形外科': { category: 'medical', name: '整形外科' },
+            '耳鼻咽喉科': { category: 'medical', name: '耳鼻咽喉科' },
+            '皮膚科': { category: 'medical', name: '皮膚科' },
+            '婦人科': { category: 'medical', name: '婦人科' },
+            '泌尿器科': { category: 'medical', name: '泌尿器科' },
+            '循環器内科': { category: 'medical', name: '循環器内科' },
+            '消化器内科': { category: 'medical', name: '消化器内科' },
+            '呼吸器内科': { category: 'medical', name: '呼吸器内科' },
+            '糖尿病内科': { category: 'medical', name: '糖尿病内科' },
+            '腎臓内科': { category: 'medical', name: '腎臓内科' },
+            '神経内科': { category: 'medical', name: '神経内科' },
+            '内分泌科': { category: 'medical', name: '内分泌科' },
+            '血液内科': { category: 'medical', name: '血液内科' },
+            '脳神経外科': { category: 'medical', name: '脳神経外科' },
+            '形成外科': { category: 'medical', name: '形成外科' },
+            '美容外科': { category: 'medical', name: '美容外科' },
             
-            // 歯科
-            'general_dentistry': { category: 'dental', name: '歯科' },
-            'pediatric_dentistry': { category: 'dental', name: '小児歯科' },
-            'orthodontics': { category: 'dental', name: '矯正歯科' },
-            'cosmetic_dentistry': { category: 'dental', name: '審美歯科' },
-            'oral_surgery': { category: 'dental', name: '口腔外科' },
+            // 歯科（日本語名をvalueとして使用する場合）
+            '一般歯科': { category: 'dental', name: '一般歯科' },
+            '小児歯科': { category: 'dental', name: '小児歯科' },
+            '矯正歯科': { category: 'dental', name: '矯正歯科' },
+            '審美歯科': { category: 'dental', name: '審美歯科' },
+            '口腔外科': { category: 'dental', name: '口腔外科' },
+
+            // その他（日本語名をvalueとして使用する場合）
+            '精神科': { category: 'others', name: '精神科' },
+            '麻酔科': { category: 'others', name: '麻酔科' },
+            'リハビリテーション科': { category: 'others', name: 'リハビリテーション科' },
+            'アレルギー科': { category: 'others', name: 'アレルギー科' },
             
         };
         
