@@ -1914,10 +1914,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             pdfButton.style.cssText = pdfButton.style.cssText.replace('font-size: 14px !important;', 'font-size: 12px !important;');
             pdfButton.style.opacity = '0.7';
             try {
+                // タイムライングラフのCanvas要素を画像に変換
+                let timelineChartImage = null;
+                const chartCanvas = document.getElementById('timeline-chart');
+                if (chartCanvas && window.timelineChartInstance) {
+                    try {
+                        // Chart.jsのチャートが完全に描画されていることを確認
+                        timelineChartImage = chartCanvas.toDataURL('image/png', 1.0);
+                        console.log('[DEBUG] Timeline chart converted to image');
+                    } catch (err) {
+                        console.error('[ERROR] Failed to convert chart to image:', err);
+                    }
+                }
+                
                 // タイムライン分析データも含める
                 const downloadData = {
                     ...currentPersonaResult,
-                    timeline_analysis: window.currentTimelineAnalysis || null
+                    timeline_analysis: window.currentTimelineAnalysis || null,
+                    timeline_chart_image: timelineChartImage || null
                 };
                 
                 const response = await authenticatedFetch('/api/download/pdf', {
@@ -1962,10 +1976,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             pptButton.style.cssText = pptButton.style.cssText.replace('font-size: 14px !important;', 'font-size: 12px !important;');
             pptButton.style.opacity = '0.7';
             try {
+                // タイムライングラフのCanvas要素を画像に変換
+                let timelineChartImage = null;
+                const chartCanvas = document.getElementById('timeline-chart');
+                if (chartCanvas && window.timelineChartInstance) {
+                    try {
+                        // Chart.jsのチャートが完全に描画されていることを確認
+                        timelineChartImage = chartCanvas.toDataURL('image/png', 1.0);
+                        console.log('[DEBUG] Timeline chart converted to image');
+                    } catch (err) {
+                        console.error('[ERROR] Failed to convert chart to image:', err);
+                    }
+                }
+                
                 // タイムライン分析データも含める
                 const downloadData = {
                     ...currentPersonaResult,
-                    timeline_analysis: window.currentTimelineAnalysis || null
+                    timeline_analysis: window.currentTimelineAnalysis || null,
+                    timeline_chart_image: timelineChartImage || null
                 };
                 
                 const response = await authenticatedFetch('/api/download/ppt', {

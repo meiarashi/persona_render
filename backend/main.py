@@ -1367,6 +1367,11 @@ async def download_ppt(request: Request, username: str = Depends(verify_any_cred
             persona_data['timeline_analysis'] = data['timeline_analysis']
             print(f"[DEBUG] PPT: timeline_analysis included with keys: {list(data['timeline_analysis'].keys())}")
         
+        # タイムライングラフ画像を転送（フロントエンドから送信）
+        if 'timeline_chart_image' in data:
+            persona_data['timeline_chart_image'] = data['timeline_chart_image']
+            print(f"[DEBUG] PPT: timeline_chart_image included")
+        
         # 画像URL
         image_url = data.get('image_url')
         image_path = None
@@ -2194,6 +2199,7 @@ def generate_pdf(data):
 
     # --- タイムライン分析セクション（新しいページに追加） ---
     timeline_analysis = data.get('timeline_analysis')
+    timeline_chart_image = data.get('timeline_chart_image')  # フロントエンドから送信されたグラフ画像
     if timeline_analysis and timeline_analysis.get('ai_analysis'):
         pdf.add_page()
         
@@ -2202,30 +2208,70 @@ def generate_pdf(data):
         pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 10, 'タイムライン分析', 0, 1, 'C')
         pdf.ln(5)
         
-        # グラフを生成して追加
+        # グラフを追加（フロントエンドから送信された画像またはバックエンドで生成）
         try:
-            import tempfile
-            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
-                graph_path = tmp_file.name
-                
-            if generate_timeline_graph(timeline_analysis, graph_path):
-                # グラフをPDFに追加（ページ幅の80%を使用）
-                page_width = pdf.w - pdf.l_margin - pdf.r_margin
-                graph_width = page_width * 0.8
-                graph_x = pdf.l_margin + (page_width - graph_width) / 2
-                
-                # グラフの高さを計算（幅の約半分）
-                graph_height = graph_width * 0.5
-                current_y = pdf.get_y()
-                
-                pdf.image(graph_path, x=graph_x, y=current_y, w=graph_width, h=graph_height)
-                
-                # グラフの後に適切なスペースを追加
-                pdf.set_y(current_y + graph_height + 10)  # グラフの高さ + 10mmの余白
-                
-                # 一時ファイルを削除
-                import os
-                os.unlink(graph_path)
+            graph_added = False
+            
+            # 1. フロントエンドから送信されたChart.js画像を優先して使用
+            if timeline_chart_image and timeline_chart_image.startswith('data:image'):
+                try:
+                    # data:image/png;base64,xxxxx の形式から画像データを抽出
+                    header, encoded = timeline_chart_image.split(',', 1)
+                    image_data = base64.b64decode(encoded)
+                    
+                    # 一時ファイルに保存
+                    import tempfile
+                    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
+                        tmp_file.write(image_data)
+                        chart_image_path = tmp_file.name
+                    
+                    # グラフをPDFに追加（ページ幅の80%を使用）
+                    page_width = pdf.w - pdf.l_margin - pdf.r_margin
+                    graph_width = page_width * 0.8
+                    graph_x = pdf.l_margin + (page_width - graph_width) / 2
+                    
+                    # グラフの高さを計算（幅の約半分）
+                    graph_height = graph_width * 0.5
+                    current_y = pdf.get_y()
+                    
+                    pdf.image(chart_image_path, x=graph_x, y=current_y, w=graph_width, h=graph_height)
+                    
+                    # グラフの後に適切なスペースを追加
+                    pdf.set_y(current_y + graph_height + 10)
+                    graph_added = True
+                    
+                    # 一時ファイルを削除
+                    import os
+                    os.unlink(chart_image_path)
+                    print("[DEBUG] Added timeline chart from frontend to PDF")
+                except Exception as e:
+                    print(f"[ERROR] Failed to add frontend chart image to PDF: {e}")
+            
+            # 2. フロントエンドの画像がない場合は、バックエンドで生成（フォールバック）
+            if not graph_added:
+                import tempfile
+                with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
+                    graph_path = tmp_file.name
+                    
+                if generate_timeline_graph(timeline_analysis, graph_path):
+                    # グラフをPDFに追加（ページ幅の80%を使用）
+                    page_width = pdf.w - pdf.l_margin - pdf.r_margin
+                    graph_width = page_width * 0.8
+                    graph_x = pdf.l_margin + (page_width - graph_width) / 2
+                    
+                    # グラフの高さを計算（幅の約半分）
+                    graph_height = graph_width * 0.5
+                    current_y = pdf.get_y()
+                    
+                    pdf.image(graph_path, x=graph_x, y=current_y, w=graph_width, h=graph_height)
+                    
+                    # グラフの後に適切なスペースを追加
+                    pdf.set_y(current_y + graph_height + 10)
+                    
+                    # 一時ファイルを削除
+                    import os
+                    os.unlink(graph_path)
+                    print("[DEBUG] Added backend-generated timeline chart to PDF")
         except Exception as e:
             print(f"Error adding graph to PDF: {e}")
         
@@ -2542,6 +2588,7 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
     
     # --- タイムライン分析スライド ---
     timeline_analysis = persona_data.get('timeline_analysis')
+    timeline_chart_image = persona_data.get('timeline_chart_image')  # フロントエンドから送信されたグラフ画像
     if timeline_analysis and timeline_analysis.get('ai_analysis'):
         # 新しいスライドを追加
         slide = prs.slides.add_slide(slide_layout)
@@ -2567,25 +2614,60 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
         add_text_to_shape(title_shape, 'タイムライン分析', font_size=Pt(20), is_bold=True, 
                          font_name='Meiryo UI')
         
-        # グラフを生成して追加
+        # グラフを追加（フロントエンドから送信された画像またはバックエンドで生成）
         try:
-            import tempfile
-            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
-                graph_path = tmp_file.name
-                
-            if generate_timeline_graph(timeline_analysis, graph_path):
-                # グラフをスライドに追加（上部に配置、サイズを調整）
-                slide_width = prs.slide_width
-                graph_width = Cm(18)  # 18cm幅に縮小
-                graph_height = Cm(7)  # 7cm高さに縮小
-                graph_x = (slide_width - graph_width) / 2
-                graph_y = Cm(2.0)  # 2cmから開始
-                
-                slide.shapes.add_picture(graph_path, graph_x, graph_y, width=graph_width, height=graph_height)
-                
-                # 一時ファイルを削除
-                import os
-                os.unlink(graph_path)
+            graph_added = False
+            
+            # 1. フロントエンドから送信されたChart.js画像を優先して使用
+            if timeline_chart_image and timeline_chart_image.startswith('data:image'):
+                try:
+                    # data:image/png;base64,xxxxx の形式から画像データを抽出
+                    header, encoded = timeline_chart_image.split(',', 1)
+                    image_data = base64.b64decode(encoded)
+                    
+                    # 一時ファイルに保存
+                    import tempfile
+                    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
+                        tmp_file.write(image_data)
+                        chart_image_path = tmp_file.name
+                    
+                    # グラフをスライドに追加（上部に配置、サイズを調整）
+                    slide_width = prs.slide_width
+                    graph_width = Cm(18)  # 18cm幅に縮小
+                    graph_height = Cm(7)  # 7cm高さに縮小
+                    graph_x = (slide_width - graph_width) / 2
+                    graph_y = Cm(2.0)  # 2cmから開始
+                    
+                    slide.shapes.add_picture(chart_image_path, graph_x, graph_y, width=graph_width, height=graph_height)
+                    graph_added = True
+                    
+                    # 一時ファイルを削除
+                    import os
+                    os.unlink(chart_image_path)
+                    print("[DEBUG] Added timeline chart from frontend to PPT")
+                except Exception as e:
+                    print(f"[ERROR] Failed to add frontend chart image to PPT: {e}")
+            
+            # 2. フロントエンドの画像がない場合は、バックエンドで生成（フォールバック）
+            if not graph_added:
+                import tempfile
+                with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
+                    graph_path = tmp_file.name
+                    
+                if generate_timeline_graph(timeline_analysis, graph_path):
+                    # グラフをスライドに追加（上部に配置、サイズを調整）
+                    slide_width = prs.slide_width
+                    graph_width = Cm(18)  # 18cm幅に縮小
+                    graph_height = Cm(7)  # 7cm高さに縮小
+                    graph_x = (slide_width - graph_width) / 2
+                    graph_y = Cm(2.0)  # 2cmから開始
+                    
+                    slide.shapes.add_picture(graph_path, graph_x, graph_y, width=graph_width, height=graph_height)
+                    
+                    # 一時ファイルを削除
+                    import os
+                    os.unlink(graph_path)
+                    print("[DEBUG] Added backend-generated timeline chart to PPT")
         except Exception as e:
             print(f"Error adding graph to PPT: {e}")
         
