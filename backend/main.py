@@ -15,6 +15,7 @@ from urllib.request import urlopen
 import base64
 import asyncio
 import logging
+import aiohttp
 
 # For PDF/PPT generation
 from PIL import Image
@@ -213,8 +214,8 @@ if frontend_dir.exists() and frontend_dir.is_dir():
             return FileResponse(persona_path)
         # フォールバック: 旧index.htmlを使用
         admin_html_path = frontend_dir / "admin/index.html"
-        if user_html_path.exists(): 
-            return FileResponse(user_html_path)
+        if admin_html_path.exists(): 
+            return FileResponse(admin_html_path)
         raise HTTPException(status_code=404, detail="user/persona/index.html not found")
     
     @app.get("/admin/competitive", include_in_schema=False)
