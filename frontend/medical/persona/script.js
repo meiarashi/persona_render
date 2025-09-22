@@ -1010,7 +1010,7 @@ const departmentDisplayNames = {
     'urology': '泌尿器科',
     'psychiatry': '精神科',
     'neurosurgery': '脳神経外科',
-    'general_dentistry': '歯科',
+    'general_dentistry': '一般歯科',
     'pediatric_dentistry': '小児歯科',
     'orthodontics': '矯正歯科',
     'cosmetic_dentistry': '審美歯科',

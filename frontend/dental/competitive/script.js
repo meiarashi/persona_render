@@ -189,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // すべてのカテゴリから診療科を取得（userの場合）
             let allDepartments = [];
             
-            if (category === 'user') {
+            if (category === 'user' || category === 'admin') {
                 // userの場合は全カテゴリの診療科を取得
                 const categories = ['medical', 'dental', 'others'];
                 for (const cat of categories) {

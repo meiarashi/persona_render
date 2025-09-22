@@ -38,7 +38,7 @@ class DepartmentPreloader {
             'beauty_surgery': { category: 'medical', name: '美容外科' },
 
             // 歯科
-            'general_dentistry': { category: 'dental', name: '歯科' },
+            'general_dentistry': { category: 'dental', name: '一般歯科' },
             'pediatric_dentistry': { category: 'dental', name: '小児歯科' },
             'orthodontics': { category: 'dental', name: '矯正歯科' },
             'cosmetic_dentistry': { category: 'dental', name: '審美歯科' },
