@@ -1309,7 +1309,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (stepIdx === currentStep) {
                 if (confirmBtn) confirmBtn.style.display = (currentStep >= 1 && currentStep <= numInputSteps) ? 'inline-block' : 'none';
-                if (nextBtn) nextBtn.style.display = (currentStep < numInputSteps) ? 'inline-block' : 'none';
+                if (nextBtn) nextBtn.style.display = (currentStep <= numInputSteps) ? 'inline-block' : 'none';
                 if (prevBtn) prevBtn.style.display = (currentStep > 1 && currentStep <= TOTAL_FORM_STEPS) ? 'inline-block' : 'none';
                 } else {
                 if (confirmBtn) confirmBtn.style.display = 'none';
@@ -1920,6 +1920,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (chartCanvas && window.timelineChartInstance) {
                     try {
                         // Chart.jsのチャートが完全に描画されていることを確認
+                        // アニメーション完了を待つ
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        // チャートを再描画してラベルを確実に表示
+                        window.timelineChartInstance.update('none');
+                        await new Promise(resolve => setTimeout(resolve, 100));
                         timelineChartImage = chartCanvas.toDataURL('image/png', 1.0);
                         console.log('[DEBUG] Timeline chart converted to image');
                     } catch (err) {
@@ -1982,6 +1987,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (chartCanvas && window.timelineChartInstance) {
                     try {
                         // Chart.jsのチャートが完全に描画されていることを確認
+                        // アニメーション完了を待つ
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        // チャートを再描画してラベルを確実に表示
+                        window.timelineChartInstance.update('none');
+                        await new Promise(resolve => setTimeout(resolve, 100));
                         timelineChartImage = chartCanvas.toDataURL('image/png', 1.0);
                         console.log('[DEBUG] Timeline chart converted to image');
                     } catch (err) {
@@ -4269,9 +4279,9 @@ function drawTimelineChart(keywords) {
                         ctx.lineWidth = 3;
                         ctx.strokeText(text, x, y);
 
-                        // テキスト本体を描画
+                        // テキスト本体を描画（黒色に統一）
                         ctx.shadowBlur = 0;
-                        ctx.fillStyle = datasetIndex === 0 ? 'rgba(59, 130, 246, 1)' : 'rgba(239, 68, 68, 1)';
+                        ctx.fillStyle = 'rgba(0, 0, 0, 1)';  // 黒色に統一
                         ctx.fillText(text, x, y);
                     }
                 });
@@ -4388,7 +4398,7 @@ function drawTimelineChart(keywords) {
                         weight: 'bold',
                         family: 'sans-serif'
                     },
-                    color: 'rgba(0, 0, 0, 0.9)',
+                    color: 'rgba(0, 0, 0, 1)',  // 黒色に統一
                     backgroundColor: 'transparent',  // 背景を透明に
                     borderColor: 'transparent',      // 枠線を透明に
                     borderWidth: 0,                   // 枠線を無効化
