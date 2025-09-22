@@ -329,7 +329,7 @@ if frontend_dir.exists() and frontend_dir.is_dir():
     
     # 診療科別の設定API
     @app.get("/api/departments/by-category/{category}")
-    async def get_departments_by_category(category: str, username: str = Depends(verify_admin_credentials)):
+    async def get_departments_by_category(category: str, username: str = Depends(verify_any_credentials)):
         """診療科カテゴリーに応じた診療科リストを返す"""
         departments_by_category_path = project_root_dir / "config" / "departments_by_category.json"
         if not departments_by_category_path.exists():
@@ -2827,7 +2827,7 @@ async def test_geocoding(request: Request, username: str = Depends(verify_admin_
 
 # 競合分析API
 @app.post("/api/competitive-analysis")
-async def analyze_competitors(request: Request, username: str = Depends(verify_admin_credentials)):
+async def analyze_competitors(request: Request, username: str = Depends(verify_any_credentials)):
     """競合分析を実行"""
     # レート制限チェック
     from backend.utils.rate_limiter import competitive_analysis_limiter, check_rate_limit
@@ -2896,7 +2896,7 @@ async def analyze_competitors(request: Request, username: str = Depends(verify_a
 
 # Google Maps APIキー取得エンドポイント（認証必須）
 @app.get("/api/google-maps-key")
-async def get_google_maps_api_key(username: str = Depends(verify_admin_credentials)):
+async def get_google_maps_api_key(username: str = Depends(verify_any_credentials)):
     """Google Maps APIキーを取得（認証ユーザーのみ）"""
     api_key = os.getenv("GOOGLE_MAPS_API_KEY")
     if not api_key:
