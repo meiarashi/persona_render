@@ -152,7 +152,6 @@ if not frontend_dir.exists() or not frontend_dir.is_dir():
 if frontend_dir.exists() and frontend_dir.is_dir():
     print(f"Serving static files from: {frontend_dir}")
     app.mount("/static/admin", StaticFiles(directory=frontend_dir / "admin"), name="admin_static_assets")
-    app.mount("/static/admin", StaticFiles(directory=frontend_dir / "admin"), name="admin_static_assets")
     app.mount("/static/shared", StaticFiles(directory=frontend_dir / "shared"), name="shared_static_assets")
     app.mount("/static/medical", StaticFiles(directory=frontend_dir / "medical"), name="medical_static_assets")
     app.mount("/static/dental", StaticFiles(directory=frontend_dir / "dental"), name="dental_static_assets")
