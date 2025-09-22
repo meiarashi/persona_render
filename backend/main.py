@@ -200,18 +200,15 @@ if frontend_dir.exists() and frontend_dir.is_dir():
         raise HTTPException(status_code=404, detail="admin.html not found")
 
     @app.get("/", include_in_schema=False)
-    async def serve_user_dashboard(username: str = Depends(verify_admin_credentials)):
-        dashboard_path = frontend_dir / "admin/dashboard.html"
-        if dashboard_path.exists(): 
-            return FileResponse(dashboard_path)
-        # フォールバック: 旧index.htmlを使用
-        admin_html_path = frontend_dir / "admin/index.html"
-        if user_html_path.exists(): 
-            return FileResponse(user_html_path)
-        raise HTTPException(status_code=404, detail="user/dashboard.html not found")
+    async def serve_root():
+        """ルートアクセスは認証なしで部門選択画面を表示"""
+        index_path = frontend_dir / "index.html"
+        if index_path.exists():
+            return FileResponse(index_path)
+        raise HTTPException(status_code=404, detail="index.html not found")
     
     @app.get("/admin/persona", include_in_schema=False)
-    async def serve_user_persona(username: str = Depends(verify_admin_credentials)):
+    async def serve_admin_persona(username: str = Depends(verify_admin_credentials)):
         persona_path = frontend_dir / "admin/persona/index.html"
         if persona_path.exists(): 
             return FileResponse(persona_path)
@@ -222,7 +219,7 @@ if frontend_dir.exists() and frontend_dir.is_dir():
         raise HTTPException(status_code=404, detail="user/persona/index.html not found")
     
     @app.get("/admin/competitive", include_in_schema=False)
-    async def serve_user_competitive(username: str = Depends(verify_admin_credentials)):
+    async def serve_admin_competitive(username: str = Depends(verify_admin_credentials)):
         competitive_path = frontend_dir / "admin/competitive/index.html"
         if competitive_path.exists(): 
             return FileResponse(competitive_path)
@@ -316,10 +313,17 @@ if frontend_dir.exists() and frontend_dir.is_dir():
             return FileResponse(competitive_path)
         raise HTTPException(status_code=404, detail="others/competitive/index.html not found")
     
-    # ルートアクセスをユーザーダッシュボードへリダイレクト
-    @app.get("/", include_in_schema=False)
-    async def redirect_root_to_user_dashboard(username: str = Depends(verify_admin_credentials)):
+    # 管理者セクション
+    @app.get("/admin", include_in_schema=False)
+    async def redirect_admin_to_dashboard(username: str = Depends(verify_admin_credentials)):
         return RedirectResponse(url="/admin/dashboard", status_code=302)
+
+    @app.get("/admin/dashboard", include_in_schema=False)
+    async def serve_admin_dashboard(username: str = Depends(verify_admin_credentials)):
+        dashboard_path = frontend_dir / "admin/dashboard.html"
+        if dashboard_path.exists():
+            return FileResponse(dashboard_path)
+        raise HTTPException(status_code=404, detail="admin/dashboard.html not found")
     
     # Note: 各部門の "/" ルートは上記で既に定義済み（dashboard.htmlを返す）
     
