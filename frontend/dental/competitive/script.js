@@ -1084,8 +1084,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 <div class="action-buttons">
                     <button class="btn btn-primary" onclick="window.print()">印刷</button>
-                    <button class="btn btn-secondary" onclick="location.href='/dental/competitive/'">新しい分析を開始</button>
-                    <a href="/dental/" class="btn btn-link">ダッシュボードに戻る</a>
+                    <button class="btn btn-secondary" onclick="location.href='/dental/competitive'">新しい分析を開始</button>
+                    <a href="/dental" class="btn btn-link">ダッシュボードに戻る</a>
                 </div>
             </div>
         `;

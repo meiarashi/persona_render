@@ -158,11 +158,8 @@ if frontend_dir.exists() and frontend_dir.is_dir():
     app.mount("/static/dental", StaticFiles(directory=frontend_dir / "dental"), name="dental_static_assets")
     app.mount("/static/others", StaticFiles(directory=frontend_dir / "others"), name="others_static_assets")
     
-    # Mount competitive analysis directories
-    app.mount("/user/competitive", StaticFiles(directory=frontend_dir / "user/competitive"), name="user_competitive")
-    app.mount("/medical/competitive", StaticFiles(directory=frontend_dir / "medical/competitive"), name="medical_competitive")
-    app.mount("/dental/competitive", StaticFiles(directory=frontend_dir / "dental/competitive"), name="dental_competitive")
-    app.mount("/others/competitive", StaticFiles(directory=frontend_dir / "others/competitive"), name="others_competitive")
+    # Competitive analysis静的ファイルは認証付きルートで処理するため、ここではマウントしない
+    # 競合分析のCSSとJSは/staticパスで提供される
     
     # Mount images from frontend directory
     frontend_images_dir = frontend_dir / "images"
