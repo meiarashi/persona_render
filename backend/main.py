@@ -151,7 +151,7 @@ if not frontend_dir.exists() or not frontend_dir.is_dir():
 
 if frontend_dir.exists() and frontend_dir.is_dir():
     print(f"Serving static files from: {frontend_dir}")
-    app.mount("/static/user", StaticFiles(directory=frontend_dir / "user"), name="user_static_assets")
+    app.mount("/static/admin", StaticFiles(directory=frontend_dir / "admin"), name="admin_static_assets")
     app.mount("/static/admin", StaticFiles(directory=frontend_dir / "admin"), name="admin_static_assets")
     app.mount("/static/shared", StaticFiles(directory=frontend_dir / "shared"), name="shared_static_assets")
     app.mount("/static/medical", StaticFiles(directory=frontend_dir / "medical"), name="medical_static_assets")
@@ -201,29 +201,29 @@ if frontend_dir.exists() and frontend_dir.is_dir():
 
     @app.get("/", include_in_schema=False)
     async def serve_user_dashboard(username: str = Depends(verify_admin_credentials)):
-        dashboard_path = frontend_dir / "user/dashboard.html"
+        dashboard_path = frontend_dir / "admin/dashboard.html"
         if dashboard_path.exists(): 
             return FileResponse(dashboard_path)
         # フォールバック: 旧index.htmlを使用
-        user_html_path = frontend_dir / "user/index.html"
+        admin_html_path = frontend_dir / "admin/index.html"
         if user_html_path.exists(): 
             return FileResponse(user_html_path)
         raise HTTPException(status_code=404, detail="user/dashboard.html not found")
     
-    @app.get("/user/persona", include_in_schema=False)
+    @app.get("/admin/persona", include_in_schema=False)
     async def serve_user_persona(username: str = Depends(verify_admin_credentials)):
-        persona_path = frontend_dir / "user/persona/index.html"
+        persona_path = frontend_dir / "admin/persona/index.html"
         if persona_path.exists(): 
             return FileResponse(persona_path)
         # フォールバック: 旧index.htmlを使用
-        user_html_path = frontend_dir / "user/index.html"
+        admin_html_path = frontend_dir / "admin/index.html"
         if user_html_path.exists(): 
             return FileResponse(user_html_path)
         raise HTTPException(status_code=404, detail="user/persona/index.html not found")
     
-    @app.get("/user/competitive", include_in_schema=False)
+    @app.get("/admin/competitive", include_in_schema=False)
     async def serve_user_competitive(username: str = Depends(verify_admin_credentials)):
-        competitive_path = frontend_dir / "user/competitive/index.html"
+        competitive_path = frontend_dir / "admin/competitive/index.html"
         if competitive_path.exists(): 
             return FileResponse(competitive_path)
         raise HTTPException(status_code=404, detail="user/competitive/index.html not found")
@@ -319,24 +319,9 @@ if frontend_dir.exists() and frontend_dir.is_dir():
     # ルートアクセスをユーザーダッシュボードへリダイレクト
     @app.get("/", include_in_schema=False)
     async def redirect_root_to_user_dashboard(username: str = Depends(verify_admin_credentials)):
-        return RedirectResponse(url="/user/dashboard", status_code=302)
+        return RedirectResponse(url="/admin/dashboard", status_code=302)
     
-    # カテゴリールートからダッシュボードへのリダイレクト
-    @app.get("/user", include_in_schema=False)
-    async def redirect_user_to_dashboard(username: str = Depends(verify_admin_credentials)):
-        return RedirectResponse(url="/user/dashboard", status_code=302)
-    
-    @app.get("/medical", include_in_schema=False)
-    async def redirect_medical_to_dashboard(username: str = Depends(verify_department_credentials("medical"))):
-        return RedirectResponse(url="/medical/dashboard", status_code=302)
-    
-    @app.get("/dental", include_in_schema=False)
-    async def redirect_dental_to_dashboard(username: str = Depends(verify_department_credentials("dental"))):
-        return RedirectResponse(url="/dental/dashboard", status_code=302)
-    
-    @app.get("/others", include_in_schema=False)
-    async def redirect_others_to_dashboard(username: str = Depends(verify_department_credentials("others"))):
-        return RedirectResponse(url="/others/dashboard", status_code=302)
+    # Note: 各部門の "/" ルートは上記で既に定義済み（dashboard.htmlを返す）
     
     # 診療科別の設定API
     @app.get("/api/departments/by-category/{category}")

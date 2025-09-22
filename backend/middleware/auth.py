@@ -110,10 +110,6 @@ def verify_any_credentials(credentials: HTTPBasicCredentials = Depends(security)
         "others": {
             "username": os.environ.get("OTHERS_USERNAME", "others"),
             "password": os.environ.get("OTHERS_PASSWORD", "others123")
-        },
-        "user": {
-            "username": os.environ.get("USER_USERNAME", "user"),
-            "password": os.environ.get("USER_PASSWORD", "user123")
         }
     }
     
