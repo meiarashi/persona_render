@@ -799,18 +799,16 @@ class CompetitiveAnalysisService:
                     # 箇条書きマーカーがある場合、新しいアイテムとして開始
                     is_new_item = False
                     for marker in ['-', '・', '●', '○', '■', '□', '*']:
-                        # マーカーの後に空白があるか、**があるパターンも考慮
-                        if line.startswith(marker + ' ') or (marker == '-' and line.startswith('- **')):
+                        # マーカーの後に空白がある場合のみ処理（*は例外）
+                        if line.startswith(marker + ' '):
                             # 前のアイテムを保存
                             if current_item:
                                 full_item = " ".join(current_item).strip()
                                 if full_item and len(full_item) > 5:
                                     logger.debug(f"[SWOT Parser] Saving item to {current_section}: {full_item[:50]}...")
                                     swot[current_section].append(full_item)
-                            # 新しいアイテムを開始（**を除去）
-                            content = line[1:].strip()  # マーカーを除去
-                            if content.startswith('**'):
-                                content = content.replace('**', '').strip()
+                            # 新しいアイテムを開始（マーカーと最初の空白を除去）
+                            content = line[len(marker):].strip()
                             current_item = [content] if content else []
                             is_new_item = True
                             break
