@@ -49,6 +49,7 @@ class DepartmentPreloader {
             '麻酔科': { category: 'others', name: '麻酔科' },
             'リハビリテーション科': { category: 'others', name: 'リハビリテーション科' },
             'アレルギー科': { category: 'others', name: 'アレルギー科' },
+            '放射線科': { category: 'others', name: '放射線科' },
             
         };
         
