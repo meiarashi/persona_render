@@ -200,8 +200,8 @@ if frontend_dir.exists() and frontend_dir.is_dir():
         raise HTTPException(status_code=404, detail="admin.html not found")
 
     @app.get("/", include_in_schema=False)
-    async def serve_root():
-        """ルートアクセスは認証なしで部門選択画面を表示"""
+    async def serve_root(username: str = Depends(verify_admin_credentials)):
+        """ルートアクセスはadmin認証後に部門選択画面を表示"""
         index_path = frontend_dir / "index.html"
         if index_path.exists():
             return FileResponse(index_path)
