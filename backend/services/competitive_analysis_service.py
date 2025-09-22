@@ -760,11 +760,19 @@ class CompetitiveAnalysisService:
                 # セクションヘッダーを検出
                 section_found = False
                 for jp_name, en_name in sections.items():
-                    # より柔軟な条件: ### を含むか、セクション名から始まる行を検出
-                    if (jp_name in line and ("(" in line or "（" in line or ":" in line)) or \
-                       (line.startswith("###") and jp_name in line) or \
-                       (line.startswith("##") and jp_name in line) or \
-                       (line == jp_name):  # 完全一致も許可
+                    # セクションヘッダーの判定を厳格化
+                    # 1. ### や ## で始まり、セクション名を含む
+                    # 2. セクション名で始まる行（箇条書きマーカーで始まらない）
+                    # 3. 完全一致
+                    is_header = False
+                    if line.startswith(("###", "##")) and jp_name in line:
+                        is_header = True
+                    elif line.startswith(jp_name) and not line.startswith(('-', '・', '●', '○', '■', '□', '*')):
+                        is_header = True
+                    elif line == jp_name:
+                        is_header = True
+                    
+                    if is_header:
                         # 前のアイテムを保存
                         if current_section and current_item:
                             full_item = " ".join(current_item).strip()
