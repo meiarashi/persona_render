@@ -1318,13 +1318,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
+        // ステップ5（最後の入力ステップ）では「次へ」ボタンを非表示にして、「確認へ進む」ボタンを表示
         if (currentStep === numInputSteps) {
             const lastInputStepElement = formSteps[numInputSteps - 1];
             if (lastInputStepElement) {
                 const nextBtnOnLast = lastInputStepElement.querySelector('.next-step-btn');
-                if (nextBtnOnLast) nextBtnOnLast.style.display = 'none';
+                if (nextBtnOnLast) nextBtnOnLast.style.display = 'inline-block';  // ステップ5でも次へボタンを表示（確認画面へ進むため）
                 const confirmBtnOnLast = lastInputStepElement.querySelector('.confirm-and-proceed-btn');
-                if (confirmBtnOnLast) confirmBtnOnLast.style.display = 'inline-block';
+                if (confirmBtnOnLast) confirmBtnOnLast.style.display = 'none';  // ステップ5では確認ボタンは不要
+            }
+        }
+        
+        // ステップ4では特別な処理（確認へ進むボタンを条件によって表示）
+        if (currentStep === 4) {
+            const step4Element = formSteps[3];
+            if (step4Element) {
+                const settingType = document.querySelector('input[name="setting_type"]:checked');
+                const nextBtn4 = step4Element.querySelector('.next-step-btn');
+                const confirmBtn4 = step4Element.querySelector('.confirm-and-proceed-btn');
+                
+                // 「自動」が選択されている場合は確認画面へ直接遷移するボタンを表示
+                if (settingType && settingType.value === 'auto') {
+                    if (nextBtn4) nextBtn4.style.display = 'none';
+                    if (confirmBtn4) confirmBtn4.style.display = 'inline-block';
+                } else {
+                    // それ以外はステップ5へ進む「次へ」ボタンを表示
+                    if (nextBtn4) nextBtn4.style.display = 'inline-block';
+                    if (confirmBtn4) confirmBtn4.style.display = 'none';
+                }
             }
         }
         } // この閉じ括弧は、if (currentStep === TOTAL_FORM_STEPS + 1 || ...) の else ブロックのものです。
