@@ -400,9 +400,10 @@ button {
 /* Container for Step Navigation Buttons */
 .step-nav-buttons {
     text-align: center; /* Center the inline-block buttons */
-    margin-top: 0; /* 10px から 0 に変更 */
+    margin-top: 20px; /* 上部マージンを確保 */
     display: block !important; /* 強制的に表示 */
     visibility: visible !important; /* 強制的に表示 */
+    clear: both; /* フロート要素をクリア */
 }
 
 /* 確認画面上部のボタンコンテナ用の特別なスタイル */
@@ -1696,6 +1697,43 @@ footer {
 
 .dots {
   display: none;
+}
+
+/* --- Tab Navigation --- */
+.tab-navigation {
+    display: flex !important;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.tab-button {
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #666;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+    color: #007bff;
+}
+
+.tab-button.active {
+    color: #007bff;
+    font-weight: bold;
+    border-bottom: 3px solid #007bff;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
 }
 
 /* Timeline Analysis Styles */

@@ -1616,12 +1616,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            // 通常のステップ遷移 (ステップ4までは confirm-and-proceed-btn が表示されないのでこれでOK)
-            // TOTAL_FORM_STEPS -1 は ステップ4 (追加項目入力)
-            if (currentStep < TOTAL_FORM_STEPS - 1) {
+            // 通常のステップ遷移
+            // ステップ5（追加質問）からは確認画面（ステップ6）へ
+            if (currentStep === 5) {
+                // ステップ5から確認画面へ
+                const formData = getFormData();
+                populateConfirmationScreen(formData);
+                if (typeof window.showStep === 'function') {
+                    window.showStep(TOTAL_FORM_STEPS); // ステップ6（確認画面）へ
+                } else {
+                    console.error('showStep is not a function when trying to go to confirmation from step 5');
+                }
+            } else if (currentStep < TOTAL_FORM_STEPS) {
+                // その他のステップは次へ進む
                 if (typeof window.showStep === 'function') window.showStep(currentStep + 1);
                 else console.error('showStep is not a function when trying to go to next step');
-             }
+            }
         });
     });
     prevButtons.forEach(button => {

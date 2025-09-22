@@ -400,9 +400,10 @@ button {
 /* Container for Step Navigation Buttons */
 .step-nav-buttons {
     text-align: center; /* Center the inline-block buttons */
-    margin-top: 0; /* 10px から 0 に変更 */
+    margin-top: 20px; /* 上部マージンを確保 */
     display: block !important; /* 強制的に表示 */
     visibility: visible !important; /* 強制的に表示 */
+    clear: both; /* フロート要素をクリア */
 }
 
 /* 確認画面上部のボタンコンテナ用の特別なスタイル */
