@@ -96,7 +96,7 @@
                     </div>
                 </div>
 
-                <!-- Step 2: 分析範囲選択 -->
+                <!-- Step 2: 追加情報入力（任意） -->
                 <div class="form-step" data-step="2">
                     <div class="step-header">
                         <span class="icon"><img src="/images/icons/hawk.webp" alt="hawk" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
@@ -105,10 +105,43 @@
                                 <span>2/3問目</span>
                                 <div class="progress" style="width: 66%;"></div>
                             </div>
+                            <h4 class="question-text">あなたのクリニックの特徴を教えてください（任意）。</h4>
+                        </div>
+                    </div>
+
+                    <div class="additional-info-form">
+                        <div class="form-group">
+                            <label for="clinic-features">クリニックの強み・特徴</label>
+                            <textarea id="clinic-features" name="clinicFeatures" rows="4"
+                                placeholder="例：土日診療、最新のCT導入、専門医3名在籍、駐車場完備など"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="target-patients">主なターゲット層</label>
+                            <textarea id="target-patients" name="targetPatients" rows="3"
+                                placeholder="例：働く世代、高齢者、小児、スポーツをする方など"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="step-nav-buttons">
+                        <button type="button" class="prev-step-btn">&lt; 前へ</button>
+                        <button type="button" class="next-step-btn">次の質問へ進む &gt;</button>
+                    </div>
+                </div>
+
+                <!-- Step 3: 分析範囲選択 -->
+                <div class="form-step" data-step="3">
+                    <div class="step-header">
+                        <span class="icon"><img src="/images/icons/hawk.webp" alt="hawk" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
+                        <div>
+                            <div class="progress-bar">
+                                <span>3/3問目</span>
+                                <div class="progress" style="width: 100%;"></div>
+                            </div>
                             <h4 class="question-text">競合分析の範囲を選択してください。</h4>
                         </div>
                     </div>
-                    
+
                     <div class="analysis-range-options">
                         <label class="range-option">
                             <input type="radio" name="analysisRange" value="1000" checked>
@@ -136,40 +169,7 @@
                         </label>
                     </div>
 
-                    <div class="step-nav-buttons"> 
-                        <button type="button" class="prev-step-btn">&lt; 前へ</button>
-                        <button type="button" class="next-step-btn">次の質問へ進む &gt;</button>
-                    </div>
-                </div>
-
-                <!-- Step 3: 追加情報入力（任意） -->
-                <div class="form-step" data-step="3">
-                    <div class="step-header">
-                        <span class="icon"><img src="/images/icons/hawk.webp" alt="hawk" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
-                        <div>
-                            <div class="progress-bar">
-                                <span>3/3問目</span>
-                                <div class="progress" style="width: 100%;"></div>
-                            </div>
-                            <h4 class="question-text">あなたのクリニックの特徴を教えてください（任意）。</h4>
-                        </div>
-                    </div>
-                    
-                    <div class="additional-info-form">
-                        <div class="form-group">
-                            <label for="clinic-features">クリニックの強み・特徴</label>
-                            <textarea id="clinic-features" name="clinicFeatures" rows="4" 
-                                placeholder="例：土日診療、最新のCT導入、専門医3名在籍、駐車場完備など"></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="target-patients">主なターゲット層</label>
-                            <textarea id="target-patients" name="targetPatients" rows="3" 
-                                placeholder="例：働く世代、高齢者、小児、スポーツをする方など"></textarea>
-                        </div>
-                    </div>
-
-                    <div class="step-nav-buttons"> 
+                    <div class="step-nav-buttons">
                         <button type="button" class="prev-step-btn">&lt; 前へ</button>
                         <button type="button" class="analyze-btn">分析を開始する</button>
                     </div>
