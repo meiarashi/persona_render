@@ -201,11 +201,11 @@ if frontend_dir.exists() and frontend_dir.is_dir():
 
     @app.get("/", include_in_schema=False)
     async def serve_root(username: str = Depends(verify_admin_credentials)):
-        """ルートアクセスはadmin認証後に部門選択画面を表示"""
-        index_path = frontend_dir / "index.html"
-        if index_path.exists():
-            return FileResponse(index_path)
-        raise HTTPException(status_code=404, detail="index.html not found")
+        """ルートアクセスはadmin認証後にダッシュボードを表示"""
+        dashboard_path = frontend_dir / "admin/dashboard.html"
+        if dashboard_path.exists():
+            return FileResponse(dashboard_path)
+        raise HTTPException(status_code=404, detail="admin/dashboard.html not found")
     
     @app.get("/admin/persona", include_in_schema=False)
     async def serve_admin_persona(username: str = Depends(verify_admin_credentials)):
