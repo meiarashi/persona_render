@@ -836,8 +836,13 @@ class CompetitiveAnalysisService:
             current_section = None
             current_item = []
 
-            for line in lines:
+            for line_idx, line in enumerate(lines):
                 line = line.strip()
+                
+                # デバッグ：現在の処理状況をログ
+                if current_section == "weaknesses" and line:
+                    logger.info(f"[SWOT Parser - Weaknesses Debug] Line {line_idx}: current_section={current_section}, line='{line[:50]}...'")
+                
                 if not line:
                     # 空行で現在のアイテムを保存
                     if current_section and current_item:
@@ -850,6 +855,10 @@ class CompetitiveAnalysisService:
 
                 # セクションヘッダーを検出
                 section_found = False
+                
+                # デバッグ：セクション検出前の状態
+                if line and '-' in line and current_section == "weaknesses":
+                    logger.info(f"[SWOT Parser - Debug] Before section check: line='{line}', section_found={section_found}, current_section={current_section}")
                 for jp_name, en_name in sections.items():
                     # セクションヘッダーの判定を厳格化
                     # 1. ### や ## で始まり、セクション名を含む
@@ -878,7 +887,13 @@ class CompetitiveAnalysisService:
                         if en_name == "weaknesses":
                             logger.info("[SWOT Parser] === WEAKNESSES SECTION DEBUG START ===")
                             # 次の10行を詳細にログ出力
-                            current_line_idx = lines.index(line)
+                            current_line_idx = None
+                            for idx, l in enumerate(lines):
+                                if idx > 0 and l == line and current_line_idx is None:
+                                    current_line_idx = idx
+                                    break
+                            if current_line_idx is None:
+                                current_line_idx = 0
                             for i in range(current_line_idx + 1, min(current_line_idx + 11, len(lines))):
                                 next_line = lines[i]
                                 logger.info(f"[SWOT Parser] Weaknesses line {i - current_line_idx}: '{next_line}' (len={len(next_line)}, stripped='{next_line.strip()}')")
@@ -902,7 +917,7 @@ class CompetitiveAnalysisService:
                 if not section_found and current_section:
                     # 弱みセクションの場合、詳細なデバッグログ
                     if current_section == "weaknesses":
-                        logger.debug(f"[SWOT Parser - Weaknesses] Processing line: '{line[:100]}' (full_len={len(line)})")
+                        logger.info(f"[SWOT Parser - Weaknesses] Processing line: '{line[:100]}' (full_len={len(line)})")
                     
                     # 箇条書きマーカーがある場合、新しいアイテムとして開始
                     is_new_item = False
