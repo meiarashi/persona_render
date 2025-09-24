@@ -556,7 +556,7 @@ class CompetitiveAnalysisService:
             logger.info(f"  - Aging rate: {regional_data['demographics'].get('age_distribution', {}).get('65+', 'N/A')}%")
         
         prompt = f"""
-以下の情報を基に、医療機関のSWOT分析と戦略的提案を行ってください。
+以下の情報を基に、医療機関のSWOT分析と戦略的提案をJSON形式で出力してください。
 
 【クリニック情報】
 - 名称: {clinic.get('name', '未入力')}
@@ -575,44 +575,44 @@ class CompetitiveAnalysisService:
 
 {regional_info if regional_info else "【地域特性データ】" + chr(10) + "地域データ取得できませんでした"}
 
-以下の形式でSWOT分析と戦略的提案を作成してください。
-【重要】必ず以下のマークダウン形式を厳守してください：
-- 各項目は「- 」（ハイフン+半角スペース）で始める
-- 項目内での改行は避け、1つの項目は1行で完結させる
-- セクション見出しは「### 」で始める
-
-## SWOT分析
-
-### 強み（Strengths）
-- 項目1: 具体的な内容を1-2文で説明
-- 項目2: 具体的な内容を1-2文で説明
-- 項目3: 具体的な内容を1-2文で説明（必要に応じて）
-
-### 弱み（Weaknesses）
-- 項目1: 入力された課題や競合比較での劣位点を1-2文で説明
-- 項目2: 改善が必要な領域を1-2文で説明
-- 項目3: その他の弱みを1-2文で説明（必要に応じて）
-
-### 機会（Opportunities）
-- 項目1: 地域特性を踏まえた機会を1-2文で説明
-- 項目2: 市場動向から見た機会を1-2文で説明
-- 項目3: その他の機会を1-2文で説明（必要に応じて）
-
-### 脅威（Threats）
-- 項目1: 競合状況から見た脅威を1-2文で説明
-- 項目2: 市場環境の脅威を1-2文で説明
-- 項目3: その他の脅威を1-2文で説明（必要に応じて）
-
-## 戦略的提案
-
-### 差別化戦略
-（競合との差別化ポイントを2-3項目。具体的な差別化の方向性と実現方法を1-2文で説明してください）
-
-### マーケティング戦略
-（集患・集客のための具体的施策を2-3項目。ターゲット層と施策内容を明確にして1-2文で説明してください）
-
-### オペレーション改善
-（業務効率化や患者満足度向上のための施策を2-3項目。現状の課題と改善方法を具体的に1-2文で説明してください）
+必ず以下のJSON形式で出力してください。余計な説明や前置きは不要です：
+{{
+    "強み": [
+        "具体的な強み1の説明",
+        "具体的な強み2の説明",
+        "具体的な強み3の説明"
+    ],
+    "弱み": [
+        "入力された課題や競合比較での劣位点1",
+        "改善が必要な領域1",
+        "その他の弱み1"
+    ],
+    "機会": [
+        "地域特性を踏まえた機会1",
+        "市場動向から見た機会1",
+        "その他の機会1"
+    ],
+    "脅威": [
+        "競合状況から見た脅威1",
+        "市場環境の脅威1",
+        "その他の脅威1"
+    ],
+    "差別化戦略": [
+        "競合との差別化ポイント1と実現方法",
+        "競合との差別化ポイント2と実現方法",
+        "競合との差別化ポイント3と実現方法"
+    ],
+    "マーケティング戦略": [
+        "集患・集客のための具体的施策1とターゲット層",
+        "集患・集客のための具体的施策2とターゲット層",
+        "集患・集客のための具体的施策3とターゲット層"
+    ],
+    "オペレーション改善": [
+        "業務効率化や患者満足度向上のための施策1と改善方法",
+        "業務効率化や患者満足度向上のための施策2と改善方法",
+        "業務効率化や患者満足度向上のための施策3と改善方法"
+    ]
+}}
 """
         
         return prompt
@@ -759,12 +759,15 @@ class CompetitiveAnalysisService:
         ]
 
     def _parse_swot_response(self, response: str) -> Dict[str, List[str]]:
-        """AIレスポンスからSWOT要素を抽出（詳細な内容も含む）"""
+        """AIレスポンスからSWOT要素を抽出（JSON形式対応）"""
         logger.info("="*60)
         logger.info("[SWOT Parser] Starting to parse SWOT response")
         logger.info(f"[SWOT Parser] Response length: {len(response) if response else 0} characters")
 
         try:
+            import json
+            import re
+            
             swot = {
                 "strengths": [],
                 "weaknesses": [],
@@ -776,231 +779,66 @@ class CompetitiveAnalysisService:
             # Noneチェックと型チェック
             if not response or not isinstance(response, str):
                 logger.warning("[SWOT Parser] Invalid response for SWOT parsing")
-                return swot
+                return self._generate_basic_swot({})
 
             # レスポンスの最初の500文字をログ出力
-            logger.info(f"[SWOT Parser] Response preview (first 500 chars):\n{response[:500]}...")
-            logger.info("="*60)
+            logger.info(f"[SWOT Parser] Response preview (first 500 chars):
+{response[:500]}...")
             
-            # 弱みセクション周辺を特別にデバッグ
-            if "弱み" in response or "Weaknesses" in response:
-                weaknesses_idx = response.find("### 弱み")
-                if weaknesses_idx == -1:
-                    weaknesses_idx = response.find("## 弱み")
-                if weaknesses_idx == -1:
-                    weaknesses_idx = response.find("弱み（Weaknesses）")
+            # JSONを抽出（余計なテキストがあるかもしれないので）
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                json_str = json_match.group()
+                logger.info(f"[SWOT Parser] Found JSON string, length: {len(json_str)}")
                 
-                if weaknesses_idx != -1:
-                    # 弱みセクションの前後1000文字を詳細に出力
-                    start_idx = max(0, weaknesses_idx - 200)
-                    end_idx = min(len(response), weaknesses_idx + 1000)
-                    logger.info("[SWOT Parser] === WEAKNESSES SECTION IN RAW RESPONSE ===")
-                    logger.info(f"[SWOT Parser] Weaknesses found at index: {weaknesses_idx}")
-                    logger.info(f"[SWOT Parser] Context around weaknesses section:")
-                    logger.info(response[start_idx:end_idx])
+                try:
+                    # JSONパース
+                    parsed = json.loads(json_str)
+                    logger.info(f"[SWOT Parser] Successfully parsed JSON")
                     
-                    # 弱みセクション直後の文字コードをチェック
-                    for i in range(weaknesses_idx, min(weaknesses_idx + 500, len(response))):
-                        char = response[i]
-                        if ord(char) < 32 and char not in '\n\r\t':
-                            logger.warning(f"[SWOT Parser] Special char at {i}: ord={ord(char)}, repr={repr(char)}")
-                    logger.info("[SWOT Parser] === END WEAKNESSES RAW RESPONSE ===")
-                else:
-                    logger.warning("[SWOT Parser] Weaknesses section not found in response!")
-
-            # 各セクションを抽出
-            sections = {
-                "強み": "strengths",
-                "弱み": "weaknesses",
-                "機会": "opportunities",
-                "脅威": "threats"
-            }
-
-            lines = response.split('\n')
+                    # データを変換
+                    if "強み" in parsed:
+                        swot["strengths"] = [str(item) for item in parsed.get("強み", []) if item]
+                    if "弱み" in parsed:
+                        swot["weaknesses"] = [str(item) for item in parsed.get("弱み", []) if item]
+                    if "機会" in parsed:
+                        swot["opportunities"] = [str(item) for item in parsed.get("機会", []) if item]
+                    if "脅威" in parsed:
+                        swot["threats"] = [str(item) for item in parsed.get("脅威", []) if item]
+                    
+                    # 戦略を結合
+                    strategies = []
+                    if "差別化戦略" in parsed:
+                        strategies.extend([str(item) for item in parsed.get("差別化戦略", []) if item])
+                    if "マーケティング戦略" in parsed:
+                        strategies.extend([str(item) for item in parsed.get("マーケティング戦略", []) if item])
+                    if "オペレーション改善" in parsed:
+                        strategies.extend([str(item) for item in parsed.get("オペレーション改善", []) if item])
+                    swot["strategies"] = strategies
+                    
+                    # パース結果をログ出力
+                    logger.info("="*60)
+                    logger.info("[SWOT Parser] JSON parsing completed. Results:")
+                    logger.info(f"  - Strengths: {len(swot['strengths'])} items")
+                    logger.info(f"  - Weaknesses: {len(swot['weaknesses'])} items")
+                    logger.info(f"  - Opportunities: {len(swot['opportunities'])} items")
+                    logger.info(f"  - Threats: {len(swot['threats'])} items")
+                    logger.info(f"  - Strategies: {len(swot['strategies'])} items")
+                    
+                    # 各項目が空でないか確認
+                    if swot["weaknesses"]:
+                        logger.info(f"[SWOT Parser] Weaknesses items: {swot['weaknesses'][:2]}...")
+                    
+                except json.JSONDecodeError as e:
+                    logger.error(f"[SWOT Parser] JSON parse error: {e}")
+                    logger.error(f"[SWOT Parser] Failed JSON string: {json_str[:500]}...")
+                    # フォールバック処理
+                    return self._fallback_parse_swot(response)
+            else:
+                logger.warning("[SWOT Parser] No JSON structure found in response")
+                # フォールバック処理
+                return self._fallback_parse_swot(response)
             
-            # 弱みセクションのインデックスを事前に検出してデバッグ
-            weaknesses_start_idx = -1
-            weaknesses_end_idx = -1
-            for i, line in enumerate(lines):
-                if "弱み" in line or "Weaknesses" in line:
-                    if any(line.strip().startswith(prefix) for prefix in ["###", "##"]) or line.strip() in ["弱み", "弱み（Weaknesses）"]:
-                        weaknesses_start_idx = i
-                        logger.info(f"[SWOT Parser] Weaknesses section starts at line {i}: '{line}'")
-                        # 次のセクションを探す
-                        for j in range(i + 1, len(lines)):
-                            if any(keyword in lines[j] for keyword in ["機会", "脅威", "戦略", "Opportunities", "Threats"]):
-                                if any(lines[j].strip().startswith(prefix) for prefix in ["###", "##"]):
-                                    weaknesses_end_idx = j
-                                    logger.info(f"[SWOT Parser] Weaknesses section ends at line {j}: '{lines[j]}'")
-                                    break
-                        # 弱みセクションの内容をログ
-                        if weaknesses_start_idx >= 0:
-                            logger.info("[SWOT Parser] === WEAKNESSES SECTION LINES ===")
-                            end_line = weaknesses_end_idx if weaknesses_end_idx > 0 else min(len(lines), weaknesses_start_idx + 20)
-                            for k in range(weaknesses_start_idx + 1, end_line):
-                                line_content = lines[k]
-                                logger.info(f"  Line {k}: '{line_content}' (len={len(line_content)})")
-                                # 特殊文字をチェック
-                                if line_content and line_content.strip():
-                                    if line_content.strip().startswith('*'):
-                                        logger.info(f"    -> Starts with *, full repr: {repr(line_content[:50])}")
-                            logger.info("[SWOT Parser] === END WEAKNESSES LINES ===")
-                        break
-            
-            current_section = None
-            current_item = []
-
-            for line_idx, line in enumerate(lines):
-                line = line.strip()
-                
-                # デバッグ：現在の処理状況をログ
-                if current_section == "weaknesses" and line:
-                    logger.info(f"[SWOT Parser - Weaknesses Debug] Line {line_idx}: current_section={current_section}, line='{line[:50]}...'")
-                
-                if not line:
-                    # 空行で現在のアイテムを保存
-                    if current_section and current_item:
-                        full_item = " ".join(current_item).strip()
-                        if full_item and len(full_item) > 5:
-                            logger.debug(f"[SWOT Parser] Saving item to {current_section}: {full_item[:50]}...")
-                            swot[current_section].append(full_item)
-                        current_item = []
-                    continue
-
-                # セクションヘッダーを検出
-                section_found = False
-                
-                # デバッグ：セクション検出前の状態
-                if line and '-' in line and current_section == "weaknesses":
-                    logger.info(f"[SWOT Parser - Debug] Before section check: line='{line}', section_found={section_found}, current_section={current_section}")
-                for jp_name, en_name in sections.items():
-                    # セクションヘッダーの判定を厳格化
-                    # 1. ### や ## で始まり、セクション名を含む
-                    # 2. セクション名で始まる行（箇条書きマーカーで始まらない）
-                    # 3. 完全一致
-                    is_header = False
-                    if line.startswith(("###", "##")) and jp_name in line:
-                        is_header = True
-                    elif line.startswith(jp_name) and not line.startswith(('-', '・', '●', '○', '■', '□', '*')):
-                        is_header = True
-                    elif line == jp_name:
-                        is_header = True
-                    
-                    if is_header:
-                        # 前のアイテムを保存
-                        if current_section and current_item:
-                            full_item = " ".join(current_item).strip()
-                            if full_item and len(full_item) > 5:
-                                swot[current_section].append(full_item)
-                            current_item = []
-                        logger.info(f"[SWOT Parser] Section detected: {en_name} from line: {line[:100]}")
-                        current_section = en_name
-                        section_found = True
-                        
-                        # 弱みセクションの場合、特別なデバッグログを追加
-                        if en_name == "weaknesses":
-                            logger.info("[SWOT Parser] === WEAKNESSES SECTION DEBUG START ===")
-                            # 次の10行を詳細にログ出力
-                            current_line_idx = None
-                            for idx, l in enumerate(lines):
-                                if idx > 0 and l == line and current_line_idx is None:
-                                    current_line_idx = idx
-                                    break
-                            if current_line_idx is None:
-                                current_line_idx = 0
-                            for i in range(current_line_idx + 1, min(current_line_idx + 11, len(lines))):
-                                next_line = lines[i]
-                                logger.info(f"[SWOT Parser] Weaknesses line {i - current_line_idx}: '{next_line}' (len={len(next_line)}, stripped='{next_line.strip()}')")
-                                # 特殊文字のチェック
-                                if any(ord(c) < 32 for c in next_line):
-                                    logger.warning(f"[SWOT Parser] Special characters detected: {[ord(c) for c in next_line if ord(c) < 32]}")
-                            logger.info("[SWOT Parser] === WEAKNESSES SECTION DEBUG END ===")
-                        break
-
-                # 戦略セクションの検出
-                if not section_found and any(keyword in line for keyword in ["戦略", "提案"]):
-                    if current_section and current_item:
-                        full_item = " ".join(current_item).strip()
-                        if full_item and len(full_item) > 5:
-                            swot[current_section].append(full_item)
-                        current_item = []
-                    current_section = "strategies"
-                    section_found = True
-
-                # セクションヘッダーでない場合は内容として収集
-                if not section_found and current_section:
-                    # 弱みセクションの場合、詳細なデバッグログ
-                    if current_section == "weaknesses":
-                        logger.info(f"[SWOT Parser - Weaknesses] Processing line: '{line[:100]}' (full_len={len(line)})")
-                    
-                    # 箇条書きマーカーがある場合、新しいアイテムとして開始
-                    is_new_item = False
-                    for marker in ['-', '・', '●', '○', '■', '□', '*']:
-                        # マーカーの後に空白がある場合のみ処理（*の場合は複数のスペースも許可）
-                        if line.startswith(marker + ' ') or (marker == '*' and line.startswith('*') and len(line) > 1 and line[1] in ' 	'):
-                            # 前のアイテムを保存
-                            if current_item:
-                                full_item = " ".join(current_item).strip()
-                                if full_item and len(full_item) > 5:
-                                    logger.debug(f"[SWOT Parser] Saving item to {current_section}: {full_item[:50]}...")
-                                    swot[current_section].append(full_item)
-                                    # 弱みセクションの場合、保存成功をログ
-                                    if current_section == "weaknesses":
-                                        logger.info(f"[SWOT Parser - Weaknesses] Successfully saved item: {full_item[:100]}")
-                                else:
-                                    # 保存条件を満たさない場合のデバッグ
-                                    if current_section == "weaknesses":
-                                        logger.warning(f"[SWOT Parser - Weaknesses] Item not saved. full_item='{full_item}', len={len(full_item)}")
-                            # 新しいアイテムを開始（マーカーを除去）
-                            # * の場合、最初のスペースまでを除去
-                            if marker == '*':
-                                content = line.lstrip('*').strip()
-                                # 弱みセクションの場合、詳細なデバッグ
-                                if current_section == "weaknesses":
-                                    logger.info(f"[SWOT Parser - Weaknesses] New item detected with * marker")
-                                    logger.info(f"[SWOT Parser - Weaknesses] Original line: '{line}'")
-                                    logger.info(f"[SWOT Parser - Weaknesses] After strip: '{content}'")
-                            else:
-                                content = line[len(marker):].strip()
-                            current_item = [content] if content else []
-                            is_new_item = True
-                            
-                            # 弱みセクションでアイテムが開始された場合
-                            if current_section == "weaknesses":
-                                logger.info(f"[SWOT Parser - Weaknesses] Starting new item with marker '{marker}': {content[:100]}")
-                            break
-
-                    # 箇条書きマーカーがない場合は、既存アイテムの継続または新しい内容
-                    if not is_new_item:
-                        # インデントされた行（2スペース以上）は既存アイテムの継続
-                        if line.startswith('  ') or line.startswith('\t'):
-                            if current_item:
-                                current_item.append(line.strip())
-                        # インデントなしで内容がある場合も追加
-                        elif line and len(line) > 5:
-                            current_item.append(line)
-
-            # 最後のアイテムを保存
-            if current_section and current_item:
-                full_item = " ".join(current_item).strip()
-                # 5文字以上、または"..."で終わる場合は保存（途切れたアイテムも保存）
-                if full_item and (len(full_item) > 5 or full_item.endswith("...")):
-                    # 途切れたアイテムの場合、補完テキストを追加
-                    if full_item.endswith("..."):
-                        logger.warning(f"[SWOT Parser] Truncated item detected in {current_section}: {full_item[:100]}")
-                        # 文末の"..."を除去して、完了を示すテキストを追加
-                        full_item = full_item.rstrip("...") + "（詳細は要確認）"
-                    swot[current_section].append(full_item)
-
-            # パース結果をログ出力
-            logger.info("="*60)
-            logger.info("[SWOT Parser] Parsing completed. Results:")
-            logger.info(f"  - Strengths: {len(swot['strengths'])} items")
-            logger.info(f"  - Weaknesses: {len(swot['weaknesses'])} items")
-            logger.info(f"  - Opportunities: {len(swot['opportunities'])} items")
-            logger.info(f"  - Threats: {len(swot['threats'])} items")
-            logger.info(f"  - Strategies: {len(swot['strategies'])} items")
-
             # 最小限の項目を確保
             if not swot["strengths"]:
                 logger.warning("[SWOT Parser] No strengths found, using defaults")
@@ -1027,6 +865,53 @@ class CompetitiveAnalysisService:
         except Exception as e:
             logger.error(f"Error parsing SWOT response: {e}")
             return self._generate_basic_swot({})
+    
+    def _fallback_parse_swot(self, response: str) -> Dict[str, List[str]]:
+        """フォールバック: テキスト形式のレスポンスをパース"""
+        logger.info("[SWOT Parser] Fallback: Trying text-based parsing")
+        
+        swot = {
+            "strengths": [],
+            "weaknesses": [],
+            "opportunities": [],
+            "threats": [],
+            "strategies": []
+        }
+        
+        sections = {
+            "強み": "strengths",
+            "弱み": "weaknesses",
+            "機会": "opportunities",
+            "脅威": "threats"
+        }
+        
+        lines = response.split('
+')
+        current_section = None
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            
+            # セクション検出
+            for jp_name, en_name in sections.items():
+                if jp_name in line and any(line.startswith(prefix) for prefix in ["###", "##", "#"]):
+                    current_section = en_name
+                    break
+            
+            # 戦略セクション検出
+            if any(keyword in line for keyword in ["戦略", "提案"]) and any(line.startswith(prefix) for prefix in ["###", "##", "#"]):
+                current_section = "strategies"
+            
+            # 項目収集（簡略化）
+            if current_section and line.startswith(('-', '・', '*', '●', '○')):
+                content = line.lstrip('-・*●○').strip()
+                if content and len(content) > 5:
+                    swot[current_section].append(content)
+        
+        logger.info(f"[SWOT Parser] Fallback results: S={len(swot['strengths'])}, W={len(swot['weaknesses'])}, O={len(swot['opportunities'])}, T={len(swot['threats'])}")
+        return swot
     
     def _generate_basic_swot(self, analysis_data: Dict[str, Any]) -> Dict[str, List[str]]:
         """基本的なSWOT分析を生成（AIが使えない場合のフォールバック）"""
