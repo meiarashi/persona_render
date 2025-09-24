@@ -802,8 +802,7 @@ class CompetitiveAnalysisService:
                 "脅威": "threats"
             }
 
-            lines = response.split('
-')
+            lines = response.split('\n')
             
             # 弱みセクションのインデックスを事前に検出してデバッグ
             weaknesses_start_idx = -1
