@@ -884,8 +884,7 @@ class CompetitiveAnalysisService:
             "脅威": "threats"
         }
         
-        lines = response.split('
-')
+        lines = response.split('\n')
         current_section = None
         
         for line in lines:
