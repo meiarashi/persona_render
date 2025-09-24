@@ -1052,15 +1052,17 @@ async function loadChiefComplaints(departmentValue) {
         let category;
         const medicalDepts = ['ophthalmology', 'internal_medicine', 'surgery', 'pediatrics', 'orthopedics', 
                             'otorhinolaryngology', 'dermatology', 'gynecology', 'urology', 'psychiatry', 
-                            'neurosurgery', 'anesthesiology', 'radiology', 'rehabilitation', 'allergy',
-                            'cardiology', 'gastroenterology', 'respiratory_medicine', 'diabetes_medicine',
+                            'neurosurgery', 'cardiology', 'gastroenterology', 'respiratory_medicine', 'diabetes_medicine',
                             'nephrology', 'neurology', 'hematology', 'endocrinology', 'plastic_surgery', 'beauty_surgery'];
         const dentalDepts = ['general_dentistry', 'pediatric_dentistry', 'orthodontics', 'cosmetic_dentistry', 'oral_surgery'];
+        const othersDepts = ['anesthesiology', 'radiology', 'rehabilitation', 'allergy'];
         
         if (medicalDepts.includes(departmentValue)) {
             category = 'medical';
         } else if (dentalDepts.includes(departmentValue)) {
             category = 'dental';
+        } else if (othersDepts.includes(departmentValue)) {
+            category = 'others';
         } else {
             throw new Error('Unknown department category');
         }
@@ -1718,7 +1720,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.pendingTimelineData = {
                 department: departmentJapanese,
                 chief_complaint: data.chief_complaint,
-                gender: data.gender === 'male' ? '男性' : 
+                gender: data.gender === 'male' ? '男性' :
                         data.gender === 'female' ? '女性' : data.gender,
                 age: (() => {
                     const ageValue = data.age;
@@ -1733,7 +1735,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                     else if (ageNum >= 60 && ageNum <= 69) return '60代';
                     else if (ageNum >= 70) return '70代以上';
                     return null;
-                })()
+                })(),
+                occupation: data.occupation,  // 職業
+                income: data.income,  // 年収
+                prefecture: data.prefecture,  // 都道府県
+                municipality: data.municipality,  // 市区町村
+                family: data.family,  // 家族構成
+                hobby: data.hobby,  // 趣味
+                life_events: data.life_events,  // ライフイベント
+                patient_type: data.patient_type,  // 患者タイプ
+                purpose: data.purpose,  // 来院目的
+                name: data.name,  // 名前
+                setting_type: data.setting_type,  // 設定タイプ
+                additional_field_name: data.additional_field_name,  // 追加フィールド名
+                additional_field_value: data.additional_field_value  // 追加フィールド値
             };
             
             // 主訴が選択されているかチェック
