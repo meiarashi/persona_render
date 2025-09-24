@@ -306,7 +306,7 @@ class CompetitiveAnalysisService:
                 if "insufficient_quota" in str(e) or "429" in str(e):
                     logger.error(f"Quota exceeded for {self.selected_provider}")
                 elif "timeout" in str(e).lower():
-                    logger.error(f"Request timeout for {self.selected_provider}")
+                    logger.error(f"Request timeout for {self.selected_provider} - consider using a faster model or reducing prompt size")
                 elif "api_key" in str(e).lower():
                     logger.error(f"API key issue for {self.selected_provider}")
                 
@@ -323,7 +323,7 @@ class CompetitiveAnalysisService:
     async def _call_ai_provider(self, provider: str, model: str, api_key: str, system_prompt: str, prompt: str) -> str:
         """AIプロバイダーを呼び出してレスポンスを取得"""
         if provider == "openai" and openai_available:
-            client = OpenAI(api_key=api_key, timeout=30.0)
+            client = OpenAI(api_key=api_key, timeout=90.0)  # タイムアウトを90秒に延長
 
             # GPT-5は新しいresponses APIを使用（ペルソナ生成と同じパターン）
             if "gpt-5" in model:
@@ -373,7 +373,7 @@ class CompetitiveAnalysisService:
                 return content
             
         elif provider == "anthropic" and anthropic_available:
-            client = Anthropic(api_key=api_key, timeout=30.0)
+            client = Anthropic(api_key=api_key, timeout=90.0)  # タイムアウトを90秒に延長
             # ペルソナ生成と同じパターン：システムプロンプトとユーザープロンプトを結合
             full_prompt = f"{system_prompt}\n\n{prompt}"
             response = client.messages.create(
@@ -395,9 +395,12 @@ class CompetitiveAnalysisService:
             # 新SDKを優先的に試す（新しいasync APIを使用）
             if google_genai_available:
                 try:
-                    client = google_genai_sdk.Client(api_key=api_key)
+                    # タイムアウト設定付きのクライアントを作成
+                    import httpx
+                    http_client = httpx.Client(timeout=90.0)  # 90秒のタイムアウト
+                    client = google_genai_sdk.Client(api_key=api_key, http_client=http_client)
                     
-                    logger.info(f"Using new Gemini SDK with model: {model}")
+                    logger.info(f"Using new Gemini SDK with model: {model} (timeout: 90s)")
                     # 新しいSDKは同期API（awaitは不要）
                     # ペルソナ生成と同じパターン：システムプロンプトとユーザープロンプトを結合
                     full_prompt = f"{system_prompt}\n\n{prompt}"

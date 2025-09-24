@@ -754,7 +754,7 @@ class RegionalDataService:
         
         # e-Stat API統合サービスのインポート
         try:
-            from .estat_integrated_service_v3 import EStatIntegratedServiceV3 as EStatIntegratedService
+            from .estat_integrated_service import EStatIntegratedService
             self.estat_service = EStatIntegratedService()
             logger.info("EStatIntegratedService loaded successfully")
         except ImportError as e:
