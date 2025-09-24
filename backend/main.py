@@ -1953,10 +1953,11 @@ def generate_pdf(data):
     # --- ペルソナアイコンと名前 ---
     icon_size = 30 # アイコンのサイズ (mm)
     icon_y_position = pdf.get_y()
+    icon_added = False  # 画像が正常に追加されたかのフラグ
 
     if image_url:
         try:
-            print(f"Fetching image from URL: {image_url}")
+            print(f"[DEBUG] Processing persona image for PDF: {image_url[:100]}...")
             # Data URLの場合の処理
             if image_url.startswith('data:'):
                 # data:image/png;base64,... の形式から画像データを抽出
@@ -2002,13 +2003,22 @@ def generate_pdf(data):
             
             # PDFに画像を追加
             pdf.image(processed_img_obj, x=left_column_content_x, y=icon_y_position, w=icon_size, h=icon_size)
+            icon_added = True  # 画像追加成功
+            print(f"[DEBUG] Persona image added to PDF successfully at position ({left_column_content_x}, {icon_y_position})")
             
         except Exception as e:
-            print(f"Error loading image: {e}")
+            print(f"[ERROR] Failed to add persona image to PDF: {e}")
+            import traceback
+            traceback.print_exc()
             # アイコン失敗時は代替テキストや枠線などを表示
             pdf.rect(left_column_content_x, icon_y_position, icon_size, icon_size, style='D')
             pdf.set_xy(left_column_content_x + 1, icon_y_position + icon_size / 2 - 2)
             pdf.multi_cell(icon_size - 2, 4, "No Img", 0, 'C')
+    else:
+        # 画像URLがない場合も枠を表示
+        pdf.rect(left_column_content_x, icon_y_position, icon_size, icon_size, style='D')
+        pdf.set_xy(left_column_content_x + 1, icon_y_position + icon_size / 2 - 2)
+        pdf.multi_cell(icon_size - 2, 4, "No Img", 0, 'C')
 
     # 名前の描画開始位置をアイコンの右隣に設定
     name_x_position = left_column_content_x + icon_size + 3 # アイコンの右に少しスペース
@@ -2221,7 +2231,7 @@ def generate_pdf(data):
 
                     # グラフをPDFに追加（ページ幅の80%を使用）
                     page_width = pdf.w - pdf.l_margin - pdf.r_margin
-                    graph_width = page_width * 0.8
+                    graph_width = page_width * 0.64  # 0.8倍に縮小
                     graph_x = pdf.l_margin + (page_width - graph_width) / 2
 
                     # アスペクト比を保持した高さを計算
@@ -2256,7 +2266,7 @@ def generate_pdf(data):
                 if generate_timeline_graph(timeline_analysis, graph_path):
                     # グラフをPDFに追加（ページ幅の80%を使用）
                     page_width = pdf.w - pdf.l_margin - pdf.r_margin
-                    graph_width = page_width * 0.8
+                    graph_width = page_width * 0.64  # 0.8倍に縮小
                     graph_x = pdf.l_margin + (page_width - graph_width) / 2
                     
                     # グラフの高さを計算（幅の約半分）
@@ -2664,6 +2674,9 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
                     slide.shapes.add_picture(chart_image_path, graph_x, graph_y, width=graph_width, height=graph_height)
                     graph_added = True
                     
+                    # グラフの実際の高さと位置を記録
+                    graph_bottom = graph_y + graph_height
+                    
                     # 一時ファイルを削除
                     import os
                     os.unlink(chart_image_path)
@@ -2687,16 +2700,24 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
                     
                     slide.shapes.add_picture(graph_path, graph_x, graph_y, width=graph_width, height=graph_height)
                     
+                    # グラフの実際の高さと位置を記録
+                    graph_bottom = graph_y + graph_height
+                    
                     # 一時ファイルを削除
                     import os
                     os.unlink(graph_path)
                     print("[DEBUG] Added backend-generated timeline chart to PPT")
         except Exception as e:
             print(f"Error adding graph to PPT: {e}")
+            # グラフ追加に失敗した場合のデフォルト位置
+            graph_bottom = Cm(9.0)  # デフォルトで9cmと仮定
+        
+        # グラフの実際の位置が設定されていない場合
+        if 'graph_bottom' not in locals():
+            graph_bottom = Cm(9.0)  # デフォルト値
         
         # 左カラム：主要キーワード（グラフの下に配置）
-        # グラフが2.0cmから始まり、7cm高さなので、9.0cmで終わる
-        left_column_y = Cm(9.5)  # グラフの下0.5cmの余白
+        left_column_y = graph_bottom + Cm(0.5)  # グラフの実際の下端から0.5cmの余白
         left_width = content_width * 0.35  # 左カラムの幅を定義
         
         # 主要キーワード（上位5件 - グラフの番号と対応）
@@ -2725,7 +2746,7 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
             add_text_to_shape(keywords_shape, keywords_text.strip(), font_size=Pt(9), font_name='Meiryo UI')
         
         # 右カラム：AI分析レポート（グラフの下に配置）
-        right_column_y = Cm(9.5)  # 左カラムと同じ高さから開始
+        right_column_y = graph_bottom + Cm(0.5)  # グラフの実際の下端から0.5cmの余白
         analysis_title = slide.shapes.add_textbox(right_column_x, right_column_y, right_width, Cm(0.8))
         add_text_to_shape(analysis_title, 'AI分析レポート', font_size=Pt(12), is_bold=True, 
                          font_name='Meiryo UI', fill_color=RGBColor(200, 230, 200))
