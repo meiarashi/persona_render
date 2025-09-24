@@ -75,16 +75,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Import from backend structure (fixed import issue - v2)
-from api import admin_settings, config
-from services import timeline_analyzer
-from services import crud, rag_processor
+from backend.api import admin_settings, config
+from backend.services import timeline_analyzer
+from backend.services import crud, rag_processor
 from backend.services.async_image_generator import generate_image_async
 from backend.services.cache_manager import get_chief_complaints, preload_cache, load_chief_complaints_data
 from backend.services.competitive_analysis_service import CompetitiveAnalysisService
 from backend.services.google_maps_service import GoogleMapsService
-from middleware.auth import verify_admin_credentials, verify_department_credentials, verify_any_credentials
-from models import schemas as models
-from utils import config_loader, prompt_builder
+from backend.middleware.auth import verify_admin_credentials, verify_department_credentials, verify_any_credentials
+from backend.models import schemas as models
+from backend.utils import config_loader, prompt_builder
 
 # Create a FastAPI app instance
 # アプリケーション起動時にキャッシュをプリロード
