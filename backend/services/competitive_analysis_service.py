@@ -782,8 +782,7 @@ class CompetitiveAnalysisService:
                 return self._generate_basic_swot({})
 
             # レスポンスの最初の500文字をログ出力
-            logger.info(f"[SWOT Parser] Response preview (first 500 chars):
-{response[:500]}...")
+            logger.info(f"[SWOT Parser] Response preview (first 500 chars): {response[:500]}...")
             
             # JSONを抽出（余計なテキストがあるかもしれないので）
             json_match = re.search(r'\{.*\}', response, re.DOTALL)
