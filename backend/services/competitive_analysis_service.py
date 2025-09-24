@@ -135,8 +135,37 @@ class CompetitiveAnalysisService:
             # 4. SWOT分析と戦略的提案を生成
             swot_analysis, raw_response = await self._generate_swot_analysis(analysis_data)
 
-            # 戦略提案を抽出
-            strategic_recommendations = self._parse_strategic_recommendations(raw_response)
+            # 戦略提案をSWOT分析から抽出してフォーマット
+            strategic_recommendations = []
+            if 'strategies' in swot_analysis and swot_analysis['strategies']:
+                # 戦略を3つのカテゴリに分割
+                strategies = swot_analysis['strategies']
+                for i, strategy in enumerate(strategies):
+                    if i < 3:
+                        # 最初の3つは差別化戦略
+                        strategic_recommendations.append({
+                            "title": "差別化戦略",
+                            "description": strategy,
+                            "priority": "high"
+                        })
+                    elif i < 6:
+                        # 次の3つはマーケティング戦略
+                        strategic_recommendations.append({
+                            "title": "マーケティング戦略",
+                            "description": strategy,
+                            "priority": "medium"
+                        })
+                    else:
+                        # 残りはオペレーション改善
+                        strategic_recommendations.append({
+                            "title": "オペレーション改善",
+                            "description": strategy,
+                            "priority": "medium"
+                        })
+            
+            # 戦略がない場合はデフォルトを使用
+            if not strategic_recommendations:
+                strategic_recommendations = self._get_default_recommendations()
 
             # 5. 結果を整形して返す
             return {
