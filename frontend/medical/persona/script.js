@@ -1052,15 +1052,17 @@ async function loadChiefComplaints(departmentValue) {
         let category;
         const medicalDepts = ['ophthalmology', 'internal_medicine', 'surgery', 'pediatrics', 'orthopedics', 
                             'otorhinolaryngology', 'dermatology', 'gynecology', 'urology', 'psychiatry', 
-                            'neurosurgery', 'anesthesiology', 'radiology', 'rehabilitation', 'allergy',
-                            'cardiology', 'gastroenterology', 'respiratory_medicine', 'diabetes_medicine',
+                            'neurosurgery', 'cardiology', 'gastroenterology', 'respiratory_medicine', 'diabetes_medicine',
                             'nephrology', 'neurology', 'hematology', 'endocrinology', 'plastic_surgery', 'beauty_surgery'];
         const dentalDepts = ['general_dentistry', 'pediatric_dentistry', 'orthodontics', 'cosmetic_dentistry', 'oral_surgery'];
+        const othersDepts = ['anesthesiology', 'radiology', 'rehabilitation', 'allergy'];
         
         if (medicalDepts.includes(departmentValue)) {
             category = 'medical';
         } else if (dentalDepts.includes(departmentValue)) {
             category = 'dental';
+        } else if (othersDepts.includes(departmentValue)) {
+            category = 'others';
         } else {
             throw new Error('Unknown department category');
         }
