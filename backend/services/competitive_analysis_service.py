@@ -788,9 +788,7 @@ class CompetitiveAnalysisService:
                     # 弱みセクション直後の文字コードをチェック
                     for i in range(weaknesses_idx, min(weaknesses_idx + 500, len(response))):
                         char = response[i]
-                        if ord(char) < 32 and char not in '
-
-	':
+                        if ord(char) < 32 and char not in '\n\r\t':
                             logger.warning(f"[SWOT Parser] Special char at {i}: ord={ord(char)}, repr={repr(char)}")
                     logger.info("[SWOT Parser] === END WEAKNESSES RAW RESPONSE ===")
                 else:
