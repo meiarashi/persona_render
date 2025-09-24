@@ -1971,38 +1971,62 @@ def generate_pdf(data):
                 # 通常のURLの場合
                 image_data = urlopen(image_url).read()
             
-            # PIL Imageで画像を開く
-            img_file_obj = io.BytesIO(image_data)
-            pil_image = Image.open(img_file_obj)
+            # 一時ファイルに保存してPDFに追加（FPDFはバイトストリームより一時ファイルの方が確実）
+            import tempfile
+            import os
             
-            # アスペクト比を保ちながら正方形にリサイズ（中央クロップ）
-            original_width, original_height = pil_image.size
+            with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as temp_file:
+                temp_file.write(image_data)
+                temp_image_path = temp_file.name
             
-            # 正方形にクロップ
-            min_dimension = min(original_width, original_height)
-            left = (original_width - min_dimension) // 2
-            top = (original_height - min_dimension) // 2
-            right = left + min_dimension
-            bottom = top + min_dimension
-            
-            # クロップして正方形にする
-            cropped_image = pil_image.crop((left, top, right, bottom))
-            
-            # リサイズして最終サイズに調整
-            final_size = int(icon_size * 10)  # mmをpixelに変換（おおよそ）
-            resized_image = cropped_image.resize((final_size, final_size), Image.Resampling.LANCZOS)
-            
-            # RGB形式に変換（PDFで確実に表示されるように）
-            if resized_image.mode != 'RGB':
-                resized_image = resized_image.convert('RGB')
-            
-            # バイトストリームに保存
-            processed_img_obj = io.BytesIO()
-            resized_image.save(processed_img_obj, format='JPEG', quality=85)
-            processed_img_obj.seek(0)
-            
-            # PDFに画像を追加
-            pdf.image(processed_img_obj, x=left_column_content_x, y=icon_y_position, w=icon_size, h=icon_size)
+            try:
+                # PIL Imageで画像を開いて処理
+                pil_image = Image.open(temp_image_path)
+                
+                # アスペクト比を保ちながら正方形にリサイズ（中央クロップ）
+                original_width, original_height = pil_image.size
+                
+                # 正方形にクロップ
+                min_dimension = min(original_width, original_height)
+                left = (original_width - min_dimension) // 2
+                top = (original_height - min_dimension) // 2
+                right = left + min_dimension
+                bottom = top + min_dimension
+                
+                # クロップして正方形にする
+                cropped_image = pil_image.crop((left, top, right, bottom))
+                
+                # リサイズして最終サイズに調整（解像度を上げる）
+                final_size = int(icon_size * 20)  # より高解像度に（mmをpixelに変換）
+                resized_image = cropped_image.resize((final_size, final_size), Image.Resampling.LANCZOS)
+                
+                # RGB形式に変換（PDFで確実に表示されるように）
+                if resized_image.mode in ('RGBA', 'LA', 'P'):
+                    # アルファチャンネルがある場合は白背景と合成
+                    rgb_image = Image.new('RGB', resized_image.size, (255, 255, 255))
+                    if resized_image.mode == 'RGBA':
+                        rgb_image.paste(resized_image, mask=resized_image.split()[3])
+                    else:
+                        resized_image = resized_image.convert('RGB')
+                        rgb_image = resized_image
+                    resized_image = rgb_image
+                elif resized_image.mode != 'RGB':
+                    resized_image = resized_image.convert('RGB')
+                
+                # 処理済み画像を一時ファイルに保存
+                processed_path = temp_image_path.replace('.jpg', '_processed.jpg')
+                resized_image.save(processed_path, format='JPEG', quality=90, optimize=True)
+                
+                # PDFに画像を追加
+                pdf.image(processed_path, x=left_column_content_x, y=icon_y_position, w=icon_size, h=icon_size)
+                
+                # 一時ファイルを削除
+                os.unlink(processed_path)
+                
+            finally:
+                # 元の一時ファイルも削除
+                if os.path.exists(temp_image_path):
+                    os.unlink(temp_image_path)
             icon_added = True  # 画像追加成功
             print(f"[DEBUG] Persona image added to PDF successfully at position ({left_column_content_x}, {icon_y_position})")
             
@@ -2201,8 +2225,11 @@ def generate_pdf(data):
         
         # セクションタイトル
         pdf.set_font("ipa", "B", 14)
-        pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 10, 'タイムライン分析', 0, 1, 'C')
-        pdf.ln(5)
+        pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 8, 'タイムライン分析', 0, 1, 'C')
+        pdf.ln(2)  # タイトル後のスペースを削減
+        
+        # グラフの下端位置を記録する変数
+        graph_bottom_y = pdf.get_y()
         
         # グラフを追加（フロントエンドから送信された画像またはバックエンドで生成）
         try:
@@ -2229,25 +2256,25 @@ def generate_pdf(data):
                     original_width, original_height = img.size
                     aspect_ratio = original_height / original_width
 
-                    # グラフをPDFに追加（ページ幅の80%を使用）
+                    # グラフをPDFに追加（ページ幅の64%を使用）
                     page_width = pdf.w - pdf.l_margin - pdf.r_margin
                     graph_width = page_width * 0.64  # 0.8倍に縮小
                     graph_x = pdf.l_margin + (page_width - graph_width) / 2
 
-                    # アスペクト比を保持した高さを計算
+                    # アスペクト比を保持した高さを計算（最大高さを制限）
                     graph_height = graph_width * aspect_ratio
+                    max_graph_height = 80  # 最大高さを80mmに制限
+                    if graph_height > max_graph_height:
+                        graph_height = max_graph_height
+                        graph_width = graph_height / aspect_ratio
+                        graph_x = pdf.l_margin + (page_width - graph_width) / 2  # 中央揃え再計算
+                    
                     current_y = pdf.get_y()
-
-                    # ページの残り高さを確認し、必要なら新しいページへ
-                    remaining_height = pdf.h - current_y - pdf.b_margin
-                    if graph_height > remaining_height:
-                        pdf.add_page()
-                        current_y = pdf.get_y()
-
                     pdf.image(chart_image_path, x=graph_x, y=current_y, w=graph_width, h=graph_height)
                     
-                    # グラフの後に適切なスペースを追加
-                    pdf.set_y(current_y + graph_height + 10)
+                    # グラフの下端位置を記録
+                    graph_bottom_y = current_y + graph_height
+                    pdf.set_y(graph_bottom_y + 5)  # グラフ下に5mmの余白
                     graph_added = True
                     
                     # 一時ファイルを削除
@@ -2264,19 +2291,20 @@ def generate_pdf(data):
                     graph_path = tmp_file.name
                     
                 if generate_timeline_graph(timeline_analysis, graph_path):
-                    # グラフをPDFに追加（ページ幅の80%を使用）
+                    # グラフをPDFに追加（ページ幅の64%を使用）
                     page_width = pdf.w - pdf.l_margin - pdf.r_margin
                     graph_width = page_width * 0.64  # 0.8倍に縮小
                     graph_x = pdf.l_margin + (page_width - graph_width) / 2
                     
-                    # グラフの高さを計算（幅の約半分）
-                    graph_height = graph_width * 0.5
+                    # グラフの高さを計算（幅の約半分、最大80mm）
+                    graph_height = min(graph_width * 0.5, 80)
                     current_y = pdf.get_y()
                     
                     pdf.image(graph_path, x=graph_x, y=current_y, w=graph_width, h=graph_height)
                     
-                    # グラフの後に適切なスペースを追加
-                    pdf.set_y(current_y + graph_height + 10)
+                    # グラフの下端位置を記録
+                    graph_bottom_y = current_y + graph_height
+                    pdf.set_y(graph_bottom_y + 5)  # グラフ下に5mmの余白
                     
                     # 一時ファイルを削除
                     import os
@@ -2285,18 +2313,23 @@ def generate_pdf(data):
         except Exception as e:
             print(f"Error adding graph to PDF: {e}")
         
-        # スペースが不足している場合は新しいページを追加
-        current_y_after_graph = pdf.get_y()
-        remaining_space = pdf.h - pdf.b_margin - current_y_after_graph
-        if remaining_space < 50:  # 50mm以下の場合
-            pdf.add_page()
+        # PPTXと同じレイアウト: 左にキーワード、右にAI分析を配置
+        current_y = pdf.get_y()
+        left_column_x = pdf.l_margin
+        left_column_width = (pdf.w - pdf.l_margin - pdf.r_margin) * 0.35
+        right_column_x = left_column_x + left_column_width + 5  # 5mmのギャップ
+        right_column_width = (pdf.w - pdf.l_margin - pdf.r_margin) * 0.60
         
-        
-        # 主要検索キーワード（上位10件）を表示（グラフの番号と対応）
+        # 左カラム：主要検索キーワード（上位10件）
         if timeline_analysis.get('keywords'):
-            pdf.set_font("ipa", "B", 11)
-            pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 7, '主要検索キーワード（上位10件）', 0, 1)
-            pdf.set_font("ipa", "", 9)
+            pdf.set_xy(left_column_x, current_y)
+            pdf.set_font("ipa", "B", 10)
+            pdf.set_fill_color(200, 230, 200)  # 薄い緑色の背景
+            pdf.cell(left_column_width, 6, '主要検索キーワード', 0, 1, 'L', fill=True)
+            
+            left_keywords_y = pdf.get_y() + 2
+            pdf.set_xy(left_column_x, left_keywords_y)
+            pdf.set_font("ipa", "", 8)
             
             # 検索ボリューム順にソートして上位10件を取得
             all_keywords = timeline_analysis['keywords']
@@ -2304,42 +2337,51 @@ def generate_pdf(data):
                                    key=lambda k: k.get('estimated_volume', k.get('search_volume', 0)), 
                                    reverse=True)
             keywords = sorted_keywords[:10]
+            
+            # キーワードを左カラムに配置
             for i, kw in enumerate(keywords, 1):
-                keyword_text = f"{i}. {kw['keyword']} ({kw['time_diff_days']:.1f}日"
+                keyword_text = f"{i}. {kw['keyword']}"
                 if kw['time_diff_days'] < 0:
-                    keyword_text += "前)"
+                    keyword_text += f" ({abs(kw['time_diff_days']):.1f}日前)"
                 else:
-                    keyword_text += "後)"
-                keyword_text += f" - 検索ボリューム: {kw.get('estimated_volume', kw.get('search_volume', 0)):,}"
-                pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 5, keyword_text, 0, 1)
-            pdf.ln(8)  # キーワードリストの後にスペース
+                    keyword_text += f" ({kw['time_diff_days']:.1f}日後)"
+                
+                pdf.set_x(left_column_x)
+                pdf.multi_cell(left_column_width, 4, keyword_text, 0, 'L')
+                if i < len(keywords):  # 最後のキーワード以外
+                    pdf.set_xy(left_column_x, pdf.get_y() + 1)
         
-        # AI分析レポート
-        pdf.set_font("ipa", "B", 11)
-        pdf.cell(pdf.w - pdf.l_margin - pdf.r_margin, 7, 'AI分析レポート', 0, 1)
-        pdf.ln(2)  # タイトルの後に少しスペース
-        pdf.set_font("ipa", "", 9)
+        # 右カラム：AI分析レポート
+        pdf.set_xy(right_column_x, current_y)
+        pdf.set_font("ipa", "B", 10)
+        pdf.set_fill_color(200, 230, 200)  # 薄い緑色の背景
+        pdf.cell(right_column_width, 6, 'AI分析レポート', 0, 1, 'L', fill=True)
+        
+        right_analysis_y = pdf.get_y() + 2
+        pdf.set_xy(right_column_x, right_analysis_y)
+        pdf.set_font("ipa", "", 8)
         
         ai_analysis_text = timeline_analysis.get('ai_analysis', '')
         
         if ai_analysis_text:
-            # 現在のX座標を保存
-            left_x = pdf.l_margin
+            # 右カラムにAI分析を配置（複数行対応）
+            pdf.set_x(right_column_x)
             
-            # テキストを段落ごとに処理
-            paragraphs = ai_analysis_text.split('\n\n')
-            for i, paragraph in enumerate(paragraphs):
-                if paragraph.strip():
-                    # X座標を左マージンに設定（左寄せを確実にする）
-                    pdf.set_x(left_x)
-                    # 段落全体を一つのmulti_cellで表示
-                    pdf.multi_cell(pdf.w - pdf.l_margin - pdf.r_margin, 5, paragraph.strip(), 0, 'L')
-                    
-                    # 段落間のスペース（最後の段落以外）
-                    if i < len(paragraphs) - 1:
-                        pdf.ln(3)
+            # テキストを改行で分割し、右カラムの幅に合わせて折り返し
+            lines = ai_analysis_text.split('
+')
+            for line in lines:
+                if line.strip():  # 空行でない場合
+                    pdf.set_x(right_column_x)
+                    pdf.multi_cell(right_column_width, 4, line.strip(), 0, 'L')
+                    if pdf.get_y() < pdf.h - pdf.b_margin - 5:  # ページの下端に達していない場合
+                        pdf.set_xy(right_column_x, pdf.get_y() + 1)
+                else:
+                    # 空行の場合は少しスペースを追加
+                    pdf.set_xy(right_column_x, pdf.get_y() + 2)
         else:
-            pdf.multi_cell(pdf.w - pdf.l_margin - pdf.r_margin, 5, "AI分析データがありません", 0, 'L')
+            pdf.set_x(right_column_x)
+            pdf.multi_cell(right_column_width, 4, "AI分析データがありません", 0, 'L')
     
     # Generate PDF in memory
     pdf_output = pdf.output() # Get output as bytes directly
