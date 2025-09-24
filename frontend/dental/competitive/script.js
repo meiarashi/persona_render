@@ -80,6 +80,16 @@ function getDepartmentPath() {
     return '/medical'; // デフォルト
 }
 
+// ダッシュボードへのパスを取得（adminの場合はルート）
+function getDashboardPath() {
+    const path = window.location.pathname;
+    if (path.includes('/admin/')) return '/';  // adminはルートに戻る
+    if (path.includes('/dental/')) return '/dental';
+    if (path.includes('/others/')) return '/others';
+    if (path.includes('/medical/')) return '/medical';
+    return '/medical'; // デフォルト
+}
+
 // セキュリティ: XSS対策用のサニタイズ関数
 function sanitizeHtml(str) {
     if (!str) return '';
@@ -1165,7 +1175,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="action-buttons">
                     <button class="btn btn-primary" onclick="window.print()">印刷</button>
                     <button class="btn btn-secondary" onclick="location.href='${getDepartmentPath()}/competitive'">新しい分析を開始</button>
-                    <a href="${getDepartmentPath()}" class="btn btn-link">ダッシュボードに戻る</a>
+                    <a href="${getDashboardPath()}" class="btn btn-link">ダッシュボードに戻る</a>
                 </div>
             </div>
         `;

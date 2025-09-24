@@ -924,8 +924,8 @@ class CompetitiveAnalysisService:
                     # 箇条書きマーカーがある場合、新しいアイテムとして開始
                     is_new_item = False
                     for marker in ['-', '・', '●', '○', '■', '□', '*']:
-                        # マーカーの後に空白がある場合のみ処理
-                        if line.startswith(marker + ' ') or (marker == '*' and line.startswith(marker + '   ')):
+                        # マーカーの後に空白がある場合のみ処理（*の場合は複数のスペースも許可）
+                        if line.startswith(marker + ' ') or (marker == '*' and line.startswith('*') and len(line) > 1 and line[1] in ' 	'):
                             # 前のアイテムを保存
                             if current_item:
                                 full_item = " ".join(current_item).strip()
