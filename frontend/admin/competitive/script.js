@@ -70,6 +70,16 @@ window.initMapCallback = function() {
     console.log('Google Maps API loaded successfully');
 }
 
+// 現在のURLから部門パスを取得
+function getDepartmentPath() {
+    const path = window.location.pathname;
+    if (path.includes('/admin/')) return '/admin';
+    if (path.includes('/dental/')) return '/dental';
+    if (path.includes('/others/')) return '/others';
+    if (path.includes('/medical/')) return '/medical';
+    return '/medical'; // デフォルト
+}
+
 // セキュリティ: XSS対策用のサニタイズ関数
 function sanitizeHtml(str) {
     if (!str) return '';
@@ -1107,13 +1117,23 @@ document.addEventListener('DOMContentLoaded', function() {
             recommendationsHtml = `
                 <div class="recommendations">
                     <h3>戦略的提案</h3>
-                    ${result.strategic_recommendations.map(rec => `
+                    ${result.strategic_recommendations.map(rec => {
+                        // 説明文を改行や句読点で分割してリスト形式にする
+                        const descriptionItems = rec.description
+                            .split(/(?<=[。])\s*/)  // 句点で分割
+                            .filter(item => item.trim())
+                            .map(item => item.trim());
+
+                        return `
                         <div class="recommendation-item ${sanitizeHtml(rec.priority)}">
                             <h4>${sanitizeHtml(rec.title)}</h4>
-                            <p>${renderMarkdown(rec.description)}</p>
+                            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                                ${descriptionItems.map(item => `<li style="margin: 0.5rem 0;">${renderMarkdown(item)}</li>`).join('')}
+                            </ul>
                             <span class="priority-badge">優先度: ${rec.priority === 'high' ? '高' : rec.priority === 'medium' ? '中' : '低'}</span>
                         </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
             `;
         }
@@ -1127,22 +1147,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <p>競合数: ${sanitizeHtml(String(marketAnalysis.total_competitors || competitors.length || 0))}件</p>
                     <p>分析日時: ${new Date(result.timestamp || new Date()).toLocaleString('ja-JP')}</p>
                 </div>
-                ${clinicInfo.features || result.additional_info ? `
-                <div class="clinic-details" style="margin-top: 1rem; padding: 1rem; background-color: #f8f9fa; border-radius: 8px;">
-                    ${clinicInfo.features ? `
-                    <div style="margin-bottom: 0.5rem;">
-                        <strong>クリニックの強み・特徴:</strong>
-                        <p style="margin: 0.5rem 0; white-space: pre-wrap;">${sanitizeHtml(clinicInfo.features)}</p>
-                    </div>
-                    ` : ''}
-                    ${result.additional_info ? `
-                    <div>
-                        <strong>主なターゲット層:</strong>
-                        <p style="margin: 0.5rem 0; white-space: pre-wrap;">${sanitizeHtml(result.additional_info)}</p>
-                    </div>
-                    ` : ''}
-                </div>
-                ` : ''}
             </div>
 
             <div class="result-content">
@@ -1160,8 +1164,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 <div class="action-buttons">
                     <button class="btn btn-primary" onclick="window.print()">印刷</button>
-                    <button class="btn btn-secondary" onclick="location.href='/medical/competitive'">新しい分析を開始</button>
-                    <a href="/medical" class="btn btn-link">ダッシュボードに戻る</a>
+                    <button class="btn btn-secondary" onclick="location.href='${getDepartmentPath()}/competitive'">新しい分析を開始</button>
+                    <a href="${getDepartmentPath()}" class="btn btn-link">ダッシュボードに戻る</a>
                 </div>
             </div>
         `;
