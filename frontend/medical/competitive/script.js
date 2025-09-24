@@ -347,17 +347,72 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!csvContent || csvContent.trim().length === 0) {
                 throw new Error('CSVファイルが空です');
             }
-            
+
             // BOMを削除（UTF-8 BOMがある場合）
             if (csvContent.charCodeAt(0) === 0xFEFF) {
                 csvContent = csvContent.slice(1);
             }
-            
-            const lines = csvContent.split(/\r?\n/).filter(line => line.trim());
-            
+
+            // 複数行のセルを含むCSVをパースする改良版パーサー
+            const parseCSV = (text) => {
+                const rows = [];
+                let currentRow = [];
+                let currentField = '';
+                let inQuotes = false;
+
+                for (let i = 0; i < text.length; i++) {
+                    const char = text[i];
+                    const nextChar = text[i + 1];
+
+                    if (char === '"') {
+                        if (inQuotes && nextChar === '"') {
+                            // エスケープされた引用符
+                            currentField += '"';
+                            i++;
+                        } else {
+                            // 引用符の開始/終了
+                            inQuotes = !inQuotes;
+                        }
+                    } else if (char === ',' && !inQuotes) {
+                        // フィールドの区切り
+                        currentRow.push(currentField);
+                        currentField = '';
+                    } else if ((char === '\n' || char === '\r') && !inQuotes) {
+                        // 行の区切り（引用符の外）
+                        if (char === '\r' && nextChar === '\n') {
+                            i++; // CRLFの場合、LFをスキップ
+                        }
+                        if (currentField || currentRow.length > 0) {
+                            currentRow.push(currentField);
+                            rows.push(currentRow);
+                            currentRow = [];
+                            currentField = '';
+                        }
+                    } else {
+                        currentField += char;
+                    }
+                }
+
+                // 最後のフィールドと行を追加
+                if (currentField || currentRow.length > 0) {
+                    currentRow.push(currentField);
+                }
+                if (currentRow.length > 0) {
+                    rows.push(currentRow);
+                }
+
+                return rows;
+            };
+
+            const parsedRows = parseCSV(csvContent);
+
+            if (parsedRows.length < 2) {
+                throw new Error('CSVファイルにデータが含まれていません');
+            }
+
             // ヘッダー行とデータ行を分離
-            const headers = parseCSVLine(lines[0]);
-            const data = lines[1] ? parseCSVLine(lines[1]) : [];
+            const headers = parsedRows[0];
+            const data = parsedRows[1];
             
             // データマッピング
             const dataMap = {};
@@ -366,6 +421,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const value = data[index] || '';
                 dataMap[trimmedHeader] = value;
             });
+
+            // デバッグ用：パースされたデータをコンソールに出力
+            console.log('CSV parsed headers:', headers);
+            console.log('CSV parsed data:', data);
+            console.log('Data mapping:', dataMap);
             
             // フォームに値を設定
             
@@ -1067,8 +1127,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     <p>競合数: ${sanitizeHtml(String(marketAnalysis.total_competitors || competitors.length || 0))}件</p>
                     <p>分析日時: ${new Date(result.timestamp || new Date()).toLocaleString('ja-JP')}</p>
                 </div>
+                ${clinicInfo.features || result.additional_info ? `
+                <div class="clinic-details" style="margin-top: 1rem; padding: 1rem; background-color: #f8f9fa; border-radius: 8px;">
+                    ${clinicInfo.features ? `
+                    <div style="margin-bottom: 0.5rem;">
+                        <strong>クリニックの強み・特徴:</strong>
+                        <p style="margin: 0.5rem 0; white-space: pre-wrap;">${sanitizeHtml(clinicInfo.features)}</p>
+                    </div>
+                    ` : ''}
+                    ${result.additional_info ? `
+                    <div>
+                        <strong>主なターゲット層:</strong>
+                        <p style="margin: 0.5rem 0; white-space: pre-wrap;">${sanitizeHtml(result.additional_info)}</p>
+                    </div>
+                    ` : ''}
+                </div>
+                ` : ''}
             </div>
-            
+
             <div class="result-content">
                 <div class="map-section">
                     <h3>競合マップ</h3>
