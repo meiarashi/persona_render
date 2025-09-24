@@ -440,8 +440,7 @@ class CompetitiveAnalysisService:
                                     weaknesses_content = generated_text[weaknesses_idx:opportunities_idx]
                                     logger.info(f"[Gemini] Weaknesses section length: {len(weaknesses_content)} chars")
                                     # 弱みセクションに複数の改行があるかチェック
-                                    newline_count = weaknesses_content.count('
-')
+                                    newline_count = weaknesses_content.count('\n')
                                     logger.info(f"[Gemini] Newlines in weaknesses section: {newline_count}")
                             return generated_text
                         else:
