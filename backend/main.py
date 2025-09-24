@@ -1958,77 +1958,95 @@ def generate_pdf(data):
     if image_url:
         try:
             print(f"[DEBUG] Processing persona image for PDF: {image_url[:100]}...")
+            
+            # 一時ファイルを作成
+            import tempfile
+            import os
+            
             # Data URLの場合の処理
             if image_url.startswith('data:'):
                 # data:image/png;base64,... の形式から画像データを抽出
                 try:
                     header, encoded = image_url.split(',', 1)
                     image_data = base64.b64decode(encoded)
+                    print(f"[DEBUG] Decoded base64 image data, size: {len(image_data)} bytes")
                 except (ValueError, base64.binascii.Error) as e:
-                    print(f"Error decoding data URL: {e}")
+                    print(f"[ERROR] Failed to decode data URL: {e}")
                     raise
             else:
                 # 通常のURLの場合
+                print(f"[DEBUG] Fetching image from URL")
                 image_data = urlopen(image_url).read()
+                print(f"[DEBUG] Downloaded image data, size: {len(image_data)} bytes")
             
-            # 一時ファイルに保存してPDFに追加（FPDFはバイトストリームより一時ファイルの方が確実）
-            import tempfile
-            import os
-            
+            # 最初に元画像を一時ファイルに保存
             with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as temp_file:
                 temp_file.write(image_data)
                 temp_image_path = temp_file.name
+                print(f"[DEBUG] Saved original image to: {temp_image_path}")
             
             try:
-                # PIL Imageで画像を開いて処理
-                pil_image = Image.open(temp_image_path)
+                # 直接PDFに画像を追加してみる（シンプルな方法）
+                print(f"[DEBUG] Adding image to PDF at position x={left_column_content_x}, y={icon_y_position}, size={icon_size}mm")
+                pdf.image(temp_image_path, x=left_column_content_x, y=icon_y_position, w=icon_size, h=icon_size)
+                icon_added = True
+                print(f"[DEBUG] Image added successfully to PDF!")
                 
-                # アスペクト比を保ちながら正方形にリサイズ（中央クロップ）
-                original_width, original_height = pil_image.size
+
                 
-                # 正方形にクロップ
-                min_dimension = min(original_width, original_height)
-                left = (original_width - min_dimension) // 2
-                top = (original_height - min_dimension) // 2
-                right = left + min_dimension
-                bottom = top + min_dimension
-                
-                # クロップして正方形にする
-                cropped_image = pil_image.crop((left, top, right, bottom))
-                
-                # リサイズして最終サイズに調整（解像度を上げる）
-                final_size = int(icon_size * 20)  # より高解像度に（mmをpixelに変換）
-                resized_image = cropped_image.resize((final_size, final_size), Image.Resampling.LANCZOS)
-                
-                # RGB形式に変換（PDFで確実に表示されるように）
-                if resized_image.mode in ('RGBA', 'LA', 'P'):
-                    # アルファチャンネルがある場合は白背景と合成
-                    rgb_image = Image.new('RGB', resized_image.size, (255, 255, 255))
-                    if resized_image.mode == 'RGBA':
-                        rgb_image.paste(resized_image, mask=resized_image.split()[3])
-                    else:
-                        resized_image = resized_image.convert('RGB')
-                        rgb_image = resized_image
-                    resized_image = rgb_image
-                elif resized_image.mode != 'RGB':
-                    resized_image = resized_image.convert('RGB')
-                
-                # 処理済み画像を一時ファイルに保存
-                processed_path = temp_image_path.replace('.jpg', '_processed.jpg')
-                resized_image.save(processed_path, format='JPEG', quality=90, optimize=True)
-                
-                # PDFに画像を追加
-                pdf.image(processed_path, x=left_column_content_x, y=icon_y_position, w=icon_size, h=icon_size)
-                
-                # 一時ファイルを削除
-                os.unlink(processed_path)
-                
+            except Exception as img_error:
+                print(f"[ERROR] First attempt failed: {img_error}")
+                # PILで処理してから再試行
+                try:
+                    print(f"[DEBUG] Retrying with PIL image processing...")
+                    pil_image = Image.open(temp_image_path)
+                    print(f"[DEBUG] Original image size: {pil_image.size}, mode: {pil_image.mode}")
+                    
+                    # RGB形式に変換
+                    if pil_image.mode != 'RGB':
+                        print(f"[DEBUG] Converting image from {pil_image.mode} to RGB")
+                        if pil_image.mode == 'RGBA':
+                            # 白背景と合成
+                            rgb_image = Image.new('RGB', pil_image.size, (255, 255, 255))
+                            rgb_image.paste(pil_image, mask=pil_image.split()[3])
+                            pil_image = rgb_image
+                        else:
+                            pil_image = pil_image.convert('RGB')
+                    
+                    # 正方形にクロップ
+                    width, height = pil_image.size
+                    size = min(width, height)
+                    left = (width - size) // 2
+                    top = (height - size) // 2
+                    pil_image = pil_image.crop((left, top, left + size, top + size))
+                    
+                    # リサイズ
+                    pil_image = pil_image.resize((300, 300), Image.Resampling.LANCZOS)
+                    
+                    # 新しい一時ファイルに保存
+                    processed_path = temp_image_path.replace('.jpg', '_processed.jpg')
+                    pil_image.save(processed_path, format='JPEG', quality=95)
+                    print(f"[DEBUG] Processed image saved to: {processed_path}")
+                    
+                    # PDFに追加
+                    pdf.image(processed_path, x=left_column_content_x, y=icon_y_position, w=icon_size, h=icon_size)
+                    icon_added = True
+                    print(f"[DEBUG] Processed image added to PDF successfully!")
+                    
+                    # 処理済みファイルを削除
+                    os.unlink(processed_path)
+                except Exception as e2:
+                    print(f"[ERROR] Second attempt also failed: {e2}")
+                    import traceback
+                    traceback.print_exc()
+            
             finally:
-                # 元の一時ファイルも削除
-                if os.path.exists(temp_image_path):
+                # 元の一時ファイルを削除
+                if 'temp_image_path' in locals() and os.path.exists(temp_image_path):
                     os.unlink(temp_image_path)
+                    print(f"[DEBUG] Cleaned up temp file: {temp_image_path}")
             icon_added = True  # 画像追加成功
-            print(f"[DEBUG] Persona image added to PDF successfully at position ({left_column_content_x}, {icon_y_position})")
+
             
         except Exception as e:
             print(f"[ERROR] Failed to add persona image to PDF: {e}")
@@ -2040,6 +2058,7 @@ def generate_pdf(data):
             pdf.multi_cell(icon_size - 2, 4, "No Img", 0, 'C')
     else:
         # 画像URLがない場合も枠を表示
+        print(f"[DEBUG] No image URL provided, showing placeholder frame")
         pdf.rect(left_column_content_x, icon_y_position, icon_size, icon_size, style='D')
         pdf.set_xy(left_column_content_x + 1, icon_y_position + icon_size / 2 - 2)
         pdf.multi_cell(icon_size - 2, 4, "No Img", 0, 'C')
@@ -2256,14 +2275,14 @@ def generate_pdf(data):
                     original_width, original_height = img.size
                     aspect_ratio = original_height / original_width
 
-                    # グラフをPDFに追加（ページ幅の64%を使用）
+                    # グラフをPDFに追加（ページ幅の75%を使用）
                     page_width = pdf.w - pdf.l_margin - pdf.r_margin
-                    graph_width = page_width * 0.64  # 0.8倍に縮小
+                    graph_width = page_width * 0.75  # 75%に拡大
                     graph_x = pdf.l_margin + (page_width - graph_width) / 2
 
                     # アスペクト比を保持した高さを計算（最大高さを制限）
                     graph_height = graph_width * aspect_ratio
-                    max_graph_height = 80  # 最大高さを80mmに制限
+                    max_graph_height = 100  # 最大高さを100mmに拡大
                     if graph_height > max_graph_height:
                         graph_height = max_graph_height
                         graph_width = graph_height / aspect_ratio
@@ -2291,13 +2310,13 @@ def generate_pdf(data):
                     graph_path = tmp_file.name
                     
                 if generate_timeline_graph(timeline_analysis, graph_path):
-                    # グラフをPDFに追加（ページ幅の64%を使用）
+                    # グラフをPDFに追加（ページ幅の75%を使用）
                     page_width = pdf.w - pdf.l_margin - pdf.r_margin
-                    graph_width = page_width * 0.64  # 0.8倍に縮小
+                    graph_width = page_width * 0.75  # 75%に拡大
                     graph_x = pdf.l_margin + (page_width - graph_width) / 2
                     
-                    # グラフの高さを計算（幅の約半分、最大80mm）
-                    graph_height = min(graph_width * 0.5, 80)
+                    # グラフの高さを計算（幅の約半分、最大100mm）
+                    graph_height = min(graph_width * 0.5, 100)
                     current_y = pdf.get_y()
                     
                     pdf.image(graph_path, x=graph_x, y=current_y, w=graph_width, h=graph_height)
