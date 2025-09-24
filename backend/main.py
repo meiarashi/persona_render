@@ -2368,8 +2368,7 @@ def generate_pdf(data):
             pdf.set_x(right_column_x)
             
             # テキストを改行で分割し、右カラムの幅に合わせて折り返し
-            lines = ai_analysis_text.split('
-')
+            lines = ai_analysis_text.split('\n')
             for line in lines:
                 if line.strip():  # 空行でない場合
                     pdf.set_x(right_column_x)
