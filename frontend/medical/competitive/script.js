@@ -1124,26 +1124,57 @@ document.addEventListener('DOMContentLoaded', function() {
         
         let recommendationsHtml = '';
         if (result.strategic_recommendations && result.strategic_recommendations.length > 0) {
+            // 戦略をタイプ別にグループ化
+            const strategyGroups = {
+                '差別化戦略': [],
+                'マーケティング戦略': [],
+                'オペレーション改善': []
+            };
+
+            // 各戦略を適切なグループに分類
+            result.strategic_recommendations.forEach(rec => {
+                if (strategyGroups.hasOwnProperty(rec.title)) {
+                    strategyGroups[rec.title].push(rec);
+                }
+            });
+
             recommendationsHtml = `
                 <div class="recommendations">
                     <h3>戦略的提案</h3>
-                    ${result.strategic_recommendations.map(rec => {
-                        // 説明文を改行や句読点で分割してリスト形式にする
-                        const descriptionItems = rec.description
-                            .split(/(?<=[。])\s*/)  // 句点で分割
-                            .filter(item => item.trim())
-                            .map(item => item.trim());
+                    ${Object.entries(strategyGroups).map(([groupTitle, strategies]) => {
+                        if (strategies.length === 0) return '';
+
+                        // グループの優先度を決定
+                        const groupPriority = groupTitle === '差別化戦略' ? 'high' : 'medium';
 
                         return `
-                        <div class="recommendation-item ${sanitizeHtml(rec.priority)}">
-                            <h4>${sanitizeHtml(rec.title)}</h4>
-                            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
-                                ${descriptionItems.map(item => `<li style="margin: 0.5rem 0;">${renderMarkdown(item)}</li>`).join('')}
-                            </ul>
-                            <span class="priority-badge">優先度: ${rec.priority === 'high' ? '高' : rec.priority === 'medium' ? '中' : '低'}</span>
+                        <div class="recommendation-group">
+                            <div class="recommendation-item ${groupPriority}">
+                                <h4>${sanitizeHtml(groupTitle)}</h4>
+                                <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                                    ${strategies.map(rec => {
+                                        // 説明文を改行や句読点で分割してリスト形式にする
+                                        const descriptionItems = rec.description
+                                            .split(/(?<=[。])\s*/)  // 句点で分割
+                                            .filter(item => item.trim())
+                                            .map(item => item.trim());
+
+                                        // 複数の項目がある場合はネストしたリストとして表示
+                                        if (descriptionItems.length > 1) {
+                                            return descriptionItems.map(item =>
+                                                `<li style="margin: 0.5rem 0;">${renderMarkdown(item)}</li>`
+                                            ).join('');
+                                        } else {
+                                            // 単一項目の場合はそのまま表示
+                                            return `<li style="margin: 0.5rem 0;">${renderMarkdown(rec.description)}</li>`;
+                                        }
+                                    }).join('')}
+                                </ul>
+                                <span class="priority-badge">優先度: ${groupPriority === 'high' ? '高' : '中'}</span>
+                            </div>
                         </div>
                         `;
-                    }).join('')}
+                    }).filter(html => html !== '').join('')}
                 </div>
             `;
         }
