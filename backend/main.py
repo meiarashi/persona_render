@@ -2279,14 +2279,14 @@ def generate_pdf(data):
                     original_width, original_height = img.size
                     aspect_ratio = original_height / original_width
 
-                    # グラフをPDFに追加（ページ幅の75%を使用）
+                    # グラフをPDFに追加（ページ幅の95%を使用）
                     page_width = pdf.w - pdf.l_margin - pdf.r_margin
-                    graph_width = page_width * 0.75  # 75%に拡大
+                    graph_width = page_width * 0.95  # 95%
                     graph_x = pdf.l_margin + (page_width - graph_width) / 2
 
                     # アスペクト比を保持した高さを計算（最大高さを制限）
                     graph_height = graph_width * aspect_ratio
-                    max_graph_height = 100  # 最大高さを100mmに拡大
+                    max_graph_height = 120  # 最大高さを120mmに拡大
                     if graph_height > max_graph_height:
                         graph_height = max_graph_height
                         graph_width = graph_height / aspect_ratio
@@ -2314,13 +2314,13 @@ def generate_pdf(data):
                     graph_path = tmp_file.name
                     
                 if generate_timeline_graph(timeline_analysis, graph_path):
-                    # グラフをPDFに追加（ページ幅の75%を使用）
+                    # グラフをPDFに追加（ページ幅の95%を使用）
                     page_width = pdf.w - pdf.l_margin - pdf.r_margin
-                    graph_width = page_width * 0.75  # 75%に拡大
+                    graph_width = page_width * 0.95  # 95%
                     graph_x = pdf.l_margin + (page_width - graph_width) / 2
-                    
-                    # グラフの高さを計算（幅の約半分、最大100mm）
-                    graph_height = min(graph_width * 0.5, 100)
+
+                    # グラフの高さを計算（幅の約半分、最大120mm）
+                    graph_height = min(graph_width * 0.5, 120)
                     current_y = pdf.get_y()
                     
                     pdf.image(graph_path, x=graph_x, y=current_y, w=graph_width, h=graph_height)
@@ -2716,10 +2716,10 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
                     slide_width = prs.slide_width
                     slide_height = prs.slide_height
 
-                    # 最大幅を18cmに設定
-                    max_width = Cm(18)
-                    # スライドの高さの60%を最大高さとする
-                    max_height = slide_height * 0.6
+                    # スライド幅の95%を使用
+                    max_width = slide_width * 0.95
+                    # スライドの高さの70%を最大高さとする
+                    max_height = slide_height * 0.7
 
                     # アスペクト比を保持しながら、最大サイズ内に収める
                     if aspect_ratio > (max_height / max_width):
@@ -2754,10 +2754,11 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
                     graph_path = tmp_file.name
                     
                 if generate_timeline_graph(timeline_analysis, graph_path):
-                    # グラフをスライドに追加（上部に配置、サイズを調整）
+                    # グラフをスライドに追加（スライド幅の95%を使用）
                     slide_width = prs.slide_width
-                    graph_width = Cm(18)  # 18cm幅に縮小
-                    graph_height = Cm(7)  # 7cm高さに縮小
+                    slide_height = prs.slide_height
+                    graph_width = slide_width * 0.95
+                    graph_height = slide_height * 0.7  # 高さは70%
                     graph_x = (slide_width - graph_width) / 2
                     graph_y = Cm(2.0)  # 2cmから開始
                     
