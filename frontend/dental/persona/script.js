@@ -4349,9 +4349,9 @@ function drawTimelineChart(keywords) {
             layout: {
                 padding: {
                     left: 10,
-                    right: 60,  // 適度な余白
+                    right: 150,  // 右側の余白を大幅に増やしてラベルのはみ出しを防ぐ
                     top: 10,
-                    bottom: 30  // 下部の余白を増やして軸ラベルを保護
+                    bottom: 30
                 }
             },
             plugins: {
