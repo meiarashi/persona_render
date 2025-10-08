@@ -2264,7 +2264,6 @@ def generate_pdf(data):
                     # 一時ファイルに保存
                     import tempfile
                     from PIL import Image
-                    import io
 
                     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
                         tmp_file.write(image_data)
@@ -2698,7 +2697,6 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
                     # 一時ファイルに保存
                     import tempfile
                     from PIL import Image
-                    import io
 
                     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
                         tmp_file.write(image_data)
