@@ -2226,14 +2226,14 @@ def generate_pdf(data):
 
             # コンテンツ
             pdf.set_x(right_column_x) # multi_cell のためにX座標を右カラムの開始位置にリセット
-            pdf.set_font("ipa", '', 8) # フォントサイズを8に縮小
+            pdf.set_font("ipa", '', 9) # フォントサイズを9に設定（可読性向上）
             pdf.set_text_color(0, 0, 0)  # テキストは黒にリセット
-            pdf.ln(1) # コンテンツ前の余白を削減
+            pdf.ln(1.5) # コンテンツ前の余白
             pdf.set_x(right_column_x)
-            pdf.multi_cell(right_column_width, 4.5, str(value), 0, 'L') # 行の高さを4.5mmに縮小
+            pdf.multi_cell(right_column_width, 5, str(value), 0, 'L') # 行の高さを5mmに設定
             right_column_current_y = pdf.get_y() # multi_cell 後のY座標を更新
-            
-            pdf.ln(3) # セクション間スペースを3mmに削減 # セクション間のスペースを3mmから5mmに増加
+
+            pdf.ln(4) # セクション間スペースを4mmに設定
             right_column_current_y = pdf.get_y() # スペース後のY座標を更新
 
     # --- タイムライン分析セクション（新しいページに追加） ---
@@ -2377,28 +2377,28 @@ def generate_pdf(data):
         
         right_analysis_y = pdf.get_y() + 2
         pdf.set_xy(right_column_x, right_analysis_y)
-        pdf.set_font("ipa", "", 8)
-        
+        pdf.set_font("ipa", "", 9)  # フォントサイズを9に設定（可読性向上）
+
         ai_analysis_text = timeline_analysis.get('ai_analysis', '')
-        
+
         if ai_analysis_text:
             # 右カラムにAI分析を配置（複数行対応）
             pdf.set_x(right_column_x)
-            
+
             # テキストを改行で分割し、右カラムの幅に合わせて折り返し
             lines = ai_analysis_text.split('\n')
             for line in lines:
                 if line.strip():  # 空行でない場合
                     pdf.set_x(right_column_x)
-                    pdf.multi_cell(right_column_width, 4, line.strip(), 0, 'L')
+                    pdf.multi_cell(right_column_width, 5, line.strip(), 0, 'L')  # 行の高さを5mmに設定
                     if pdf.get_y() < pdf.h - pdf.b_margin - 5:  # ページの下端に達していない場合
-                        pdf.set_xy(right_column_x, pdf.get_y() + 1)
+                        pdf.set_xy(right_column_x, pdf.get_y() + 1.5)  # 行間スペースを1.5mmに設定
                 else:
                     # 空行の場合は少しスペースを追加
-                    pdf.set_xy(right_column_x, pdf.get_y() + 2)
+                    pdf.set_xy(right_column_x, pdf.get_y() + 3)  # 空行スペースを3mmに設定
         else:
             pdf.set_x(right_column_x)
-            pdf.multi_cell(right_column_width, 4, "AI分析データがありません", 0, 'L')
+            pdf.multi_cell(right_column_width, 5, "AI分析データがありません", 0, 'L')
     
     # Generate PDF in memory
     pdf_output = pdf.output() # Get output as bytes directly
