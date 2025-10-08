@@ -1987,8 +1987,8 @@ def generate_pdf(data):
             
             try:
                 # 直接PDFに画像を追加してみる（シンプルな方法）
-                print(f"[DEBUG] Adding image to PDF at position x={left_column_content_x}, y={icon_y_position}, size={icon_size}mm")
-                pdf.image(temp_image_path, x=left_column_content_x, y=icon_y_position, w=icon_size, h=icon_size)
+                print(f"[DEBUG] Adding image to PDF at position x={left_column_content_x}, y={icon_y_position}, height={icon_size}mm")
+                pdf.image(temp_image_path, x=left_column_content_x, y=icon_y_position, h=icon_size)
                 icon_added = True
                 print(f"[DEBUG] Image added successfully to PDF!")
                 
