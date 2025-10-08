@@ -1742,14 +1742,18 @@ footer {
     grid-template-rows: auto auto;
     gap: 20px;
     max-width: 100%;
+    width: 100%;
     margin: 0 auto;
+    overflow: hidden;  /* はみ出しを防ぐ */
 }
 
 #timeline-analysis-content {
     max-width: 100%;
+    width: 100%;
     margin: 0 auto;
     overflow-wrap: break-word;
     word-break: break-word;
+    overflow-x: hidden;  /* 横スクロールを防ぐ */
 }
 
 .chart-container {
@@ -1757,6 +1761,8 @@ footer {
     min-height: 600px;
     height: 600px;
     width: 100%;
+    max-width: 100%;
+    overflow: hidden;  /* はみ出しを防ぐ */
 }
 
 .analysis-container {
@@ -1766,6 +1772,8 @@ footer {
     max-height: 400px;
     overflow-y: auto;
     width: 100%;
+    overflow-x: hidden;  /* 横スクロールを防ぐ */
+    box-sizing: border-box;  /* paddingを含めた幅計算 */
 }
 
 /* Responsive design for timeline */

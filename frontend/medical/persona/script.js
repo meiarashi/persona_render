@@ -4349,7 +4349,7 @@ function drawTimelineChart(keywords) {
             layout: {
                 padding: {
                     left: 10,
-                    right: 150,  // 右側の余白を大幅に増やしてラベルのはみ出しを防ぐ
+                    right: 60,  // 画面表示用の適度な余白
                     top: 10,
                     bottom: 30
                 }
@@ -4508,40 +4508,184 @@ function drawTimelineChart(keywords) {
         }
     });
 
-    // チャート作成後、Canvasを一時的に可視化して画像をキャッシュ（タブ切り替えなし）
+    // PDF/PPT用の高解像度チャートを別途生成
     setTimeout(() => {
-        const timelineContent = document.getElementById('timeline-content');
-        const chartCanvas = document.getElementById('timeline-chart');
-
-        if (timelineContent && chartCanvas && window.timelineChartInstance) {
-            // 一時的に可視化（ユーザーには見えない位置に）
-            const originalDisplay = timelineContent.style.display;
-            const originalPosition = timelineContent.style.position;
-            const originalLeft = timelineContent.style.left;
-
-            timelineContent.style.display = 'block';
-            timelineContent.style.position = 'absolute';
-            timelineContent.style.left = '-9999px'; // 画面外に配置
-
-            console.log('[DEBUG] Temporarily showing timeline content for chart caching (off-screen)');
-
-            // Canvasがレンダリングされるまで少し待つ
-            setTimeout(() => {
-                try {
-                    window.cachedTimelineChartImage = chartCanvas.toDataURL('image/png', 1.0);
-                    console.log('[DEBUG] Timeline chart cached without tab switch, length:', window.cachedTimelineChartImage.length);
-                } catch (err) {
-                    console.error('[ERROR] Failed to cache timeline chart:', err);
-                } finally {
-                    // 元の状態に戻す
-                    timelineContent.style.display = originalDisplay;
-                    timelineContent.style.position = originalPosition;
-                    timelineContent.style.left = originalLeft;
-                    console.log('[DEBUG] Timeline content hidden again');
-                }
-            }, 200);
-        }
+        generateExportChart(preDiagnosisData, postDiagnosisData, dynamicMinX, dynamicMaxX, suggestedMaxY);
     }, 100);
+}
+
+// PDF/PPT用の高解像度・横長チャートを生成
+function generateExportChart(preDiagnosisData, postDiagnosisData, dynamicMinX, dynamicMaxX, suggestedMaxY) {
+    console.log('[DEBUG] Generating high-resolution export chart');
+    
+    const exportCanvas = document.getElementById('timeline-chart-export');
+    if (!exportCanvas) {
+        console.error('[ERROR] Export canvas not found');
+        return;
+    }
+    
+    // 高解像度・横長サイズ設定（PDF/PPT用）
+    exportCanvas.width = 1600;  // 横長
+    exportCanvas.height = 800;
+    
+    // 既存のエクスポート用チャートがあれば破棄
+    if (window.timelineExportChartInstance) {
+        window.timelineExportChartInstance.destroy();
+    }
+    
+    // ダミーのプラグイン（ラベル最適化なし、シンプル表示）
+    const exportLabelPlugin = {
+        id: 'exportLabels',
+        afterDatasetsDraw: function(chart) {
+            // エクスポート用はラベルをシンプルに表示（重複チェックなし）
+            const ctx = chart.ctx;
+            ctx.save();
+            ctx.font = '14px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            
+            chart.data.datasets.forEach((dataset, datasetIndex) => {
+                const meta = chart.getDatasetMeta(datasetIndex);
+                dataset.data.forEach((dataPoint, index) => {
+                    // 上位20件のみラベル表示
+                    if (index < 20) {
+                        const element = meta.data[index];
+                        const x = element.x + 15;
+                        const y = element.y;
+                        
+                        // 影付きテキスト
+                        ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+                        ctx.shadowBlur = 3;
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+                        ctx.lineWidth = 3;
+                        ctx.strokeText(dataPoint.label, x, y);
+                        
+                        ctx.shadowBlur = 0;
+                        ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+                        ctx.fillText(dataPoint.label, x, y);
+                    }
+                });
+            });
+            
+            ctx.restore();
+        }
+    };
+    
+    // 高解像度チャート作成
+    window.timelineExportChartInstance = new Chart(exportCanvas, {
+        type: 'scatter',
+        plugins: [exportLabelPlugin],
+        data: {
+            datasets: [
+                {
+                    label: '診断前',
+                    data: preDiagnosisData,
+                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                },
+                {
+                    label: '診断後',
+                    data: postDiagnosisData,
+                    backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }
+            ]
+        },
+        options: {
+            responsive: false,
+            maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    left: 20,
+                    right: 300,
+                    top: 20,
+                    bottom: 40
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: {
+                            size: 16
+                        }
+                    }
+                },
+                tooltip: {
+                    enabled: false
+                },
+                datalabels: {
+                    display: false
+                }
+            },
+            animation: {
+                duration: 0,
+                onComplete: function(animation) {
+                    setTimeout(() => {
+                        try {
+                            window.cachedTimelineChartImage = exportCanvas.toDataURL('image/png', 1.0);
+                            console.log('[DEBUG] Export chart cached, length:', window.cachedTimelineChartImage.length);
+                        } catch (err) {
+                            console.error('[ERROR] Failed to cache export chart:', err);
+                        }
+                    }, 100);
+                }
+            },
+            scales: {
+                x: {
+                    type: 'linear',
+                    position: 'bottom',
+                    min: dynamicMinX,
+                    max: dynamicMaxX,
+                    title: {
+                        display: true,
+                        text: '診断日からの日数',
+                        font: {
+                            size: 16
+                        }
+                    },
+                    ticks: {
+                        font: {
+                            size: 14
+                        }
+                    },
+                    grid: {
+                        drawBorder: true,
+                        color: function(context) {
+                            return context.tick.value === 0 ? '#000' : '#e0e0e0';
+                        },
+                        lineWidth: function(context) {
+                            return context.tick.value === 0 ? 2 : 1;
+                        }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    suggestedMax: suggestedMaxY,
+                    title: {
+                        display: true,
+                        text: '重複ボリューム（主訴との関連度）',
+                        font: {
+                            size: 16
+                        }
+                    },
+                    ticks: {
+                        font: {
+                            size: 14
+                        },
+                        callback: function(value) {
+                            return value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
 }
 
 // グローバルスコープに関数を登録
