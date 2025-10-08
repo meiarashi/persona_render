@@ -4507,6 +4507,41 @@ function drawTimelineChart(keywords) {
             }
         }
     });
+
+    // チャート作成後、Canvasを一時的に可視化して画像をキャッシュ（タブ切り替えなし）
+    setTimeout(() => {
+        const timelineContent = document.getElementById('timeline-content');
+        const chartCanvas = document.getElementById('timeline-chart');
+
+        if (timelineContent && chartCanvas && window.timelineChartInstance) {
+            // 一時的に可視化（ユーザーには見えない位置に）
+            const originalDisplay = timelineContent.style.display;
+            const originalPosition = timelineContent.style.position;
+            const originalLeft = timelineContent.style.left;
+
+            timelineContent.style.display = 'block';
+            timelineContent.style.position = 'absolute';
+            timelineContent.style.left = '-9999px'; // 画面外に配置
+
+            console.log('[DEBUG] Temporarily showing timeline content for chart caching (off-screen)');
+
+            // Canvasがレンダリングされるまで少し待つ
+            setTimeout(() => {
+                try {
+                    window.cachedTimelineChartImage = chartCanvas.toDataURL('image/png', 1.0);
+                    console.log('[DEBUG] Timeline chart cached without tab switch, length:', window.cachedTimelineChartImage.length);
+                } catch (err) {
+                    console.error('[ERROR] Failed to cache timeline chart:', err);
+                } finally {
+                    // 元の状態に戻す
+                    timelineContent.style.display = originalDisplay;
+                    timelineContent.style.position = originalPosition;
+                    timelineContent.style.left = originalLeft;
+                    console.log('[DEBUG] Timeline content hidden again');
+                }
+            }, 200);
+        }
+    }, 100);
 }
 
 // グローバルスコープに関数を登録

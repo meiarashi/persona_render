@@ -1960,22 +1960,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             pdfButton.style.cssText = pdfButton.style.cssText.replace('font-size: 14px !important;', 'font-size: 12px !important;');
             pdfButton.style.opacity = '0.7';
             try {
-                // タイムライングラフのCanvas要素を画像に変換
-                let timelineChartImage = null;
-                const chartCanvas = document.getElementById('timeline-chart');
-                if (chartCanvas && window.timelineChartInstance) {
-                    try {
-                        // Chart.jsのチャートが完全に描画されていることを確認
-                        // アニメーション完了を待つ
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        // チャートを再描画してラベルを確実に表示
-                        window.timelineChartInstance.update('none');
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        timelineChartImage = chartCanvas.toDataURL('image/png', 1.0);
-                        console.log('[DEBUG] Timeline chart converted to image');
-                    } catch (err) {
-                        console.error('[ERROR] Failed to convert chart to image:', err);
-                    }
+                // タイムライングラフの画像を取得（事前キャッシュを使用）
+                let timelineChartImage = window.cachedTimelineChartImage || null;
+
+                if (timelineChartImage) {
+                    console.log('[DEBUG] PDF: Using cached timeline chart image, length:', timelineChartImage.length);
+                } else {
+                    console.log('[DEBUG] PDF: No cached timeline chart image available');
                 }
                 
                 // タイムライン分析データも含める
@@ -2027,22 +2018,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             pptButton.style.cssText = pptButton.style.cssText.replace('font-size: 14px !important;', 'font-size: 12px !important;');
             pptButton.style.opacity = '0.7';
             try {
-                // タイムライングラフのCanvas要素を画像に変換
-                let timelineChartImage = null;
-                const chartCanvas = document.getElementById('timeline-chart');
-                if (chartCanvas && window.timelineChartInstance) {
-                    try {
-                        // Chart.jsのチャートが完全に描画されていることを確認
-                        // アニメーション完了を待つ
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        // チャートを再描画してラベルを確実に表示
-                        window.timelineChartInstance.update('none');
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        timelineChartImage = chartCanvas.toDataURL('image/png', 1.0);
-                        console.log('[DEBUG] Timeline chart converted to image');
-                    } catch (err) {
-                        console.error('[ERROR] Failed to convert chart to image:', err);
-                    }
+                // タイムライングラフの画像を取得（事前キャッシュを使用）
+                let timelineChartImage = window.cachedTimelineChartImage || null;
+
+                if (timelineChartImage) {
+                    console.log('[DEBUG] PPT: Using cached timeline chart image, length:', timelineChartImage.length);
+                } else {
+                    console.log('[DEBUG] PPT: No cached timeline chart image available');
                 }
                 
                 // タイムライン分析データも含める
@@ -4462,6 +4444,19 @@ function drawTimelineChart(keywords) {
                         optimizeLabelsAfterRender(animation.chart);
                         // labelOptimizationDoneはoptimizeLabelsAfterRender内で設定される
                     }
+
+                    // チャート描画完了後、画像化してグローバル変数に保存（PDF/PPT用）
+                    setTimeout(() => {
+                        const chartCanvas = document.getElementById('timeline-chart');
+                        if (chartCanvas && animation.chart) {
+                            try {
+                                window.cachedTimelineChartImage = chartCanvas.toDataURL('image/png', 1.0);
+                                console.log('[DEBUG] Timeline chart cached for PDF/PPT, length:', window.cachedTimelineChartImage.length);
+                            } catch (err) {
+                                console.error('[ERROR] Failed to cache timeline chart image:', err);
+                            }
+                        }
+                    }, 100); // ラベル最適化後に少し待つ
                 }
             },
             scales: {
@@ -4512,6 +4507,41 @@ function drawTimelineChart(keywords) {
             }
         }
     });
+
+    // チャート作成後、Canvasを一時的に可視化して画像をキャッシュ（タブ切り替えなし）
+    setTimeout(() => {
+        const timelineContent = document.getElementById('timeline-content');
+        const chartCanvas = document.getElementById('timeline-chart');
+
+        if (timelineContent && chartCanvas && window.timelineChartInstance) {
+            // 一時的に可視化（ユーザーには見えない位置に）
+            const originalDisplay = timelineContent.style.display;
+            const originalPosition = timelineContent.style.position;
+            const originalLeft = timelineContent.style.left;
+
+            timelineContent.style.display = 'block';
+            timelineContent.style.position = 'absolute';
+            timelineContent.style.left = '-9999px'; // 画面外に配置
+
+            console.log('[DEBUG] Temporarily showing timeline content for chart caching (off-screen)');
+
+            // Canvasがレンダリングされるまで少し待つ
+            setTimeout(() => {
+                try {
+                    window.cachedTimelineChartImage = chartCanvas.toDataURL('image/png', 1.0);
+                    console.log('[DEBUG] Timeline chart cached without tab switch, length:', window.cachedTimelineChartImage.length);
+                } catch (err) {
+                    console.error('[ERROR] Failed to cache timeline chart:', err);
+                } finally {
+                    // 元の状態に戻す
+                    timelineContent.style.display = originalDisplay;
+                    timelineContent.style.position = originalPosition;
+                    timelineContent.style.left = originalLeft;
+                    console.log('[DEBUG] Timeline content hidden again');
+                }
+            }, 200);
+        }
+    }, 100);
 }
 
 // グローバルスコープに関数を登録
