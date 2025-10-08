@@ -2279,25 +2279,23 @@ def generate_pdf(data):
                     original_width, original_height = img.size
                     aspect_ratio = original_height / original_width
 
-                    # グラフをPDFに追加（ページ幅の95%を使用）
+                    # グラフを左カラムに配置（ページ幅の50%を使用）
                     page_width = pdf.w - pdf.l_margin - pdf.r_margin
-                    graph_width = page_width * 0.95  # 95%
-                    graph_x = pdf.l_margin + (page_width - graph_width) / 2
+                    graph_width = page_width * 0.50  # 左側50%
+                    graph_x = pdf.l_margin
 
-                    # アスペクト比を保持した高さを計算（最大高さを制限）
+                    # アスペクト比を保持した高さを計算
                     graph_height = graph_width * aspect_ratio
-                    max_graph_height = 120  # 最大高さを120mmに拡大
+                    max_graph_height = 180  # 最大高さを拡大（2カラムなので縦に使える）
                     if graph_height > max_graph_height:
                         graph_height = max_graph_height
                         graph_width = graph_height / aspect_ratio
-                        graph_x = pdf.l_margin + (page_width - graph_width) / 2  # 中央揃え再計算
                     
                     current_y = pdf.get_y()
                     pdf.image(chart_image_path, x=graph_x, y=current_y, w=graph_width, h=graph_height)
                     
                     # グラフの下端位置を記録
                     graph_bottom_y = current_y + graph_height
-                    pdf.set_y(graph_bottom_y + 5)  # グラフ下に5mmの余白
                     graph_added = True
                     
                     # 一時ファイルを削除
@@ -2314,20 +2312,19 @@ def generate_pdf(data):
                     graph_path = tmp_file.name
                     
                 if generate_timeline_graph(timeline_analysis, graph_path):
-                    # グラフをPDFに追加（ページ幅の95%を使用）
+                    # グラフを左カラムに配置（ページ幅の50%を使用）
                     page_width = pdf.w - pdf.l_margin - pdf.r_margin
-                    graph_width = page_width * 0.95  # 95%
-                    graph_x = pdf.l_margin + (page_width - graph_width) / 2
+                    graph_width = page_width * 0.50  # 左側50%
+                    graph_x = pdf.l_margin
 
-                    # グラフの高さを計算（幅の約半分、最大120mm）
-                    graph_height = min(graph_width * 0.5, 120)
+                    # グラフの高さを計算
+                    graph_height = min(graph_width * 0.5, 180)
                     current_y = pdf.get_y()
                     
                     pdf.image(graph_path, x=graph_x, y=current_y, w=graph_width, h=graph_height)
                     
                     # グラフの下端位置を記録
                     graph_bottom_y = current_y + graph_height
-                    pdf.set_y(graph_bottom_y + 5)  # グラフ下に5mmの余白
                     
                     # 一時ファイルを削除
                     import os
@@ -2336,45 +2333,12 @@ def generate_pdf(data):
         except Exception as e:
             print(f"Error adding graph to PDF: {e}")
         
-        # PPTXと同じレイアウト: 左にキーワード、右にAI分析を配置
-        current_y = pdf.get_y()
-        left_column_x = pdf.l_margin
-        left_column_width = (pdf.w - pdf.l_margin - pdf.r_margin) * 0.35
-        right_column_x = left_column_x + left_column_width + 5  # 5mmのギャップ
-        right_column_width = (pdf.w - pdf.l_margin - pdf.r_margin) * 0.60
-        
-        # 左カラム：主要検索キーワード（上位10件）
-        if timeline_analysis.get('keywords'):
-            pdf.set_xy(left_column_x, current_y)
-            pdf.set_font("ipa", "B", 10)
-            pdf.set_fill_color(200, 230, 200)  # 薄い緑色の背景
-            pdf.cell(left_column_width, 6, '主要検索キーワード', 0, 1, 'L', fill=True)
-            
-            left_keywords_y = pdf.get_y() + 2
-            pdf.set_xy(left_column_x, left_keywords_y)
-            pdf.set_font("ipa", "", 8)
-            
-            # 検索ボリューム順にソートして上位10件を取得
-            all_keywords = timeline_analysis['keywords']
-            sorted_keywords = sorted(all_keywords, 
-                                   key=lambda k: k.get('estimated_volume', k.get('search_volume', 0)), 
-                                   reverse=True)
-            keywords = sorted_keywords[:10]
-            
-            # キーワードを左カラムに配置
-            for i, kw in enumerate(keywords, 1):
-                keyword_text = f"{i}. {kw['keyword']}"
-                if kw['time_diff_days'] < 0:
-                    keyword_text += f" ({abs(kw['time_diff_days']):.1f}日前)"
-                else:
-                    keyword_text += f" ({kw['time_diff_days']:.1f}日後)"
-                
-                pdf.set_x(left_column_x)
-                pdf.multi_cell(left_column_width, 4, keyword_text, 0, 'L')
-                if i < len(keywords):  # 最後のキーワード以外
-                    pdf.set_xy(left_column_x, pdf.get_y() + 1)
-        
         # 右カラム：AI分析レポート
+        current_y = pdf.get_y()
+        page_width = pdf.w - pdf.l_margin - pdf.r_margin
+        right_column_x = pdf.l_margin + page_width * 0.52  # グラフの右側から開始（50% + 2%ギャップ）
+        right_column_width = page_width * 0.48  # 残りの48%
+        
         pdf.set_xy(right_column_x, current_y)
         pdf.set_font("ipa", "B", 10)
         pdf.set_fill_color(200, 230, 200)  # 薄い緑色の背景
@@ -2712,14 +2676,14 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
                     original_width, original_height = img.size
                     aspect_ratio = original_height / original_width
 
-                    # グラフをスライドに追加（アスペクト比を保持）
+                    # グラフを左カラムに配置（スライド幅の50%を使用）
                     slide_width = prs.slide_width
                     slide_height = prs.slide_height
 
-                    # スライド幅の95%を使用
-                    max_width = slide_width * 0.95
-                    # スライドの高さの70%を最大高さとする
-                    max_height = slide_height * 0.7
+                    # 左カラム：スライド幅の50%を使用
+                    max_width = slide_width * 0.50
+                    # スライドの高さの85%を最大高さとする（縦に広く使える）
+                    max_height = slide_height * 0.85
 
                     # アスペクト比を保持しながら、最大サイズ内に収める
                     if aspect_ratio > (max_height / max_width):
@@ -2731,14 +2695,14 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
                         graph_width = max_width
                         graph_height = graph_width * aspect_ratio
 
-                    graph_x = (slide_width - graph_width) / 2
-                    graph_y = Cm(2.0)  # 2cmから開始
+                    graph_x = left_margin_ppt
+                    graph_y = Cm(2.5)  # タイトル下から開始
 
                     slide.shapes.add_picture(chart_image_path, graph_x, graph_y, width=graph_width, height=graph_height)
                     graph_added = True
                     
-                    # グラフの実際の高さと位置を記録
-                    graph_bottom = graph_y + graph_height
+                    # グラフの右端位置を記録（右カラム配置用）
+                    graph_right = graph_x + graph_width
                     
                     # 一時ファイルを削除
                     import os
@@ -2754,18 +2718,18 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
                     graph_path = tmp_file.name
                     
                 if generate_timeline_graph(timeline_analysis, graph_path):
-                    # グラフをスライドに追加（スライド幅の95%を使用）
+                    # グラフを左カラムに配置（スライド幅の50%を使用）
                     slide_width = prs.slide_width
                     slide_height = prs.slide_height
-                    graph_width = slide_width * 0.95
-                    graph_height = slide_height * 0.7  # 高さは70%
-                    graph_x = (slide_width - graph_width) / 2
-                    graph_y = Cm(2.0)  # 2cmから開始
+                    graph_width = slide_width * 0.50
+                    graph_height = slide_height * 0.85
+                    graph_x = left_margin_ppt
+                    graph_y = Cm(2.5)  # タイトル下から開始
                     
                     slide.shapes.add_picture(graph_path, graph_x, graph_y, width=graph_width, height=graph_height)
                     
-                    # グラフの実際の高さと位置を記録
-                    graph_bottom = graph_y + graph_height
+                    # グラフの右端位置を記録（右カラム配置用）
+                    graph_right = graph_x + graph_width
                     
                     # 一時ファイルを削除
                     import os
@@ -2776,48 +2740,22 @@ def generate_ppt(persona_data, image_path=None, department_text=None, purpose_te
             # グラフ追加に失敗した場合のデフォルト位置
             graph_bottom = Cm(9.0)  # デフォルトで9cmと仮定
         
-        # グラフの実際の位置が設定されていない場合
-        if 'graph_bottom' not in locals():
-            graph_bottom = Cm(9.0)  # デフォルト値
+        # グラフの右端位置が設定されていない場合
+        if 'graph_right' not in locals():
+            graph_right = left_margin_ppt + slide_width * 0.50  # デフォルト値
         
-        # 左カラム：主要キーワード（グラフの下に配置）
-        left_column_y = graph_bottom + Cm(0.5)  # グラフの実際の下端から0.5cmの余白
-        left_width = content_width * 0.35  # 左カラムの幅を定義
+        # 右カラム：AI分析レポート（グラフの右側に配置）
+        right_column_x = graph_right + Cm(0.5)  # グラフの右端から0.5cmの余白
+        right_column_y = Cm(2.5)  # グラフと同じ高さから開始
+        right_width = slide_width - right_column_x - right_margin_ppt  # 残りの幅を使用
         
-        # 主要キーワード（上位5件 - グラフの番号と対応）
-        if timeline_analysis.get('keywords'):
-            keywords_title = slide.shapes.add_textbox(left_margin_ppt, left_column_y, left_width, Cm(0.8))
-            add_text_to_shape(keywords_title, '主要検索キーワード', font_size=Pt(12), is_bold=True, 
-                             font_name='Meiryo UI', fill_color=RGBColor(200, 230, 200))
-            left_column_y += Cm(1)
-            
-            # 検索ボリューム順にソートして上位10件を取得
-            all_keywords = timeline_analysis['keywords']
-            sorted_keywords = sorted(all_keywords, 
-                                   key=lambda k: k.get('estimated_volume', k.get('search_volume', 0)), 
-                                   reverse=True)
-            keywords = sorted_keywords[:10]
-            keywords_text = ""
-            for i, kw in enumerate(keywords, 1):
-                keyword_text = f"{i}. {kw['keyword']} ("
-                if kw['time_diff_days'] < 0:
-                    keyword_text += f"{abs(kw['time_diff_days']):.1f}日前)"
-                else:
-                    keyword_text += f"{kw['time_diff_days']:.1f}日後)"
-                keywords_text += keyword_text + "\n"
-            
-            keywords_shape = slide.shapes.add_textbox(left_margin_ppt, left_column_y, left_width, Cm(5))
-            add_text_to_shape(keywords_shape, keywords_text.strip(), font_size=Pt(9), font_name='Meiryo UI')
-        
-        # 右カラム：AI分析レポート（グラフの下に配置）
-        right_column_y = graph_bottom + Cm(0.5)  # グラフの実際の下端から0.5cmの余白
         analysis_title = slide.shapes.add_textbox(right_column_x, right_column_y, right_width, Cm(0.8))
         add_text_to_shape(analysis_title, 'AI分析レポート', font_size=Pt(12), is_bold=True, 
                          font_name='Meiryo UI', fill_color=RGBColor(200, 230, 200))
         
         ai_analysis_text = timeline_analysis.get('ai_analysis', '')
         if ai_analysis_text:
-            analysis_shape = slide.shapes.add_textbox(right_column_x, right_column_y + Cm(1), right_width, Cm(10))
+            analysis_shape = slide.shapes.add_textbox(right_column_x, right_column_y + Cm(1), right_width, slide_height - right_column_y - Cm(2))
             add_text_to_shape(analysis_shape, ai_analysis_text, font_size=Pt(9), font_name='Meiryo UI')
     
     # Save to memory stream
