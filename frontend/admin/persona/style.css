@@ -1743,11 +1743,10 @@ footer {
     gap: 20px;
     max-width: 100%;
     margin: 0 auto;
-    padding-right: 20px; /* 右側の余白を追加 */
 }
 
 #timeline-analysis-content {
-    max-width: calc(100% - 40px); /* 左右の余白を確保 */
+    max-width: 100%;
     margin: 0 auto;
     overflow-wrap: break-word;
     word-break: break-word;
