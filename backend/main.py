@@ -2249,12 +2249,17 @@ def generate_pdf(data):
         
         # グラフの下端位置を記録する変数
         graph_bottom_y = pdf.get_y()
-        
+
         # グラフを追加（フロントエンドから送信された画像またはバックエンドで生成）
         try:
             graph_added = False
-            
+
             # 1. フロントエンドから送信されたChart.js画像を優先して使用
+            print(f"[DEBUG] PDF: timeline_chart_image exists: {timeline_chart_image is not None}")
+            if timeline_chart_image:
+                print(f"[DEBUG] PDF: timeline_chart_image length: {len(timeline_chart_image)}")
+                print(f"[DEBUG] PDF: timeline_chart_image preview: {timeline_chart_image[:50] if len(timeline_chart_image) > 50 else timeline_chart_image}")
+
             if timeline_chart_image and timeline_chart_image.startswith('data:image'):
                 try:
                     # data:image/png;base64,xxxxx の形式から画像データを抽出
