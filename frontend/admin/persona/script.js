@@ -4547,8 +4547,8 @@ function generateExportChart(preDiagnosisData, postDiagnosisData, dynamicMinX, d
             chart.data.datasets.forEach((dataset, datasetIndex) => {
                 const meta = chart.getDatasetMeta(datasetIndex);
                 dataset.data.forEach((dataPoint, index) => {
-                    // 上位20件のみラベル表示
-                    if (index < 20) {
+                    // 全てのデータポイントにラベル表示
+                    if (true) {
                         const element = meta.data[index];
                         const x = element.x + 15;
                         const y = element.y;
@@ -4601,7 +4601,7 @@ function generateExportChart(preDiagnosisData, postDiagnosisData, dynamicMinX, d
             layout: {
                 padding: {
                     left: 20,
-                    right: 300,
+                    right: 150,
                     top: 20,
                     bottom: 40
                 }
