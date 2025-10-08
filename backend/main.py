@@ -2226,14 +2226,14 @@ def generate_pdf(data):
 
             # コンテンツ
             pdf.set_x(right_column_x) # multi_cell のためにX座標を右カラムの開始位置にリセット
-            pdf.set_font("ipa", '', 10) # 通常フォント、サイズ10に変更
+            pdf.set_font("ipa", '', 8) # フォントサイズを8に縮小
             pdf.set_text_color(0, 0, 0)  # テキストは黒にリセット
-            pdf.ln(2) # コンテンツ前に少し余白を追加
+            pdf.ln(1) # コンテンツ前の余白を削減
             pdf.set_x(right_column_x)
-            pdf.multi_cell(right_column_width, 6, str(value), 0, 'L') # 行の高さ5mmから6mmに変更
+            pdf.multi_cell(right_column_width, 4.5, str(value), 0, 'L') # 行の高さを4.5mmに縮小
             right_column_current_y = pdf.get_y() # multi_cell 後のY座標を更新
             
-            pdf.ln(5) # セクション間のスペースを3mmから5mmに増加
+            pdf.ln(3) # セクション間スペースを3mmに削減 # セクション間のスペースを3mmから5mmに増加
             right_column_current_y = pdf.get_y() # スペース後のY座標を更新
 
     # --- タイムライン分析セクション（新しいページに追加） ---
