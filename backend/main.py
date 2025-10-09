@@ -978,6 +978,12 @@ def parse_ai_response(text):
 
 @app.post("/api/generate")
 async def generate_persona(request: Request, username: str = Depends(verify_any_credentials)):
+    import time
+    request_start_time = time.time()
+    print("="*60)
+    print(f"[PERF] Request started at {time.strftime('%H:%M:%S')}")
+    print("="*60)
+    
     try:
         data = await request.json()
         
@@ -1165,6 +1171,7 @@ async def generate_persona(request: Request, username: str = Depends(verify_any_
         
         # ===== 非同期処理開始 =====
         # 画像生成タスクを先に開始（バックグラウンドで実行）
+        image_start_time = time.time()
         print("[Async] Starting image generation task in background")
         image_generation_task = asyncio.create_task(
             generate_image_async(
@@ -1185,6 +1192,7 @@ async def generate_persona(request: Request, username: str = Depends(verify_any_
                 client_init_error = str(e)
         
         # テキスト生成実行（画像生成と並列）
+        text_start_time = time.time()
         print("="*60)
         print(f"[AI] ===== STARTING TEXT GENERATION =====")
         print(f"[AI] Model: {selected_text_model}")
@@ -1196,9 +1204,11 @@ async def generate_persona(request: Request, username: str = Depends(verify_any_
         if text_generation_client:
             try:
                 generated_text_str = await generate_text_response(prompt_text, selected_text_model, text_api_key_to_use)
+                text_time = time.time() - text_start_time
                 print("="*60)
                 print(f"[AI] ✓ Text generation completed successfully")
                 print(f"[AI] Response length: {len(generated_text_str) if generated_text_str else 0} characters")
+                print(f"[PERF] Text generation time: {text_time:.2f} seconds")
                 print("="*60)
             except Exception as e:
                 print("="*60)
@@ -1230,7 +1240,9 @@ async def generate_persona(request: Request, username: str = Depends(verify_any_
         print("[Async] Waiting for image generation to complete")
         try:
             image_url = await image_generation_task
+            image_time = time.time() - image_start_time
             print(f"[Async] Image generation completed successfully")
+            print(f"[PERF] Image generation time: {image_time:.2f} seconds")
         except Exception as e:
             print(f"[Async] Image generation task failed: {e}")
             traceback.print_exc()
@@ -1246,6 +1258,15 @@ async def generate_persona(request: Request, username: str = Depends(verify_any_
             "image_url": image_url, # DALL-EならURL、GeminiならBase64 Data URI
             "rag_info": rag_info if 'rag_info' in locals() else None # RAGデータベース情報
         }
+        
+        # パフォーマンス測定
+        total_time = time.time() - request_start_time
+        print("="*60)
+        print(f"[PERF] ===== REQUEST COMPLETED =====")
+        print(f"[PERF] Total time: {total_time:.2f} seconds")
+        print(f"[PERF] Completed at {time.strftime('%H:%M:%S')}")
+        print("="*60)
+        
         return response_data
 
     except Exception as e:
