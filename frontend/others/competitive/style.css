@@ -100,16 +100,7 @@ header {
     position: relative;
 }
 
-/* レスポンシブ対応 */
-@media (max-width: 768px) {
-    .form-area {
-        padding: 15px;
-    }
-    
-    .form-step {
-        padding: 10px;
-    }
-}
+/*/* レスポンシブ対応 - この部分は削除（後半の詳細版を使用） */
 
 /* Form Steps */
 .form-step {
@@ -1045,23 +1036,220 @@ div[style*="will-change: opacity"] {
 
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
-    .swot-grid {
-        grid-template-columns: 1fr;
+    /* Header adjustments */
+    header {
+        padding: 0.75rem 1rem;
     }
     
+    .logo {
+        font-size: 1.2em;
+    }
+    
+    /* Main container */
+    .main-container {
+        margin: 10px;
+        border-radius: 4px;
+    }
+    
+    /* Form area */
+    .form-area {
+        padding: 10px;
+    }
+    
+    .form-step {
+        padding: 10px;
+    }
+    
+    /* Step header */
+    .step-header .icon {
+        width: 60px;
+        height: 60px;
+        margin-right: 10px;
+        margin-top: -15px;
+    }
+    
+    .question-text {
+        font-size: 1em;
+    }
+    
+    /* Department options - 2 columns on mobile */
+    .department-options {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    .department-options label {
+        font-size: 0.8em;
+        padding: 5px 2px;
+        height: 75px;
+    }
+    
+    .department-icon {
+        width: 48px;
+        height: 48px;
+    }
+    
+    /* Analysis range options - single column */
+    .analysis-range-options {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        margin: 20px 0;
+    }
+    
+    .range-card {
+        padding: 20px 15px;
+    }
+    
+    .range-icon {
+        font-size: 2.5em;
+    }
+    
+    .range-title {
+        font-size: 1.1em;
+    }
+    
+    /* Form groups */
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .form-group label {
+        font-size: 0.95em;
+    }
+    
+    .form-group input[type="text"],
+    .form-group textarea {
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+    
+    /* Postal code input */
+    .postal-code-input {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .postal-search-btn {
+        width: 100%;
+    }
+    
+    /* Navigation buttons */
+    .step-nav-buttons {
+        margin-top: 15px;
+    }
+    
+    .prev-step-btn,
+    .next-step-btn,
+    .analyze-btn {
+        width: 100% !important;
+        margin: 5px 0;
+        font-size: 0.95em;
+    }
+    
+    .prev-step-btn {
+        margin-right: 0;
+    }
+    
+    /* Analyzing screen */
+    #analyzing-screen {
+        padding: 40px 15px;
+    }
+    
+    .analyzing-content h2 {
+        font-size: 1.5em;
+        margin: 15px 0 30px;
+    }
+    
+    .step-item {
+        padding: 12px 0;
+    }
+    
+    .step-icon {
+        font-size: 1.3em;
+    }
+    
+    .step-text {
+        font-size: 1em;
+    }
+    
+    /* Result screen */
+    #result-screen {
+        padding: 15px;
+    }
+    
+    .result-header,
+    .competitors-section,
+    .swot-analysis,
+    .recommendations {
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .result-header h2 {
+        font-size: 1.5em;
+    }
+    
+    .analysis-summary {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    /* Competitor cards */
+    .competitor-card {
+        padding: 15px;
+    }
+    
+    .competitor-card h4 {
+        font-size: 1.1em;
+    }
+    
+    /* SWOT grid */
+    .swot-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .swot-section {
+        padding: 15px;
+    }
+    
+    .swot-section h4 {
+        font-size: 1em;
+    }
+    
+    /* Recommendations */
+    .recommendation-item {
+        padding: 15px;
+    }
+    
+    .recommendation-item h4 {
+        font-size: 1em;
+    }
+    
+    /* Action buttons */
     .action-buttons {
         flex-direction: column;
+        gap: 10px;
     }
     
     .action-buttons .btn {
         width: 100%;
+        padding: 10px 20px;
+        font-size: 14px;
     }
     
+    /* Modal */
     .modal-dialog {
         width: 95%;
         max-width: none;
     }
     
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding: 15px;
+    }
+    
+    /* Map */
     #competitors-map {
         height: 400px !important;
     }
@@ -1069,5 +1257,10 @@ div[style*="will-change: opacity"] {
     .map-legend {
         flex-direction: column;
         gap: 0.5rem;
+        padding: 0.75rem;
+    }
+    
+    .map-legend p {
+        font-size: 0.9em;
     }
 }

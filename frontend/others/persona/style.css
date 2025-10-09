@@ -1029,13 +1029,26 @@ footer {
 
     /* Adjust department options for smaller screens */
     .department-options { /* Apply responsive grid to department */
-         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+         grid-template-columns: repeat(4, 1fr); /* 4 columns on tablet */
     }
     .purpose-options,
     .setting-type-options { /* Apply to setting-type-options as well */
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Apply responsive grid */
+        grid-template-columns: repeat(2, 1fr); /* 2 columns on tablet */
         width: auto; /* Reset width for smaller screens */
         /* margin: 20px auto; */ /* Keep centering */
+    }
+    
+    /* Adjust patient type grid for tablet */
+    .patient-type-grid {
+        grid-template-columns: repeat(3, 1fr); /* 3 columns on tablet */
+        gap: 10px 15px;
+    }
+    
+    .patient-type-icon {
+        width: 100%;
+        max-width: 129px;
+        height: auto;
+        aspect-ratio: 129 / 87; /* Maintain aspect ratio */
     }
 
     /* Adjust next/prev button width and layout on smaller screens */
@@ -1778,8 +1791,107 @@ footer {
 
 /* Responsive design for timeline */
 @media (max-width: 768px) {
+    /* Chart container for timeline */
     .chart-container {
         min-height: 400px;
         height: 400px;
+    }
+    
+    /* Department selection - 2 columns on mobile */
+    .department-options {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    .department-options label {
+        font-size: 0.8em;
+        padding: 5px 2px;
+    }
+    
+    .department-icon {
+        width: 48px;
+        height: 48px;
+    }
+    
+    /* Purpose and Setting Type - 1 column on mobile */
+    .purpose-options,
+    .setting-type-options {
+        grid-template-columns: 1fr !important;
+        width: 100% !important;
+        max-width: 100%;
+    }
+    
+    /* Patient Type Grid - 2 columns on mobile */
+    .patient-type-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    .patient-type-icon {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+    }
+    
+    .patient-type-name {
+        font-size: 0.9em;
+    }
+    
+    /* Form area padding */
+    .form-area {
+        padding: 15px 10px 0 10px;
+    }
+    
+    /* Step header adjustments */
+    .step-header .icon {
+        width: 60px;
+        height: 60px;
+        margin-right: 10px;
+    }
+    
+    .question-text {
+        font-size: 1em;
+    }
+    
+    /* Buttons full width on mobile */
+    .next-step-btn,
+    .prev-step-btn {
+        width: 100% !important;
+        margin: 5px 0;
+    }
+    
+    /* Download buttons stack on mobile */
+    .download-options {
+        position: static;
+        flex-direction: column;
+        margin-bottom: 15px;
+    }
+    
+    .download-options button {
+        width: 100%;
+        margin: 5px 0 !important;
+    }
+    
+    /* Persona preview adjustments */
+    .persona-result-container {
+        flex-direction: column;
+    }
+    
+    .persona-preview,
+    .persona-details {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+    
+    /* Tab navigation */
+    .tab-button {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    
+    /* Chief complaint options */
+    .chief-complaint-options {
+        grid-template-columns: 1fr;
+        max-height: 300px;
     }
 } 
