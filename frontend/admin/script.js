@@ -1028,13 +1028,7 @@ const departmentDisplayNames = {
     'hematology': '血液内科',
     'endocrinology': '内分泌内科',
     'plastic_surgery': '形成外科',
-    'beauty_surgery': '美容外科',
-    'cosmo': '美容外科',
-    'health_checkup': '健診・人間ドック',
-    'elderly_care': '介護・高齢者医療',
-    'home_care': '在宅医療',
-    'industrial_medicine': '産業医',
-    'travel_medicine': '渡航医学'
+    'beauty_surgery': '美容外科'
 };
 
 // 主訴リストを読み込む関数
