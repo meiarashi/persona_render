@@ -596,6 +596,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+        
+        // ハードコードされた診療科ラジオボタンのイベントリスナー
+        const departmentRadios = document.querySelectorAll('input[name="department"]');
+        departmentRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                const container = document.querySelector('.department-options');
+                if (container) {
+                    // すべてのselectedクラスを削除
+                    container.querySelectorAll('label').forEach(l => l.classList.remove('selected'));
+                    // 選択されたラベルにselectedクラスを追加
+                    if (radio.checked) {
+                        const label = radio.closest('label');
+                        if (label) {
+                            label.classList.add('selected');
+                        }
+                    }
+                }
+            });
+        });
     }
     
     function handleNextStep(e) {
