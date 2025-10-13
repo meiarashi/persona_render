@@ -34,8 +34,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     // URLから診療科カテゴリーを判定
     const path = window.location.pathname;
     let category = 'medical'; // デフォルト
-    
-    if (path.includes('/medical')) {
+
+    if (path.includes('/admin')) {
+        // adminの場合はハードコードされた診療科を使用するため、動的読み込みをスキップ
+        return;
+    } else if (path.includes('/medical')) {
         category = 'medical';
     } else if (path.includes('/dental')) {
         category = 'dental';

@@ -85,8 +85,12 @@
 
                         <div class="form-group">
                             <label>診療科 <span class="required">*</span></label>
-                            <div class="department-checkbox-grid">
-                                <!-- 診療科チェックボックスは動的に生成 -->
+                            <div class="department-options">
+                                <!-- Dentalセクション専用診療科 -->
+                                <label><input type="radio" name="department" value="general_dentistry"><div class="department-icon" style="background-image: url('/images/departments/一般歯科.png');"></div> 一般歯科</label>
+                                <label><input type="radio" name="department" value="pediatric_dentistry"><div class="department-icon" style="background-image: url('/images/departments/小児歯科.png');"></div> 小児歯科</label>
+                                <label><input type="radio" name="department" value="orthodontics"><div class="department-icon" style="background-image: url('/images/departments/矯正歯科.png');"></div> 矯正歯科</label>
+                                <label><input type="radio" name="department" value="cosmetic_dentistry"><div class="department-icon" style="background-image: url('/images/departments/審美歯科.png');"></div> 審美歯科</label>
                             </div>
                         </div>
                     </div>
