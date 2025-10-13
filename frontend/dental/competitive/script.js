@@ -199,6 +199,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function loadAndRenderDepartments() {
         const container = document.querySelector('.department-checkbox-grid');
+        if (!container) {
+            console.log('Department container not found, using hardcoded departments');
+            return;
+        }
         container.innerHTML = '<div style="text-align: center; color: #666;">診療科を読み込み中...</div>';
         
         try {

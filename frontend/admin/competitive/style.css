@@ -312,6 +312,9 @@ header {
     width: 64px;
     height: 64px;
     margin-bottom: 2px;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 .department-options label.selected {
