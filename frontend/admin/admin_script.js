@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 text_models: [
                     { id: "gpt-5", name: "GPT-5" },
                     { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4" },
-                    { id: "-gemini-2.5-pro-preview-06-05", name: "Gemini 2.5 Pro" }
+                    { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro" }
                 ],
                 image_models: [
                     { id: "dall-e-3", name: "DALL-E 3" },
