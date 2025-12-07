@@ -377,7 +377,7 @@ class WebResearchService:
                     # Googleにフォールバック
                     if self.google_api_key:
                         self.selected_provider = "google"
-                        self.selected_model = "gemini-2.5-pro-preview-06-05"
+                        self.selected_model = "gemini-2.5-pro"
             
             if self.selected_provider == "google" and self.google_api_key and not extracted_info:
                 try:
